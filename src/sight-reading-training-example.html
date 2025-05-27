@@ -18,7 +18,7 @@
       VexFlow.setFonts('Bravura', 'Academico');
       
       const factory = new VexFlow.Factory({
-        renderer: { elementId: 'output', width: 500, height: 400 },
+        renderer: { elementId: 'output', width: 1000, height: 1400 },
       });
 
       const score = factory.EasyScore();
@@ -28,7 +28,6 @@
         .addStave({
           voices: [
             score.voice(score.notes('C#5/q, B4, A4, G#4', { stem: 'up' })),
-            score.voice(score.notes('C#4/h, C#4', { stem: 'down' })),
           ],
         })
         .addClef('treble')
@@ -44,7 +43,10 @@
         .addClef('bass')
         .addTimeSignature('4/4');
 
+      system.addConnector();
+
       factory.draw();
+
     });
     </script>
   </body>
