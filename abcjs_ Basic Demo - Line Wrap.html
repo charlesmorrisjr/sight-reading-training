@@ -55,6 +55,7 @@
         // Generate measures
         for (let i = 0; i < measures; i++) {
             let measure = '';
+            let previousNote = '';
             let beats = 0;
             
             // Fill measure with random notes
@@ -70,8 +71,10 @@
                     beats += 1;
                 }
                 
-                // Add space between notes
-                measure += ' ';
+                // If the previous note is a quarter note, add a space
+                if (measure.slice(-1) === '2') {
+                  measure += ' ';
+                }
             }
             
             abc += measure + '|';
