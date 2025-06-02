@@ -16,7 +16,7 @@
 		  "L: 1/8\n" +
 		  "R: reel\n" +
 		  "K: Emin\n" +
-		  "EB{c}BA B2 EB|~B2 AB dBAG|FDAD BDAD|FDAD dAFD|\n" +
+		  "FB{c}BA B2 EB|~B2 AB dBAG|FDAD BDAD|FDAD dAFD|\n" +
 		  "EBBA B2 EB|B2 AB defg|afe^c dBAF|DEFD E2D2|\n" +
 		  "EB{c}BA B2 EB|~B2 AB dBAG|FDAD BDAD|FDAD dAFD|\n" +
 		  "EBBA B2 EB|B2 AB defg|afe^c dBAF|DEFD E2gf|\n" +
@@ -58,7 +58,7 @@
             let beats = 0;
             
             // Fill measure with random notes
-            while (beats < 4) { // 4/4 time signature
+            while (beats < 8) { // 4/4 time signature
                 const note = availableNotes[Math.floor(Math.random() * availableNotes.length)];
                 const duration = Math.random() < 0.3 ? 2 : 1; // 30% chance of half note
                 
@@ -86,6 +86,7 @@
 
     function redraw() {
       abc = generateRandomABC(8, 'C');
+      console.log(abc);
       
       ABCJS.renderAbc("paper", abc, {
         wrap: {
