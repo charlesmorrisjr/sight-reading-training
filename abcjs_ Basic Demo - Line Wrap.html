@@ -10,7 +10,7 @@
   <title>abcjs: Basic Demo</title>
   <script src="abcjs-basic-min.js" type="text/javascript"></script>
   <script type="text/javascript">
-	  var abc = "T: Cooley's\n" +
+	  let abc = "T: Cooley's\n" +
 		  "%%measurenb 1\n" +
 		  "M: 4/4\n" +
 		  "L: 1/8\n" +
@@ -25,12 +25,68 @@
 		  "eB B2 efge|eB B2 gedB|A2 FA DAFA|A2 FA defg|\n" +
 		  "eB B2 eBgB|eB B2 defg|afe^c dBAF|DEFD E2|]";
 
-    var minSpacing = 1.8;
-    var maxSpacing = 2.8;
-    var preferredMeasuresPerLine = 4;
-    var staffwidth = 900;
+    let minSpacing = 1.8;
+    let maxSpacing = 2.8;
+    let preferredMeasuresPerLine = 4;
+    let staffwidth = 900;
+
+        
+    /**
+     * Generates a random ABC notation string
+     * @param {number} measures - Number of measures to generate
+     * @param {string} key - Musical key (e.g., 'C', 'G', 'D', 'Am', 'Em')
+     * @returns {string} ABC notation string
+     */
+    function generateRandomABC(measures = 8, key = 'C') {
+        // Basic ABC header
+        let abc = `X:1\nT:Random Tune\nM:4/4\nL:1/8\nK:${key}\n`;
+        
+        // Available notes based on key
+        const notes = {
+            'C': ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'c', 'd', 'e', 'f', 'g'],
+            'G': ['G', 'A', 'B', 'c', 'd', 'e', 'f#', 'g', 'a', 'b'],
+            'D': ['D', 'E', 'F#', 'G', 'A', 'B', 'c#', 'd', 'e', 'f#'],
+            'Am': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'a', 'b', 'c'],
+            'Em': ['E', 'F#', 'G', 'A', 'B', 'C', 'D', 'e', 'f#', 'g']
+        };
+
+        const availableNotes = notes[key] || notes['C'];
+        
+        // Generate measures
+        for (let i = 0; i < measures; i++) {
+            let measure = '';
+            let beats = 0;
+            
+            // Fill measure with random notes
+            while (beats < 4) { // 4/4 time signature
+                const note = availableNotes[Math.floor(Math.random() * availableNotes.length)];
+                const duration = Math.random() < 0.3 ? 2 : 1; // 30% chance of half note
+                
+                measure += note;
+                if (duration === 2) {
+                    measure += '2';
+                    beats += 2;
+                } else {
+                    beats += 1;
+                }
+                
+                // Add space between notes
+                measure += ' ';
+            }
+            
+            abc += measure + '|';
+            if (i % 2 === 1) abc += '\n'; // Add line break every 2 measures
+        }
+        
+        return abc;
+    }
+
+    // Example usage:
+    // console.log(generateRandomABC(8, 'C')); 
 
     function redraw() {
+      abc = generateRandomABC(8, 'C');
+      
       ABCJS.renderAbc("paper", abc, {
         wrap: {
           minSpacing: minSpacing,
@@ -40,16 +96,16 @@
         staffwidth: staffwidth
       });
     }
-
+    
     function load() {
-      var el = document.querySelector("#parameters");
+      let el = document.querySelector("#parameters");
       el.addEventListener("submit", changeParameters);
       redraw();
     }
 
     function changeParameters(ev) {
       ev.preventDefault();
-      var data = new FormData( ev.target);
+      let data = new FormData( ev.target);
       minSpacing = data.get("min");
       maxSpacing = data.get("max");
       preferredMeasuresPerLine = data.get("measures");
