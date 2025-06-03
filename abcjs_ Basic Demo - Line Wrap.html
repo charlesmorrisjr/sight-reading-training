@@ -37,51 +37,57 @@
      * @param {string} key - Musical key (e.g., 'C', 'G', 'D', 'Am', 'Em')
      * @returns {string} ABC notation string
      */
+    
+     /* TODO:
+      * - Make all keys available
+      * - Make length changeable
+      * - Add half notes and whole notes
+      *   - Notes should be selectable eventually
+      * - Make time signature changeable
+     */
+    
     function generateRandomABC(measures = 8, key = 'C') {
-        // Basic ABC header
-        let abc = `X:1\nT:Random Tune\nM:4/4\nL:1/8\nK:${key}\n`;
+      // Basic ABC header
+      let abc = `X:1\nT:Random Tune\nM:4/4\nL:1/8\nK:${key}\n`;
+      
+      // Available notes based on key
+      // ^ is sharp, _ is flat
+      const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+      
+      // Generate measures
+      for (let i = 0; i < measures; i++) {
+        let measure = '';
+        let previousNote = '';
+        let beats = 0;
         
-        // Available notes based on key
-        const notes = {
-            'C': ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'c', 'd', 'e', 'f', 'g'],
-            'G': ['G', 'A', 'B', 'c', 'd', 'e', 'f#', 'g', 'a', 'b'],
-            'D': ['D', 'E', 'F#', 'G', 'A', 'B', 'c#', 'd', 'e', 'f#'],
-            'Am': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'a', 'b', 'c'],
-            'Em': ['E', 'F#', 'G', 'A', 'B', 'C', 'D', 'e', 'f#', 'g']
-        };
-
-        const availableNotes = notes[key] || notes['C'];
-        
-        // Generate measures
-        for (let i = 0; i < measures; i++) {
-            let measure = '';
-            let previousNote = '';
-            let beats = 0;
-            
-            // Fill measure with random notes
-            while (beats < 8) { // 4/4 time signature
-                const note = availableNotes[Math.floor(Math.random() * availableNotes.length)];
-                const duration = Math.random() < 0.3 ? 2 : 1; // 30% chance of half note
-                
-                measure += note;
-                if (duration === 2) {
-                    measure += '2';
-                    beats += 2;
-                } else {
-                    beats += 1;
-                }
-                
-                // If the previous note is a quarter note, add a space
-                if (measure.slice(-1) === '2') {
-                  measure += ' ';
-                }
-            }
-            
-            abc += measure + '|';
-            if (i % 2 === 1) abc += '\n'; // Add line break every 2 measures
+        // Fill measure with random notes
+        while (beats < 8) { // 4/4 time signature
+          let note = notes[Math.floor(Math.random() * notes.length)];
+          note = Math.random() < 0.5 ? note.toLowerCase() : note; // 50% chance note is octave higher
+          
+          const duration = Math.random() < 0.3 ? 2 : 1; // 30% chance of quarter note
+          
+          // Add note to measure
+          measure += note;
+          // If the note is an quarter note, add a space
+          if (duration === 2) {
+            measure += '2';
+            beats += 2;
+          } else {
+            beats += 1;
+          }
+          
+          // If the previous note is a quarter note, add a space
+          if (measure.slice(-1) === '2') {
+            measure += ' ';
+          }
         }
         
-        return abc;
+        abc += measure + '|';
+        if (i % 2 === 1) abc += '\n'; // Add line break every 2 measures
+      }
+      
+      return abc;
     }
 
     // Example usage:
