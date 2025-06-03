@@ -7,7 +7,7 @@
   <link rel="icon" href="https://paulrosen.github.io/abcjs/examples/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="./abcjs_ Basic Demo - Line Wrap_files/examples-styles.css">
 
-  <title>abcjs: Basic Demo</title>
+  <title>AbcJS: Random Music Generator</title>
   <script src="abcjs-basic-min.js" type="text/javascript"></script>
   <script type="text/javascript">
 	  let abc = "T: Cooley's\n" +
@@ -29,6 +29,8 @@
     let maxSpacing = 2.8;
     let preferredMeasuresPerLine = 4;
     let staffwidth = 900;
+    let musicKey = 'C';
+    let musicLength = 8;
 
         
     /**
@@ -94,7 +96,7 @@
     // console.log(generateRandomABC(8, 'C')); 
 
     function redraw() {
-      abc = generateRandomABC(8, 'C');
+      abc = generateRandomABC(musicLength, musicKey);
       console.log(abc);
       
       ABCJS.renderAbc("paper", abc, {
@@ -115,11 +117,15 @@
 
     function changeParameters(ev) {
       ev.preventDefault();
-      let data = new FormData( ev.target);
+      let data = new FormData(ev.target);
+      
       minSpacing = data.get("min");
       maxSpacing = data.get("max");
       preferredMeasuresPerLine = data.get("measures");
       staffwidth = data.get("width");
+      musicKey = data.get("musicKey").toUpperCase();
+      musicLength = data.get("musicLength");
+      
       redraw();
     }
 
@@ -142,13 +148,13 @@
 </head>
 <body onload="load()">
   <header>
-    <h1>Wrap</h1>
+    <h1>Random Music Generator</h1>
   </header>
     <form id="parameters">
       <label>Total width: <input id="width" name="width" type="number" min="300" max="2000" step="10" value="900"></label>
       <label>Preferred measures per line: <input id="measures" name="measures" type="number" min="0" max="32" step="1" value="4"></label>
-      <label>Minimum spacing: <input id="min" name="min" type="number" min="0" max="5" step=".1" value="1.8"></label>
-      <label>Maximum spacing: <input id="max" name="max" type="number" min="0" max="5" step=".1" value="2.8"></label>
+      <label>Key: <input id="musicKey" name="musicKey" type="text" value="C"></label>
+      <label>Measures: <input id="musicLength" name="musicLength" type="number" min="1" max="32" step="1" value="8"></label>
       <button type="submit">Redraw</button>
     </form>
   <div id="paper"></div>
