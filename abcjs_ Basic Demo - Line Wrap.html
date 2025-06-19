@@ -72,16 +72,17 @@
 
       // Determine interval checkboxes selected and create an array of the available intervals
       let intervals = [1];
-      for (let i = 2; i <= 7; i++) {
+      for (let i = 2; i <= 8; i++) {
         const checkbox = document.getElementById(`interval${i}`);
         if (checkbox && checkbox.checked) {
           intervals.push(i);
         }
       }
-      
+     
       // Generate measures
       for (let i = 0; i < measures; i++) {
         let lastNoteIndex = 0; // Start at C
+        let nextOctave = false;
         let measure = notes[lastNoteIndex]; // Start measure with C
         let beats = 1; // Already added one note
         
@@ -89,12 +90,14 @@
         while (beats < 8) { // 4/4 time signature
           // Randomly select interval
           let interval = intervals[Math.floor(Math.random() * intervals.length)];
+          // Save index without modulo operation to determine what octave the note should be placed in
+          let nextNoteIndex = lastNoteIndex + (interval - 1);
           // Save the index of this note to determine the interval for the next note
-          lastNoteIndex = (lastNoteIndex + (interval - 1)) % 7;
+          lastNoteIndex = nextNoteIndex % 7;
           // Set next note
           let nextNote = notes[lastNoteIndex];
-          
-          // nextNote = Math.random() < 0.5 ? nextNote.toLowerCase() : nextNote; // 50% chance note is octave higher
+          // If note belongs in next octave, place it there.
+          nextNote = nextNoteIndex >= 7 ? nextNote.toLowerCase() : nextNote;
           
           const duration = Math.random() < 0.3 ? 2 : 1; // 30% chance of quarter note
           
@@ -193,6 +196,7 @@
       <label><input type="checkbox" id="interval5" name="interval5" value="5"> 5th</label>
       <label><input type="checkbox" id="interval6" name="interval6" value="6"> 6th</label>
       <label><input type="checkbox" id="interval7" name="interval7" value="7"> 7th</label>
+      <label><input type="checkbox" id="interval8" name="interval8" value="7"> 8th</label>
     </form>
   <div id="paper"></div>
 
