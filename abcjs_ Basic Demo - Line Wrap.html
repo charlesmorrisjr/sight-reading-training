@@ -57,7 +57,7 @@
     * 
     * - determine interval checkboxes selected
     *   - create array of possible intervals
-    *   - random select interval
+    *   - randomly select interval
     *   - add interval to last note and use modulo of 7 to select the correct note from the 'notes' array
     */
     
@@ -70,24 +70,36 @@
       // ^ is sharp, _ is flat
       const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
-      // Determine interval checkboxes selected
-      
+      // Determine interval checkboxes selected and create an array of the available intervals
+      let intervals = [1];
+      for (let i = 2; i <= 7; i++) {
+        const checkbox = document.getElementById(`interval${i}`);
+        if (checkbox && checkbox.checked) {
+          intervals.push(i);
+        }
+      }
       
       // Generate measures
       for (let i = 0; i < measures; i++) {
-        let measure = '';
-        let previousNote = '';
-        let beats = 0;
+        let lastNoteIndex = 0; // Start at C
+        let measure = notes[lastNoteIndex]; // Start measure with C
+        let beats = 1; // Already added one note
         
         // Fill measure with random notes
         while (beats < 8) { // 4/4 time signature
-          let note = notes[Math.floor(Math.random() * notes.length)];
-          note = Math.random() < 0.5 ? note.toLowerCase() : note; // 50% chance note is octave higher
+          // Randomly select interval
+          let interval = intervals[Math.floor(Math.random() * intervals.length)];
+          // Save the index of this note to determine the interval for the next note
+          lastNoteIndex = (lastNoteIndex + (interval - 1)) % 7;
+          // Set next note
+          let nextNote = notes[lastNoteIndex];
+          
+          // nextNote = Math.random() < 0.5 ? nextNote.toLowerCase() : nextNote; // 50% chance note is octave higher
           
           const duration = Math.random() < 0.3 ? 2 : 1; // 30% chance of quarter note
           
           // Add note to measure
-          measure += note;
+          measure += nextNote;
           // If the note is an quarter note, add a space
           if (duration === 2) {
             measure += '2';
