@@ -42,11 +42,25 @@
     
      /* TODO:
       * - Make all keys available
+      *   - Add sharps and flats to keys
+      *   - May have to switch to button selectors so user can't select impossible keys
       * - Make length changeable
       * - Add half notes and whole notes
       *   - Notes should be selectable eventually
       * - Make time signature changeable
      */
+    
+    /* Algo to select available note intervals
+    * - Object containing boolean states for interval options
+    * - Have checkboxes (eventually label toggles) to select necessary intervals
+    * - Music generation algo should check checkboxes to determine which intervals to generate
+    * 
+    * - determine interval checkboxes selected
+    *   - create array of possible intervals
+    *   - random select interval
+    *   - add interval to last note and use modulo of 7 to select the correct note from the 'notes' array
+    */
+    
     
     function generateRandomABC(measures = 8, key = 'C') {
       // Basic ABC header
@@ -55,6 +69,9 @@
       // Available notes based on key
       // ^ is sharp, _ is flat
       const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+
+      // Determine interval checkboxes selected
+      
       
       // Generate measures
       for (let i = 0; i < measures; i++) {
@@ -156,6 +173,14 @@
       <label>Key: <input id="musicKey" name="musicKey" type="text" value="C"></label>
       <label>Measures: <input id="musicLength" name="musicLength" type="number" min="1" max="32" step="1" value="8"></label>
       <button type="submit">Redraw</button>
+    </form>
+    <form id="intervals">
+      <label><input type="checkbox" id="interval2" name="interval2" value="2"> 2nd</label>
+      <label><input type="checkbox" id="interval3" name="interval3" value="3"> 3rd</label>
+      <label><input type="checkbox" id="interval4" name="interval4" value="4"> 4th</label>
+      <label><input type="checkbox" id="interval5" name="interval5" value="5"> 5th</label>
+      <label><input type="checkbox" id="interval6" name="interval6" value="6"> 6th</label>
+      <label><input type="checkbox" id="interval7" name="interval7" value="7"> 7th</label>
     </form>
   <div id="paper"></div>
 
