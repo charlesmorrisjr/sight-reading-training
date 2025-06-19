@@ -82,22 +82,33 @@
       // Generate measures
       for (let i = 0; i < measures; i++) {
         let lastNoteIndex = 0; // Start at C
-        let nextOctave = false;
+        let octaveLower = false;
         let measure = notes[lastNoteIndex]; // Start measure with C
         let beats = 1; // Already added one note
         
         // Fill measure with random notes
         while (beats < 8) { // 4/4 time signature
           // Randomly select interval
-          let interval = intervals[Math.floor(Math.random() * intervals.length)];
+          let interval = intervals[Math.floor(Math.random() * intervals.length)] - 1;
+          // Randomly change interval to negative so notes can go downward
+          interval = Math.random() < 0.5 ? -interval: interval;
           // Save index without modulo operation to determine what octave the note should be placed in
-          let nextNoteIndex = lastNoteIndex + (interval - 1);
-          // Save the index of this note to determine the interval for the next note
-          lastNoteIndex = nextNoteIndex % 7;
-          // Set next note
-          let nextNote = notes[lastNoteIndex];
-          // If note belongs in next octave, place it there.
-          nextNote = nextNoteIndex >= 7 ? nextNote.toLowerCase() : nextNote;
+          let nextNoteIndex = lastNoteIndex + interval;
+          if (nextNoteIndex < 0) {
+            octaveLower = true;
+          }
+          // Save the raw index of this note to determine the interval for the next note
+          lastNoteIndex = lastNoteIndex + interval;
+          // Set next note (use modulo to wrap around the notes array)
+          let nextNote = notes[((lastNoteIndex % 7) + 7) % 7];
+          // If note belongs in octave below, place it there.
+          if (octaveLower) {
+            nextNote = nextNote + ",";
+            octaveLower = false;
+          // If note belongs in octave above, place it there.
+          } else if (nextNoteIndex >= 7) {
+            nextNote = nextNote.toLowerCase();
+          }
           
           const duration = Math.random() < 0.3 ? 2 : 1; // 30% chance of quarter note
           
