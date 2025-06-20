@@ -31,7 +31,6 @@
     let staffwidth = 900;
     let musicKey = 'C';
     let musicLength = 8;
-
         
     /**
      * Generates a random ABC notation string
@@ -209,7 +208,14 @@
       <label><input type="checkbox" id="interval7" name="interval7" value="7"> 7th</label>
       <label><input type="checkbox" id="interval8" name="interval8" value="7"> 8th</label>
     </form>
-  <div id="paper"></div>
+    <form id="note-values" onsubmit="return false;" style="margin: 0 auto 20px auto; max-width: 800px; display: flex;">
+      <label><input type="checkbox" id="eighth" name="eighth" value="8" checked> 8th notes</label>
+      <label><input type="checkbox" id="quarter" name="quarter" value="4" checked> Quarter notes</label>
+      <label><input type="checkbox" id="half" name="half" value="2"> Half notes</label>
+      <label><input type="checkbox" id="whole" name="whole" value="1"> Whole notes</label>
+    </form>
 
-
-</body></html>
+    <div id="paper"></div>
+  
+  </body>
+</html>
