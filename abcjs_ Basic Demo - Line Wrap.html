@@ -31,6 +31,8 @@
     let staffwidth = 900;
     let musicKey = 'C';
     let musicLength = 8;
+
+    let lowestNoteIndex = -3;   // Lowest possible note is G below middle C
         
     /**
      * Generates a random ABC notation string
@@ -84,20 +86,26 @@
         let octaveLower = false;
         let measure = notes[lastNoteIndex]; // Start measure with C
         let beats = 1; // Already added one note
-        
+
         // Fill measure with random notes
         while (beats < 8) { // 4/4 time signature
           // Randomly select interval
           let interval = intervals[Math.floor(Math.random() * intervals.length)] - 1;
           // Randomly change interval to negative so notes can go downward
           interval = Math.random() < 0.5 ? -interval: interval;
+          // Save the raw index of this note to determine the interval for the next note
+          if ((lastNoteIndex + interval) >= lowestNoteIndex) {
+            lastNoteIndex = lastNoteIndex + interval;
+          } else {
+            lastNoteIndex = lastNoteIndex - interval;
+          }
+
           // Save index without modulo operation to determine what octave the note should be placed in
-          let nextNoteIndex = lastNoteIndex + interval;
+          let nextNoteIndex = lastNoteIndex;
           if (nextNoteIndex < 0) {
             octaveLower = true;
           }
-          // Save the raw index of this note to determine the interval for the next note
-          lastNoteIndex = lastNoteIndex + interval;
+
           // Set next note (use modulo to wrap around the notes array)
           let nextNote = notes[((lastNoteIndex % 7) + 7) % 7];
           // If note belongs in octave below, place it there.
