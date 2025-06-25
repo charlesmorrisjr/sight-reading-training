@@ -25,6 +25,29 @@
 		  "eB B2 efge|eB B2 gedB|A2 FA DAFA|A2 FA defg|\n" +
 		  "eB B2 eBgB|eB B2 defg|afe^c dBAF|DEFD E2|]";
 
+      let furEliseAbc = 
+        "X:4347\n" +
+        "T:Für Elise\n" +
+        "T:Bagatelle No.25 in A, WoO.59\n" +
+        "C:Ludwig van Beethoven\n" +
+        "Z:Transcribed by Frank Nordberg - http://www.musicaviva.com\n" +
+        "%http://www.musicaviva.com/beethoven-ludwig-van.abc\n" +
+        "V:1 Program 1 0 %Piano\n" +
+        "V:2 Program 1 0 bass %Piano\n" +
+        "M:3/8\n" +
+        "L:1/16\n" +
+        "Q:3/8=40\n" +
+        "K:Am\n" +
+        "V:1\n" +
+        "e^d|e^deB=dc|A2 z CEA|B2 z E^GB|c2 z Ee^d|\n" +
+        "V:2\n" +
+        "z2|z6|A,,E,A, z z2|E,,E,^G, z z2|A,,E,A, z z2|\n" +
+        "%\n" +
+        "V:1\n" +
+        "e^deB=dc|A2 z CEA|B2 z EcB|[1A2 z2:|[2A2z Bcd|\n" +
+        "V:2\n" +
+        "z6|A,,E,A, z z2|E,,E,^G, z z2|[1A,,E,A, z :|[2A,,E,A, z z2|\n";
+
     let minSpacing = 1.8;
     let maxSpacing = 2.8;
     let preferredMeasuresPerLine = 4;
@@ -66,6 +89,8 @@
     function generateRandomABC(measures = 8, key = 'C') {
       // Basic ABC header
       let abc = `X:1\nT:Random Tune\nM:4/4\nL:1/8\nK:${key}\n`;
+      // Add V1 and V2 for piano
+      abc += "V:1 clef=treble\nV:2 clef=bass\n";
       
       // Available notes based on key
       // ^ is sharp, _ is flat
@@ -79,12 +104,12 @@
           intervals.push(i);
         }
       }
-     
-      // Generate measures
-      for (let i = 0; i < measures; i++) {
-        let lastNoteIndex = 0; // Start at C
+
+      // Helper to generate a single measure for a clef
+      function generateMeasure(startIndex, lowestIndex, octaveOffset = 0) {
+        let lastNoteIndex = startIndex; // Start at given note
         let octaveLower = false;
-        let measure = notes[lastNoteIndex]; // Start measure with C
+        let measure = notes[((lastNoteIndex % 7) + 7) % 7]; // Start measure
         let beats = 1; // Already added one note
 
         // Fill measure with random notes
@@ -94,7 +119,7 @@
           // Randomly change interval to negative so notes can go downward
           interval = Math.random() < 0.5 ? -interval: interval;
           // Save the raw index of this note to determine the interval for the next note
-          if ((lastNoteIndex + interval) >= lowestNoteIndex) {
+          if ((lastNoteIndex + interval) >= lowestIndex) {
             lastNoteIndex = lastNoteIndex + interval;
           } else {
             lastNoteIndex = lastNoteIndex - interval;
@@ -110,35 +135,49 @@
           let nextNote = notes[((lastNoteIndex % 7) + 7) % 7];
           // If note belongs in octave below, place it there.
           if (octaveLower) {
-            nextNote = nextNote + ",";
+            nextNote = nextNote + ",".repeat(Math.abs(Math.floor((nextNoteIndex + octaveOffset) / 7)));
             octaveLower = false;
           // If note belongs in octave above, place it there.
-          } else if (nextNoteIndex >= 7) {
+          } else if (nextNoteIndex + octaveOffset >= 7) {
             nextNote = nextNote.toLowerCase();
           }
-          
+
           const duration = Math.random() < 0.3 ? 2 : 1; // 30% chance of quarter note
-          
+
           // Add note to measure
           measure += nextNote;
-          // If the note is an quarter note, add a space
+          // If the note is a quarter note, add a space
           if (duration === 2) {
             measure += '2';
             beats += 2;
           } else {
             beats += 1;
           }
-          
+
           // If the previous note is a quarter note, add a space
           if (measure.slice(-1) === '2') {
             measure += ' ';
           }
         }
-        
-        abc += measure + '|';
-        if (i % 2 === 1) abc += '\n'; // Add line break every 2 measures
+        return measure + '|';
       }
-      
+
+      // Generate measures for both clefs
+      let trebleMeasures = [];
+      let bassMeasures = [];
+      for (let i = 0; i < measures; i++) {
+        // Treble: start at C4 (index 0), lowest G3 (index -3)
+        trebleMeasures.push(generateMeasure(0, -3, 0));
+        // Bass: start at C3 (index 0, but add commas for lower octave), lowest C2 (index -7)
+        bassMeasures.push(generateMeasure(0, -7, -7));
+      }
+
+      // Build ABC with both voices interleaved
+      for (let i = 0; i < measures; i++) {
+        abc += `V:1\n${trebleMeasures[i]}\n`;
+        abc += `V:2\n${bassMeasures[i]}\n`;
+      }
+
       return abc;
     }
 
@@ -147,6 +186,8 @@
 
     function redraw() {
       abc = generateRandomABC(musicLength, musicKey);
+      // Debug
+      // abc = furEliseAbc;
       console.log(abc);
       
       ABCJS.renderAbc("paper", abc, {
