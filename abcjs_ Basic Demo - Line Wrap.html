@@ -106,7 +106,7 @@
       }
 
       // Helper to generate a single measure for a clef
-      function generateMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null) {
+      function generateMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null, maxOctavesLower = null) {
         let lastNoteIndex = startIndex; // Start at given note
         let octaveLower = false;
         let measure = notes[((lastNoteIndex % 7) + 7) % 7]; // Start measure
@@ -141,7 +141,11 @@
           let nextNote = notes[((lastNoteIndex % 7) + 7) % 7];
           // If note belongs in octave below, place it there.
           if (octaveLower) {
-            nextNote = nextNote + ",".repeat(Math.abs(Math.floor((nextNoteIndex + octaveOffset) / 7)));
+            let numOctavesLower = Math.abs(Math.floor((nextNoteIndex + octaveOffset) / 7));
+            if (maxOctavesLower !== null) {
+              numOctavesLower = Math.min(numOctavesLower, maxOctavesLower);
+            }
+            nextNote = nextNote + ",".repeat(numOctavesLower);
             octaveLower = false;
           // If note belongs in octave above, place it there.
           } else if (nextNoteIndex + octaveOffset >= 7) {
@@ -174,8 +178,8 @@
       for (let i = 0; i < measures; i++) {
         // Treble: start at C4 (index 0), lowest G3 (index -3)
         trebleMeasures.push(generateMeasure(0, -3, 0));
-        // Bass: start at C3 (index 0, but add commas for lower octave), lowest C2 (index -7), highest G3 (index 3)
-        bassMeasures.push(generateMeasure(0, -7, -7, 3));
+        // Bass: start at C3 (index 0, but add commas for lower octave), lowest C2 (index -7), highest G3 (index 3), max 1 octave lower
+        bassMeasures.push(generateMeasure(0, -7, -7, 3, 1));
       }
 
       // Build ABC with both voices interleaved
