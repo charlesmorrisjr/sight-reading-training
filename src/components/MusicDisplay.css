@@ -1,0 +1,153 @@
+.music-display {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.music-notation {
+  width: 100%;
+  text-align: center;
+}
+
+/* Style the rendered ABC notation */
+.music-notation svg {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* Improve staff line visibility */
+.music-notation .abcjs-staff {
+  stroke: #1f2937;
+  stroke-width: 1.2;
+}
+
+/* Improve note visibility */
+.music-notation .abcjs-note {
+  fill: #1f2937;
+  stroke: #1f2937;
+}
+
+/* Improve clef and time signature visibility */
+.music-notation .abcjs-clef,
+.music-notation .abcjs-key-signature,
+.music-notation .abcjs-time-signature {
+  fill: #1f2937;
+  stroke: #1f2937;
+}
+
+.music-placeholder {
+  text-align: center;
+  color: #6b7280;
+  max-width: 400px;
+}
+
+.placeholder-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  color: #9ca3af;
+}
+
+.placeholder-icon {
+  display: block;
+  margin: 0 auto 16px;
+}
+
+.music-placeholder p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 1rem;
+  text-align: center;
+  padding: 20px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin: 20px;
+}
+
+/* Tablet optimization */
+@media (max-width: 1024px) {
+  .music-display {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .placeholder-icon {
+    font-size: 3rem;
+  }
+  
+  .music-placeholder p {
+    font-size: 1rem;
+  }
+}
+
+/* Mobile optimization */
+@media (max-width: 640px) {
+  .music-display {
+    padding: 16px;
+    margin-bottom: 16px;
+    min-height: 300px;
+  }
+  
+  .placeholder-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+  }
+  
+  .music-placeholder p {
+    font-size: 0.9rem;
+  }
+  
+  .music-notation svg {
+    font-size: 14px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .music-notation svg {
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Focus states for accessibility */
+.music-display:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Dark mode support (if needed later) */
+@media (prefers-color-scheme: dark) {
+  .music-display {
+    background: #374151;
+    color: #f9fafb;
+  }
+  
+  .music-notation .abcjs-staff,
+  .music-notation .abcjs-note,
+  .music-notation .abcjs-clef,
+  .music-notation .abcjs-key-signature,
+  .music-notation .abcjs-time-signature {
+    fill: #f9fafb;
+    stroke: #f9fafb;
+  }
+  
+  .music-placeholder {
+    color: #d1d5db;
+  }
+  
+  .placeholder-icon {
+    color: #9ca3af;
+  }
+}
