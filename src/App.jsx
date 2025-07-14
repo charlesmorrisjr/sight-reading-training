@@ -80,16 +80,10 @@ function App() {
       <main id="main-content" className="main-content">
         {/* Music display */}
         <section className="music-section">
-          {isGenerating ? (
-            <div className="loading-state">
-              <p>Generating new exercise...</p>
-            </div>
-          ) : (
-            <MusicDisplay 
-              abcNotation={abcNotation} 
-              settings={settings}
-            />
-          )}
+          <MusicDisplay 
+            abcNotation={abcNotation} 
+            settings={settings}
+          />
         </section>
 
         {/* Generate button */}
