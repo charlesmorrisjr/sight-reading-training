@@ -3,14 +3,15 @@ import {
   AVAILABLE_KEYS, 
   AVAILABLE_TIME_SIGNATURES, 
   AVAILABLE_NOTE_DURATIONS, 
-  AVAILABLE_INTERVALS 
+  AVAILABLE_INTERVALS,
+  CHORD_PROGRESSIONS,
+  AVAILABLE_BASS_PATTERNS
 } from '../utils/musicGenerator';
 import './HamburgerMenu.css';
 
 const HamburgerMenu = ({ 
   settings, 
-  onSettingsChange, 
-  onGenerateNew 
+  onSettingsChange
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMenu, setCurrentMenu] = useState('main');
@@ -64,6 +65,28 @@ const HamburgerMenu = ({
     
     if (newDurations.length > 0) {
       handleSettingChange('noteDurations', newDurations);
+    }
+  };
+
+  const handleChordProgressionToggle = (progressionId) => {
+    const currentProgressions = settings.chordProgressions || ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'];
+    const newProgressions = currentProgressions.includes(progressionId)
+      ? currentProgressions.filter(p => p !== progressionId)
+      : [...currentProgressions, progressionId];
+    
+    if (newProgressions.length > 0) {
+      handleSettingChange('chordProgressions', newProgressions);
+    }
+  };
+
+  const handleBassPatternToggle = (patternId) => {
+    const currentPatterns = settings.bassPatterns || ['block-chords'];
+    const newPatterns = currentPatterns.includes(patternId)
+      ? currentPatterns.filter(p => p !== patternId)
+      : [...currentPatterns, patternId];
+    
+    if (newPatterns.length > 0) {
+      handleSettingChange('bassPatterns', newPatterns);
     }
   };
 
@@ -156,6 +179,20 @@ const HamburgerMenu = ({
               Note Durations
               <span className="menu-nav-arrow">→</span>
             </button>
+            <button 
+              className="menu-nav-item"
+              onClick={() => navigateToMenu('chordProgressions')}
+            >
+              Chord Progressions
+              <span className="menu-nav-arrow">→</span>
+            </button>
+            <button 
+              className="menu-nav-item"
+              onClick={() => navigateToMenu('bassPatterns')}
+            >
+              Bass Patterns
+              <span className="menu-nav-arrow">→</span>
+            </button>
           </div>
         );
 
@@ -244,7 +281,7 @@ const HamburgerMenu = ({
           </div>
         );
 
-      case 'measures':
+      case 'measures': {
         const measureOptions = [4, 8, 12, 16, 20, 24, 28, 32];
         return (
           <div>
@@ -264,6 +301,7 @@ const HamburgerMenu = ({
             </div>
           </div>
         );
+      }
 
       case 'intervals':
         return (
@@ -297,6 +335,46 @@ const HamburgerMenu = ({
                   key={value}
                   className={`button-grid-item ${(settings.noteDurations || ['1/8', '1/4']).includes(value) ? 'selected' : ''}`}
                   onClick={() => handleNoteDurationToggle(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'chordProgressions':
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {CHORD_PROGRESSIONS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  className={`button-grid-item ${(settings.chordProgressions || ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation']).includes(id) ? 'selected' : ''}`}
+                  onClick={() => handleChordProgressionToggle(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'bassPatterns':
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {AVAILABLE_BASS_PATTERNS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  className={`button-grid-item ${(settings.bassPatterns || ['block-chords']).includes(id) ? 'selected' : ''}`}
+                  onClick={() => handleBassPatternToggle(id)}
                 >
                   {label}
                 </button>

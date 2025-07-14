@@ -11,6 +11,8 @@
  * @param {string} options.timeSignature - Time signature (e.g., '4/4', '3/4', '2/4', '6/8', '12/8', '2/2')
  * @param {number[]} options.intervals - Available intervals (1-8)
  * @param {string[]} options.noteDurations - Available note durations ('1/16', '1/8', '1/4', '1/2', '1')
+ * @param {string[]} options.chordProgressions - Selected chord progression IDs
+ * @param {string[]} options.bassPatterns - Selected bass pattern IDs
  * @returns {string} ABC notation string
  */
 export function generateRandomABC(options) {
@@ -19,7 +21,9 @@ export function generateRandomABC(options) {
     key = 'C',
     timeSignature = '4/4',
     intervals = [1, 2, 3, 4, 5],
-    noteDurations = ['1/8', '1/4']
+    noteDurations = ['1/8', '1/4'],
+    chordProgressions = null,
+    bassPatterns = ['block-chords'] // eslint-disable-line no-unused-vars -- Reserved for future bass pattern implementations
   } = options;
 
   // Parse time signature
@@ -139,7 +143,7 @@ export function generateRandomABC(options) {
   }
 
   // Generate chord progression for the piece
-  const chordProgression = generateChordProgression(measures, key);
+  const chordProgression = generateChordProgression(measures, key, chordProgressions);
   
   // Generate measures for both clefs
   let trebleMeasures = [];
@@ -207,18 +211,60 @@ export const AVAILABLE_INTERVALS = [
 ];
 
 /**
- * Chord progression definitions
+ * Chord progression definitions with user-friendly labels
  */
 export const CHORD_PROGRESSIONS = [
-  // Common progressions in Roman numeral notation
-  ['I', 'V', 'vi', 'IV'],    // I-V-vi-IV (very common pop progression)
-  ['I', 'vi', 'IV', 'V'],    // I-vi-IV-V (50s progression)
-  ['vi', 'IV', 'I', 'V'],    // vi-IV-I-V (pop variation)
-  ['I', 'IV', 'V', 'I'],     // I-IV-V-I (basic cadence)
-  ['ii', 'V', 'I', 'vi'],    // ii-V-I-vi (jazz influenced)
-  ['I', 'V', 'I', 'V'],      // I-V-I-V (simple alternating)
-  ['vi', 'V', 'IV', 'V'],    // vi-V-IV-V (minor start)
-  ['I', 'iii', 'vi', 'IV']   // I-iii-vi-IV (variation)
+  {
+    id: 'pop',
+    label: 'I-V-vi-IV (Pop)',
+    progression: ['I', 'V', 'vi', 'IV']
+  },
+  {
+    id: '50s',
+    label: 'I-vi-IV-V (50s)',
+    progression: ['I', 'vi', 'IV', 'V']
+  },
+  {
+    id: 'pop-variation',
+    label: 'vi-IV-I-V (Pop Variation)',
+    progression: ['vi', 'IV', 'I', 'V']
+  },
+  {
+    id: 'basic-cadence',
+    label: 'I-IV-V-I (Basic Cadence)',
+    progression: ['I', 'IV', 'V', 'I']
+  },
+  {
+    id: 'jazz',
+    label: 'ii-V-I-vi (Jazz)',
+    progression: ['ii', 'V', 'I', 'vi']
+  },
+  {
+    id: 'alternating',
+    label: 'I-V-I-V (Alternating)',
+    progression: ['I', 'V', 'I', 'V']
+  },
+  {
+    id: 'minor-start',
+    label: 'vi-V-IV-V (Minor Start)',
+    progression: ['vi', 'V', 'IV', 'V']
+  },
+  {
+    id: 'variation',
+    label: 'I-iii-vi-IV (Variation)',
+    progression: ['I', 'iii', 'vi', 'IV']
+  }
+];
+
+/**
+ * Available bass patterns
+ */
+export const AVAILABLE_BASS_PATTERNS = [
+  {
+    id: 'block-chords',
+    label: 'Block Chords',
+    description: 'Whole note chords in the bass'
+  }
 ];
 
 /**
@@ -316,13 +362,20 @@ function getRomanNumeralChord(romanNumeral, key) {
 }
 
 /**
- * Generate a random chord progression
+ * Generate a chord progression based on user selection
  * @param {number} numMeasures - Number of measures
  * @param {string} key - Musical key
+ * @param {string[]} selectedProgressions - Array of selected progression IDs
  * @returns {string[][]} Array of chord progressions, each containing note arrays
  */
-function generateChordProgression(numMeasures, key) {
-  const progression = CHORD_PROGRESSIONS[Math.floor(Math.random() * CHORD_PROGRESSIONS.length)];
+function generateChordProgression(numMeasures, key, selectedProgressions = null) {
+  // If no progressions selected, use all available progressions
+  const availableProgressions = selectedProgressions && selectedProgressions.length > 0
+    ? CHORD_PROGRESSIONS.filter(prog => selectedProgressions.includes(prog.id))
+    : CHORD_PROGRESSIONS;
+  
+  const selectedProgression = availableProgressions[Math.floor(Math.random() * availableProgressions.length)];
+  const progression = selectedProgression.progression;
   const chords = [];
   
   for (let i = 0; i < numMeasures; i++) {

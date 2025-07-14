@@ -67,3 +67,8 @@ I want to enhance the music generation algorithm to generate more realistic musi
 Specifically, I want the left hand should follow chord progressions and bass patterns. The right hand should play the melody that harmonizes with the chord progressions and bass patterns.
 
 To start, modify the music generation algorithm so the left hand contains whole note block chords. The chords should be generated based on a random chord progression. Later, the chord progressions will be selectable by the user in the settings menu, but for now, the algorithm should generate a random chord progression.
+
+# Next step
+Add a menu to the settings page that allows the user to select the chord progressions they want to practice. Use the chord progressions in the musicGenerator.js file in the CHORD_PROGRESSIONS array.
+
+Also add a menu to the settings page that allows the user to select the bass patterns they want to practice. The only bass pattern that will be available for now is block chords. More bass patterns will be added later.

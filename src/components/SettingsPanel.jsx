@@ -3,7 +3,9 @@ import {
   AVAILABLE_KEYS, 
   AVAILABLE_TIME_SIGNATURES, 
   AVAILABLE_NOTE_DURATIONS, 
-  AVAILABLE_INTERVALS 
+  AVAILABLE_INTERVALS,
+  CHORD_PROGRESSIONS,
+  AVAILABLE_BASS_PATTERNS
 } from '../utils/musicGenerator';
 import './SettingsPanel.css';
 
@@ -38,6 +40,30 @@ const SettingsPanel = ({
     // Ensure at least one duration is selected
     if (newDurations.length > 0) {
       handleInputChange('noteDurations', newDurations);
+    }
+  };
+
+  const handleChordProgressionToggle = (progressionId) => {
+    const currentProgressions = settings.chordProgressions || ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'];
+    const newProgressions = currentProgressions.includes(progressionId)
+      ? currentProgressions.filter(p => p !== progressionId)
+      : [...currentProgressions, progressionId];
+    
+    // Ensure at least one progression is selected
+    if (newProgressions.length > 0) {
+      handleInputChange('chordProgressions', newProgressions);
+    }
+  };
+
+  const handleBassPatternToggle = (patternId) => {
+    const currentPatterns = settings.bassPatterns || ['block-chords'];
+    const newPatterns = currentPatterns.includes(patternId)
+      ? currentPatterns.filter(p => p !== patternId)
+      : [...currentPatterns, patternId];
+    
+    // Ensure at least one pattern is selected
+    if (newPatterns.length > 0) {
+      handleInputChange('bassPatterns', newPatterns);
     }
   };
 
@@ -131,6 +157,40 @@ const SettingsPanel = ({
               className={`toggle-button ${(settings.noteDurations || ['1/8', '1/4']).includes(value) ? 'active' : ''}`}
               onClick={() => handleNoteDurationToggle(value)}
               aria-pressed={(settings.noteDurations || ['1/8', '1/4']).includes(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chord Progressions Selection */}
+      <div className="setting-group">
+        <h3>Chord Progressions</h3>
+        <div className="button-grid">
+          {CHORD_PROGRESSIONS.map(({ id, label }) => (
+            <button
+              key={id}
+              className={`toggle-button ${(settings.chordProgressions || ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation']).includes(id) ? 'active' : ''}`}
+              onClick={() => handleChordProgressionToggle(id)}
+              aria-pressed={(settings.chordProgressions || ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation']).includes(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bass Patterns Selection */}
+      <div className="setting-group">
+        <h3>Bass Patterns</h3>
+        <div className="button-grid">
+          {AVAILABLE_BASS_PATTERNS.map(({ id, label }) => (
+            <button
+              key={id}
+              className={`toggle-button ${(settings.bassPatterns || ['block-chords']).includes(id) ? 'active' : ''}`}
+              onClick={() => handleBassPatternToggle(id)}
+              aria-pressed={(settings.bassPatterns || ['block-chords']).includes(id)}
             >
               {label}
             </button>
