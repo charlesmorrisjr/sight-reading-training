@@ -52,28 +52,39 @@ export function generateRandomABC(options) {
   /**
    * Helper to generate a single measure for a clef
    */
-  function generateMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null, maxOctavesLower = null) {
+  function generateMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null, maxOctavesLower = null, chordNotes = null) {
     let lastNoteIndex = startIndex;
     let octaveLower = false;
     let measure = notes[((lastNoteIndex % 7) + 7) % 7];
     let beatsUsed = 1; // Start with one eighth note
 
+    // Get harmonic note indices if chord is provided
+    const harmonicIndices = chordNotes ? getHarmonicNoteIndices(chordNotes, key) : null;
+
     // Fill measure with random notes
     while (beatsUsed < totalBeatsPerMeasure) {
-      // Randomly select interval
-      let interval = intervals[Math.floor(Math.random() * intervals.length)] - 1;
-      // Randomly change interval to negative so notes can go downward
-      interval = Math.random() < 0.5 ? -interval : interval;
+      let candidateIndex;
+      let interval = 0;
       
-      // Calculate the next index
-      let candidateIndex = lastNoteIndex + interval;
+      // 70% chance to use harmonic note, 30% chance to use interval-based movement
+      if (harmonicIndices && Math.random() < 0.7) {
+        // Select from harmonic indices
+        const harmonicIndex = harmonicIndices[Math.floor(Math.random() * harmonicIndices.length)];
+        candidateIndex = harmonicIndex;
+      } else {
+        // Use interval-based movement
+        interval = intervals[Math.floor(Math.random() * intervals.length)] - 1;
+        // Randomly change interval to negative so notes can go downward
+        interval = Math.random() < 0.5 ? -interval : interval;
+        candidateIndex = lastNoteIndex + interval;
+      }
       
       // Clamp to bounds
       if (highestIndex !== null && candidateIndex > highestIndex) {
-        candidateIndex = lastNoteIndex - Math.abs(interval);
+        candidateIndex = lastNoteIndex - Math.abs(interval || 1);
       }
       if (candidateIndex < lowestIndex) {
-        candidateIndex = lastNoteIndex + Math.abs(interval);
+        candidateIndex = lastNoteIndex + Math.abs(interval || 1);
       }
       lastNoteIndex = candidateIndex;
 
@@ -127,15 +138,21 @@ export function generateRandomABC(options) {
     return measure + '|';
   }
 
+  // Generate chord progression for the piece
+  const chordProgression = generateChordProgression(measures, key);
+  
   // Generate measures for both clefs
   let trebleMeasures = [];
   let bassMeasures = [];
   
   for (let i = 0; i < measures; i++) {
-    // Treble: start at C4 (index 0), lowest G3 (index -3)
-    trebleMeasures.push(generateMeasure(0, -3, 0));
-    // Bass: start at C3 (index 0, but add commas for lower octave), lowest C2 (index -7), highest G3 (index 3), max 1 octave lower
-    bassMeasures.push(generateMeasure(0, -7, -7, 3, 1));
+    const currentChord = chordProgression[i];
+    
+    // Treble: start at C4 (index 0), lowest G3 (index -3), harmonize with chord
+    trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord));
+    
+    // Bass: generate whole note block chord
+    bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
   }
 
   // Build ABC with both voices interleaved
@@ -188,3 +205,220 @@ export const AVAILABLE_INTERVALS = [
   { value: 7, label: '7th' },
   { value: 8, label: '8th' }
 ];
+
+/**
+ * Chord progression definitions
+ */
+export const CHORD_PROGRESSIONS = [
+  // Common progressions in Roman numeral notation
+  ['I', 'V', 'vi', 'IV'],    // I-V-vi-IV (very common pop progression)
+  ['I', 'vi', 'IV', 'V'],    // I-vi-IV-V (50s progression)
+  ['vi', 'IV', 'I', 'V'],    // vi-IV-I-V (pop variation)
+  ['I', 'IV', 'V', 'I'],     // I-IV-V-I (basic cadence)
+  ['ii', 'V', 'I', 'vi'],    // ii-V-I-vi (jazz influenced)
+  ['I', 'V', 'I', 'V'],      // I-V-I-V (simple alternating)
+  ['vi', 'V', 'IV', 'V'],    // vi-V-IV-V (minor start)
+  ['I', 'iii', 'vi', 'IV']   // I-iii-vi-IV (variation)
+];
+
+/**
+ * Scale degree to note mapping for major keys
+ */
+const MAJOR_SCALE_DEGREES = {
+  'C': ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+  'C#': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
+  'D': ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'],
+  'D#': ['D#', 'E#', 'F##', 'G#', 'A#', 'B#', 'C##'],
+  'E': ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#'],
+  'F': ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'],
+  'F#': ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#'],
+  'G': ['G', 'A', 'B', 'C', 'D', 'E', 'F#'],
+  'G#': ['G#', 'A#', 'B#', 'C#', 'D#', 'E#', 'F##'],
+  'A': ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'],
+  'A#': ['A#', 'B#', 'C##', 'D#', 'E#', 'F##', 'G##'],
+  'B': ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#']
+};
+
+/**
+ * Scale degree to note mapping for minor keys (natural minor)
+ */
+const MINOR_SCALE_DEGREES = {
+  'Am': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+  'A#m': ['A#', 'B#', 'C#', 'D#', 'E#', 'F#', 'G#'],
+  'Bm': ['B', 'C#', 'D', 'E', 'F#', 'G', 'A'],
+  'Cm': ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb'],
+  'C#m': ['C#', 'D#', 'E', 'F#', 'G#', 'A', 'B'],
+  'Dm': ['D', 'E', 'F', 'G', 'A', 'Bb', 'C'],
+  'D#m': ['D#', 'E#', 'F#', 'G#', 'A#', 'B', 'C#'],
+  'Em': ['E', 'F#', 'G', 'A', 'B', 'C', 'D'],
+  'Fm': ['F', 'G', 'Ab', 'Bb', 'C', 'Db', 'Eb'],
+  'F#m': ['F#', 'G#', 'A', 'B', 'C#', 'D', 'E'],
+  'Gm': ['G', 'A', 'Bb', 'C', 'D', 'Eb', 'F'],
+  'G#m': ['G#', 'A#', 'B', 'C#', 'D#', 'E', 'F#']
+};
+
+/**
+ * Convert Roman numeral chord to chord notes
+ * @param {string} romanNumeral - Roman numeral chord (e.g., 'I', 'vi', 'V')
+ * @param {string} key - Musical key
+ * @returns {string[]} Array of chord notes
+ */
+function getRomanNumeralChord(romanNumeral, key) {
+  const isMinorKey = key.includes('m');
+  const scaleDegrees = isMinorKey ? MINOR_SCALE_DEGREES[key] : MAJOR_SCALE_DEGREES[key];
+  
+  if (!scaleDegrees) {
+    console.warn(`Unknown key: ${key}`);
+    return ['C', 'E', 'G']; // Default C major chord
+  }
+
+  // Parse Roman numeral
+  const isLowerCase = romanNumeral === romanNumeral.toLowerCase();
+  const degree = romanNumeral.toLowerCase();
+  
+  let rootIndex;
+  switch (degree) {
+    case 'i': rootIndex = 0; break;
+    case 'ii': rootIndex = 1; break;
+    case 'iii': rootIndex = 2; break;
+    case 'iv': rootIndex = 3; break;
+    case 'v': rootIndex = 4; break;
+    case 'vi': rootIndex = 5; break;
+    case 'vii': rootIndex = 6; break;
+    default: rootIndex = 0;
+  }
+
+  const root = scaleDegrees[rootIndex];
+  const third = scaleDegrees[(rootIndex + 2) % 7];
+  const fifth = scaleDegrees[(rootIndex + 4) % 7];
+
+  // For minor keys, adjust chord qualities
+  if (isMinorKey) {
+    // Natural minor chord qualities: i, ii°, III, iv, v, VI, VII
+    const minorChordQualities = ['minor', 'diminished', 'major', 'minor', 'minor', 'major', 'major'];
+    const quality = minorChordQualities[rootIndex];
+    
+    if (quality === 'diminished') {
+      // For diminished chords, flatten the fifth
+      const flatFifth = scaleDegrees[(rootIndex + 4) % 7]; // This is simplified
+      return [root, third, flatFifth];
+    }
+  } else {
+    // Major key chord qualities: I, ii, iii, IV, V, vi, vii°
+    const majorChordQualities = ['major', 'minor', 'minor', 'major', 'major', 'minor', 'diminished'];
+    const quality = majorChordQualities[rootIndex];
+    
+    if (quality === 'diminished') {
+      return [root, third, fifth]; // Simplified for now
+    }
+  }
+
+  return [root, third, fifth];
+}
+
+/**
+ * Generate a random chord progression
+ * @param {number} numMeasures - Number of measures
+ * @param {string} key - Musical key
+ * @returns {string[][]} Array of chord progressions, each containing note arrays
+ */
+function generateChordProgression(numMeasures, key) {
+  const progression = CHORD_PROGRESSIONS[Math.floor(Math.random() * CHORD_PROGRESSIONS.length)];
+  const chords = [];
+  
+  for (let i = 0; i < numMeasures; i++) {
+    const romanNumeral = progression[i % progression.length];
+    const chordNotes = getRomanNumeralChord(romanNumeral, key);
+    chords.push(chordNotes);
+  }
+  
+  return chords;
+}
+
+/**
+ * Get harmonically appropriate note indices based on chord
+ * @param {string[]} chordNotes - Current chord notes (e.g., ['C', 'E', 'G'])
+ * @param {string} key - Musical key
+ * @returns {number[]} Array of note indices that work with the chord
+ */
+function getHarmonicNoteIndices(chordNotes, key) {
+  if (!chordNotes) return [0, 1, 2, 3, 4, 5, 6]; // Default to all scale degrees
+  
+  const isMinorKey = key.includes('m');
+  const scaleDegrees = isMinorKey ? MINOR_SCALE_DEGREES[key] : MAJOR_SCALE_DEGREES[key];
+  
+  if (!scaleDegrees) return [0, 1, 2, 3, 4, 5, 6];
+  
+  const harmonicIndices = [];
+  
+  // Add chord tones (higher weight by including multiple times)
+  chordNotes.forEach(chordNote => {
+    const index = scaleDegrees.findIndex(note => note.replace(/[#b]/g, '') === chordNote.replace(/[#b]/g, ''));
+    if (index !== -1) {
+      // Add chord tones multiple times to increase probability
+      harmonicIndices.push(index, index, index);
+    }
+  });
+  
+  // Add scale tones (passing notes) with lower weight
+  for (let i = 0; i < 7; i++) {
+    harmonicIndices.push(i);
+  }
+  
+  return harmonicIndices;
+}
+
+/**
+ * Convert note name to ABC notation for bass clef
+ * @param {string} noteName - Note name (e.g., 'C', 'F#', 'Bb')
+ * @returns {string} ABC notation for bass clef
+ */
+function convertNoteToABC(noteName) {
+  // Handle sharp and flat notation
+  let abcNote = noteName.replace('#', '^').replace('b', '_');
+  
+  // For bass clef, we want notes in the lower octaves
+  // Default bass range is around C2-C4, so we'll add commas for lower octaves
+  if (abcNote.length === 1) {
+    // Single letter notes need to be lowercase for higher octave or add commas for lower
+    abcNote = abcNote + ','; // One comma for one octave lower (bass range)
+  } else if (abcNote.length === 2) {
+    // Notes with accidentals
+    abcNote = abcNote + ',';
+  }
+  
+  return abcNote;
+}
+
+/**
+ * Generate a bass chord measure
+ * @param {string[]} chordNotes - Array of chord note names
+ * @param {number} totalBeats - Total beats in the measure
+ * @returns {string} ABC notation for bass chord measure
+ */
+function generateBassChord(chordNotes, totalBeats) {
+  // Convert chord notes to ABC notation
+  const abcChordNotes = chordNotes.map(convertNoteToABC);
+  
+  // Create a block chord (notes played simultaneously)
+  // For a whole note in 4/4 time (8 eighth note beats), we use 8
+  const wholeDuration = totalBeats;
+  let durationNotation = '';
+  
+  if (wholeDuration === 8) {
+    durationNotation = '8'; // Whole note in 4/4 time
+  } else if (wholeDuration === 6) {
+    durationNotation = '6'; // Dotted half note in 3/4 time
+  } else if (wholeDuration === 4) {
+    durationNotation = '4'; // Half note in 2/4 time
+  } else if (wholeDuration === 12) {
+    durationNotation = '12'; // Dotted whole note in 6/8 time
+  } else {
+    durationNotation = wholeDuration.toString();
+  }
+  
+  // Create block chord notation [notes]duration
+  const blockChord = `[${abcChordNotes.join('')}]${durationNotation}`;
+  
+  return blockChord + '|';
+}

@@ -60,3 +60,10 @@ Make the submenu buttons (e.g, the keys, time signatures, etc.) in a single colu
 Remove the "Generate Music" button from the main menu.
 
 Also, make the menu and submenu slightly taller. Increase the font size of the menu and submenu buttons. The idea is to make the menu and submenu easier to read and click, especially on mobile devices.
+
+
+# Enhance music generation algorithm
+I want to enhance the music generation algorithm to generate more realistic music.
+Specifically, I want the left hand should follow chord progressions and bass patterns. The right hand should play the melody that harmonizes with the chord progressions and bass patterns.
+
+To start, modify the music generation algorithm so the left hand contains whole note block chords. The chords should be generated based on a random chord progression. Later, the chord progressions will be selectable by the user in the settings menu, but for now, the algorithm should generate a random chord progression.
