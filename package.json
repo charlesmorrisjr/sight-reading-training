@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "abcjs": "^6.4.4",
+    "abcjs": "^6.5.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
