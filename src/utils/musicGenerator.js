@@ -273,7 +273,6 @@ function getRomanNumeralChord(romanNumeral, key) {
   }
 
   // Parse Roman numeral
-  const isLowerCase = romanNumeral === romanNumeral.toLowerCase();
   const degree = romanNumeral.toLowerCase();
   
   let rootIndex;
