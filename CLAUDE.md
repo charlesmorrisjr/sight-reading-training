@@ -35,11 +35,23 @@ The menu should be hidden until the user clicks the hamburger menu.
 The menu should be a dropdown menu that appears from the top of the screen.
 
 # Next step
-I want the 
-The menu should have the following options:
+I want the hamburger menu to slide in from the right side of the screen instead of the top. 
 
+Change the menu so it has submenus for each option.
+
+The main menu should have the following options:
 - Key
 - Time Signature
 - Measures
 - Intervals
 - Note Durations
+
+Instead of dropdown menus, use buttons for each option within each submenu.
+
+Tell me what buttons you're going to place within each submenu.
+
+# Adjustment
+For the key submenu, add buttons for the major and minor keys. If the user selects the major key button, the submenu should show the major key buttons. If the user selects the minor key button, the submenu should show the minor keys buttons.
+
+# Adjustment
+Make the submenu buttons (e.g, the keys, time signatures, etc.) in a single column list instead of multiple columns. The idea is to make the submenu buttons easier to read and click, especially on mobile devices.

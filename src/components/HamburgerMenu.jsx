@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import SettingsPanel from './SettingsPanel';
+import { 
+  AVAILABLE_KEYS, 
+  AVAILABLE_TIME_SIGNATURES, 
+  AVAILABLE_NOTE_DURATIONS, 
+  AVAILABLE_INTERVALS 
+} from '../utils/musicGenerator';
 import './HamburgerMenu.css';
 
 const HamburgerMenu = ({ 
@@ -8,6 +13,8 @@ const HamburgerMenu = ({
   onGenerateNew 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [currentMenu, setCurrentMenu] = useState('main');
+  const [menuHistory, setMenuHistory] = useState(['main']);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -17,6 +24,47 @@ const HamburgerMenu = ({
 
   const closeMenu = () => {
     setIsOpen(false);
+    setCurrentMenu('main');
+    setMenuHistory(['main']);
+  };
+
+  const navigateToMenu = (menuName) => {
+    setCurrentMenu(menuName);
+    setMenuHistory([...menuHistory, menuName]);
+  };
+
+  const goBack = () => {
+    if (menuHistory.length > 1) {
+      const newHistory = menuHistory.slice(0, -1);
+      setMenuHistory(newHistory);
+      setCurrentMenu(newHistory[newHistory.length - 1]);
+    }
+  };
+
+  const handleSettingChange = (field, value) => {
+    onSettingsChange({ ...settings, [field]: value });
+  };
+
+  const handleIntervalToggle = (interval) => {
+    const currentIntervals = settings.intervals || [1, 2, 3, 4, 5];
+    const newIntervals = currentIntervals.includes(interval)
+      ? currentIntervals.filter(i => i !== interval)
+      : [...currentIntervals, interval].sort((a, b) => a - b);
+    
+    if (newIntervals.length > 0) {
+      handleSettingChange('intervals', newIntervals);
+    }
+  };
+
+  const handleNoteDurationToggle = (duration) => {
+    const currentDurations = settings.noteDurations || ['1/8', '1/4'];
+    const newDurations = currentDurations.includes(duration)
+      ? currentDurations.filter(d => d !== duration)
+      : [...currentDurations, duration];
+    
+    if (newDurations.length > 0) {
+      handleSettingChange('noteDurations', newDurations);
+    }
   };
 
   // Close menu when clicking outside
@@ -65,6 +113,210 @@ const HamburgerMenu = ({
     };
   }, [isOpen]);
 
+  const renderMenuContent = () => {
+    const majorKeys = AVAILABLE_KEYS.filter(key => !key.includes('m'));
+    const minorKeys = AVAILABLE_KEYS.filter(key => key.includes('m'));
+
+    switch (currentMenu) {
+      case 'main':
+        return (
+          <div className="menu-nav">
+            <button 
+              className="menu-nav-item"
+              onClick={() => navigateToMenu('key')}
+            >
+              Key
+              <span className="menu-nav-arrow">→</span>
+            </button>
+            <button 
+              className="menu-nav-item"
+              onClick={() => navigateToMenu('timeSignature')}
+            >
+              Time Signature
+              <span className="menu-nav-arrow">→</span>
+            </button>
+            <button 
+              className="menu-nav-item"
+              onClick={() => navigateToMenu('measures')}
+            >
+              Measures
+              <span className="menu-nav-arrow">→</span>
+            </button>
+            <button 
+              className="menu-nav-item"
+              onClick={() => navigateToMenu('intervals')}
+            >
+              Intervals
+              <span className="menu-nav-arrow">→</span>
+            </button>
+            <button 
+              className="menu-nav-item"
+              onClick={() => navigateToMenu('noteDurations')}
+            >
+              Note Durations
+              <span className="menu-nav-arrow">→</span>
+            </button>
+            <button 
+              className="menu-nav-item"
+              onClick={onGenerateNew}
+              style={{ marginTop: '24px', background: '#10b981', color: 'white', border: 'none' }}
+            >
+              Generate New Exercise
+            </button>
+          </div>
+        );
+
+      case 'key':
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="menu-nav">
+              <button 
+                className="menu-nav-item"
+                onClick={() => navigateToMenu('majorKeys')}
+              >
+                Major Keys
+                <span className="menu-nav-arrow">→</span>
+              </button>
+              <button 
+                className="menu-nav-item"
+                onClick={() => navigateToMenu('minorKeys')}
+              >
+                Minor Keys
+                <span className="menu-nav-arrow">→</span>
+              </button>
+            </div>
+          </div>
+        );
+
+      case 'majorKeys':
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back to Keys
+            </button>
+            <div className="button-grid">
+              {majorKeys.map(key => (
+                <button
+                  key={key}
+                  className={`button-grid-item ${(settings.key || 'C') === key ? 'selected' : ''}`}
+                  onClick={() => handleSettingChange('key', key)}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'minorKeys':
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back to Keys
+            </button>
+            <div className="button-grid">
+              {minorKeys.map(key => (
+                <button
+                  key={key}
+                  className={`button-grid-item ${(settings.key || 'C') === key ? 'selected' : ''}`}
+                  onClick={() => handleSettingChange('key', key)}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'timeSignature':
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {AVAILABLE_TIME_SIGNATURES.map(sig => (
+                <button
+                  key={sig}
+                  className={`button-grid-item ${(settings.timeSignature || '4/4') === sig ? 'selected' : ''}`}
+                  onClick={() => handleSettingChange('timeSignature', sig)}
+                >
+                  {sig}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'measures':
+        const measureOptions = [4, 8, 12, 16, 20, 24, 28, 32];
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {measureOptions.map(measures => (
+                <button
+                  key={measures}
+                  className={`button-grid-item ${(settings.measures || 8) === measures ? 'selected' : ''}`}
+                  onClick={() => handleSettingChange('measures', measures)}
+                >
+                  {measures}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'intervals':
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {AVAILABLE_INTERVALS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  className={`button-grid-item ${(settings.intervals || [1, 2, 3, 4, 5]).includes(value) ? 'selected' : ''}`}
+                  onClick={() => handleIntervalToggle(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'noteDurations':
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {AVAILABLE_NOTE_DURATIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  className={`button-grid-item ${(settings.noteDurations || ['1/8', '1/4']).includes(value) ? 'selected' : ''}`}
+                  onClick={() => handleNoteDurationToggle(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
       <button
@@ -103,12 +355,7 @@ const HamburgerMenu = ({
           </div>
           
           <div className="hamburger-menu-body">
-            <SettingsPanel
-              settings={settings}
-              onSettingsChange={onSettingsChange}
-              onGenerateNew={onGenerateNew}
-              isInHamburgerMenu={true}
-            />
+            {renderMenuContent()}
           </div>
         </div>
       </div>
