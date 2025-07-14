@@ -22,7 +22,6 @@ The attached file is a simple MVP of the product, but the finished product shoul
 # Next step
 Change the default background color of the sheet music display to white with black notes. However, a dark mode will added later, so the current color theme can be kept available for later when the dark mode is added.
 
-# Next step
 Move menu to hamburger menu or separate page so sheet music can be full-screen.
 
 The sheet music display should be the main focus of the app. It should be the only thing that is visible when the app is opened aside from the hamburger menu and the title of the app. Also, move the generate music button below the sheet music display.
