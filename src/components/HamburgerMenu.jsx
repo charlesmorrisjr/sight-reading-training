@@ -156,13 +156,6 @@ const HamburgerMenu = ({
               Note Durations
               <span className="menu-nav-arrow">→</span>
             </button>
-            <button 
-              className="menu-nav-item"
-              onClick={onGenerateNew}
-              style={{ marginTop: '24px', background: '#10b981', color: 'white', border: 'none' }}
-            >
-              Generate New Exercise
-            </button>
           </div>
         );
 

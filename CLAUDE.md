@@ -55,3 +55,8 @@ For the key submenu, add buttons for the major and minor keys. If the user selec
 
 # Adjustment
 Make the submenu buttons (e.g, the keys, time signatures, etc.) in a single column list instead of multiple columns. The idea is to make the submenu buttons easier to read and click, especially on mobile devices.
+
+# Adjustment
+Remove the "Generate Music" button from the main menu.
+
+Also, make the menu and submenu slightly taller. Increase the font size of the menu and submenu buttons. The idea is to make the menu and submenu easier to read and click, especially on mobile devices.
