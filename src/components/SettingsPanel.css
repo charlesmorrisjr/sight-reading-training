@@ -89,57 +89,48 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.checkbox-grid {
+.button-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
 
-.checkbox-label {
+.toggle-button {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px; /* Touch-friendly */
   display: flex;
   align-items: center;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-  font-size: 14px;
-  color: #374151;
-  min-height: 40px; /* Touch-friendly */
+  justify-content: center;
+  text-align: center;
 }
 
-.checkbox-label:hover {
-  background-color: #f9fafb;
+.toggle-button:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }
 
-.checkbox-label input[type="checkbox"] {
-  display: none;
+.toggle-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
-.checkbox-custom {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #d1d5db;
-  border-radius: 4px;
-  margin-right: 12px;
-  position: relative;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
+.toggle-button.active {
   background: #3b82f6;
   border-color: #3b82f6;
+  color: white;
 }
 
-.checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
+.toggle-button.active:hover {
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 /* Tablet optimization */
@@ -162,7 +153,7 @@
     gap: 16px;
   }
   
-  .checkbox-grid {
+  .button-grid {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 }
@@ -178,13 +169,35 @@
     font-size: 1.25rem;
   }
   
-  .checkbox-grid {
+  .button-grid {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
   
-  .checkbox-label {
+  .toggle-button {
     font-size: 13px;
-    padding: 6px;
+    padding: 10px 12px;
+    min-height: 44px;
   }
+}
+
+/* Styles for when SettingsPanel is inside hamburger menu */
+.settings-panel.in-hamburger-menu {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+}
+
+.settings-panel.in-hamburger-menu .settings-grid {
+  margin-bottom: 24px;
+}
+
+.settings-panel.in-hamburger-menu .setting-group {
+  margin-bottom: 24px;
+}
+
+.settings-panel.in-hamburger-menu .setting-group:last-child {
+  margin-bottom: 0;
 }

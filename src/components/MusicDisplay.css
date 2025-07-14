@@ -127,8 +127,8 @@
   outline-offset: 2px;
 }
 
-/* Dark mode support (if needed later) */
-@media (prefers-color-scheme: dark) {
+/* Dark mode support (disabled for now, will be added later) */
+/* @media (prefers-color-scheme: dark) {
   .music-display {
     background: #374151;
     color: #f9fafb;
@@ -150,4 +150,4 @@
   .placeholder-icon {
     color: #9ca3af;
   }
-}
+} */

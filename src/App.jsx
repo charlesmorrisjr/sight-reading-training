@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import SettingsPanel from './components/SettingsPanel';
+import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import { generateRandomABC } from './utils/musicGenerator';
 import './App.css';
@@ -68,34 +68,39 @@ function App() {
               </p>
             </div>
           </div>
+          <HamburgerMenu
+            settings={settings}
+            onSettingsChange={handleSettingsChange}
+            onGenerateNew={handleGenerateNew}
+          />
         </div>
       </header>
 
       {/* Main content */}
       <main id="main-content" className="main-content">
-        <div className="content-grid">
-          {/* Settings panel */}
-          <aside className="settings-column">
-            <SettingsPanel
+        {/* Music display */}
+        <section className="music-section">
+          {isGenerating ? (
+            <div className="loading-state">
+              <p>Generating new exercise...</p>
+            </div>
+          ) : (
+            <MusicDisplay 
+              abcNotation={abcNotation} 
               settings={settings}
-              onSettingsChange={handleSettingsChange}
-              onGenerateNew={handleGenerateNew}
             />
-          </aside>
+          )}
+        </section>
 
-          {/* Music display */}
-          <section className="music-column">
-            {isGenerating ? (
-              <div className="loading-state">
-                <p>Generating new exercise...</p>
-              </div>
-            ) : (
-              <MusicDisplay 
-                abcNotation={abcNotation} 
-                settings={settings}
-              />
-            )}
-          </section>
+        {/* Generate button */}
+        <div className="generate-button-container">
+          <button 
+            className="generate-btn primary"
+            onClick={handleGenerateNew}
+            disabled={isGenerating}
+          >
+            {isGenerating ? 'Generating...' : 'Generate New Exercise'}
+          </button>
         </div>
       </main>
     </div>

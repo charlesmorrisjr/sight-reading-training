@@ -1,0 +1,44 @@
+# Initial
+i want to create a sight reading training app for piano.
+
+i want to use the abcjs library to display the music.
+
+The front end should be a web app that can be used on any device especially tablets like iPads.
+
+The design should be simple, modern, and clean.
+
+The app should be able to generate random music in any key and any time signature.
+
+Users should be able to select the key and time signature they want to practice.
+
+Users should be able to select the number of measures they want to practice.
+
+Users should be able to select the intervals they want to practice from a 2nd to an 8th.
+
+Users should be able to select from a range of note durations from 1/16 to whole notes.
+
+The attached file is a simple MVP of the product, but the finished product should look professional. You can take the music generation code and include it in the final product, or create a placeholder for it instead.
+
+# Next step
+Change the default background color of the sheet music display to white with black notes. However, a dark mode will added later, so the current color theme can be kept available for later when the dark mode is added.
+
+# Next step
+Move menu to hamburger menu or separate page so sheet music can be full-screen.
+
+The sheet music display should be the main focus of the app. It should be the only thing that is visible when the app is opened aside from the hamburger menu and the title of the app. Also, move the generate music button below the sheet music display.
+
+Change checkboxes to buttons so this project will be easier to use on mobile.
+
+The entire project should have mobile first approach.
+
+The menu should be hidden until the user clicks the hamburger menu.
+
+The menu should be a dropdown menu that appears from the top of the screen.
+
+The menu should have the following options:
+
+- Key
+- Time Signature
+- Measures
+- Intervals
+- Note Durations

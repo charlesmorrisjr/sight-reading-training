@@ -10,7 +10,8 @@ import './SettingsPanel.css';
 const SettingsPanel = ({ 
   settings, 
   onSettingsChange, 
-  onGenerateNew 
+  onGenerateNew,
+  isInHamburgerMenu = false
 }) => {
   const handleInputChange = (field, value) => {
     onSettingsChange({ ...settings, [field]: value });
@@ -41,16 +42,18 @@ const SettingsPanel = ({
   };
 
   return (
-    <div className="settings-panel">
-      <div className="settings-header">
-        <h2>Practice Settings</h2>
-        <button 
-          className="generate-btn"
-          onClick={onGenerateNew}
-        >
-          Generate New Exercise
-        </button>
-      </div>
+    <div className={`settings-panel ${isInHamburgerMenu ? 'in-hamburger-menu' : ''}`}>
+      {!isInHamburgerMenu && (
+        <div className="settings-header">
+          <h2>Practice Settings</h2>
+          <button 
+            className="generate-btn"
+            onClick={onGenerateNew}
+          >
+            Generate New Exercise
+          </button>
+        </div>
+      )}
 
       <div className="settings-grid">
         {/* Key Selection */}
@@ -98,17 +101,16 @@ const SettingsPanel = ({
       {/* Intervals Selection */}
       <div className="setting-group">
         <h3>Practice Intervals</h3>
-        <div className="checkbox-grid">
+        <div className="button-grid">
           {AVAILABLE_INTERVALS.map(({ value, label }) => (
-            <label key={value} className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={(settings.intervals || [1, 2, 3, 4, 5]).includes(value)}
-                onChange={() => handleIntervalToggle(value)}
-              />
-              <span className="checkbox-custom"></span>
+            <button
+              key={value}
+              className={`toggle-button ${(settings.intervals || [1, 2, 3, 4, 5]).includes(value) ? 'active' : ''}`}
+              onClick={() => handleIntervalToggle(value)}
+              aria-pressed={(settings.intervals || [1, 2, 3, 4, 5]).includes(value)}
+            >
               {label}
-            </label>
+            </button>
           ))}
         </div>
       </div>
@@ -116,17 +118,16 @@ const SettingsPanel = ({
       {/* Note Durations Selection */}
       <div className="setting-group">
         <h3>Note Durations</h3>
-        <div className="checkbox-grid">
+        <div className="button-grid">
           {AVAILABLE_NOTE_DURATIONS.map(({ value, label }) => (
-            <label key={value} className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={(settings.noteDurations || ['1/8', '1/4']).includes(value)}
-                onChange={() => handleNoteDurationToggle(value)}
-              />
-              <span className="checkbox-custom"></span>
+            <button
+              key={value}
+              className={`toggle-button ${(settings.noteDurations || ['1/8', '1/4']).includes(value) ? 'active' : ''}`}
+              onClick={() => handleNoteDurationToggle(value)}
+              aria-pressed={(settings.noteDurations || ['1/8', '1/4']).includes(value)}
+            >
               {label}
-            </label>
+            </button>
           ))}
         </div>
       </div>
