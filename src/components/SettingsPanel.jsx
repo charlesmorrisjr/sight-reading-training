@@ -86,15 +86,21 @@ const SettingsPanel = ({
 
         {/* Number of Measures */}
         <div className="setting-group">
-          <label htmlFor="measures-input">Measures</label>
-          <input
-            id="measures-input"
-            type="number"
-            min="1"
-            max="32"
+          <label htmlFor="measures-select">Measures</label>
+          <select
+            id="measures-select"
             value={settings.measures || 8}
-            onChange={(e) => handleInputChange('measures', parseInt(e.target.value) || 8)}
-          />
+            onChange={(e) => handleInputChange('measures', parseInt(e.target.value))}
+          >
+            <option value={4}>4</option>
+            <option value={8}>8</option>
+            <option value={12}>12</option>
+            <option value={16}>16</option>
+            <option value={20}>20</option>
+            <option value={24}>24</option>
+            <option value={28}>28</option>
+            <option value={32}>32</option>
+          </select>
         </div>
       </div>
 

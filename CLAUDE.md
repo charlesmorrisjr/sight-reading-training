@@ -34,6 +34,8 @@ The menu should be hidden until the user clicks the hamburger menu.
 
 The menu should be a dropdown menu that appears from the top of the screen.
 
+# Next step
+I want the 
 The menu should have the following options:
 
 - Key
