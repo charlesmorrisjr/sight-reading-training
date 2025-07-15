@@ -59,8 +59,8 @@ export function generateRandomABC(options) {
   function generateMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null, maxOctavesLower = null, chordNotes = null) {
     let lastNoteIndex = startIndex;
     let octaveLower = false;
-    let measure = notes[((lastNoteIndex % 7) + 7) % 7];
-    let beatsUsed = 1; // Start with one eighth note
+    let measure = '';
+    let beatsUsed = 0; // Start with zero beats
 
     // Get harmonic note indices if chord is provided
     const harmonicIndices = chordNotes ? getHarmonicNoteIndices(chordNotes, key) : null;
@@ -118,12 +118,15 @@ export function generateRandomABC(options) {
       const validDurations = availableDurations.filter(d => d.beats <= remainingBeats);
       
       if (validDurations.length === 0) {
-        // Fill with eighth notes if no valid durations
-        const remainingEighths = Math.floor(remainingBeats);
-        for (let i = 0; i < remainingEighths; i++) {
-          measure += nextNote;
-          beatsUsed += 1;
-        }
+        // If no valid durations fit, try to use the shortest available duration
+        // that can fit in the remaining space, even if it means extending the measure slightly
+        const shortestDuration = availableDurations.reduce((shortest, current) => 
+          current.beats < shortest.beats ? current : shortest
+        );
+        
+        // Use the shortest available duration
+        measure += nextNote + shortestDuration.abcNotation;
+        beatsUsed += shortestDuration.beats;
         break;
       }
 
@@ -170,6 +173,9 @@ export function generateRandomABC(options) {
     abc += `V:1\n${trebleMeasures[i]}\n`;
     abc += `V:2\n${bassMeasures[i]}\n`;
   }
+
+  // Log the ABC notation to the console for debugging
+  console.log(abc);
 
   return abc;
 }
@@ -512,10 +518,10 @@ function generateAlbertiBass(chordNotes, totalBeats) {
   let measure = '';
   let beatsUsed = 0;
   
-  // Fill measure with Alberti pattern (eighth notes)
+  // Fill measure with Alberti pattern (eighth notes - traditional Alberti bass)
   while (beatsUsed < totalBeats) {
     const patternIndex = beatsUsed % pattern.length;
-    measure += pattern[patternIndex];
+    measure += pattern[patternIndex]; // No duration notation = eighth notes (default)
     beatsUsed += 1; // Each note is an eighth note (1 beat in our system)
   }
   
