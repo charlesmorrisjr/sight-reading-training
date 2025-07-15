@@ -23,7 +23,7 @@ export function generateRandomABC(options) {
     intervals = [1, 2, 3, 4, 5],
     noteDurations = ['1/8', '1/4'],
     chordProgressions = null,
-    bassPatterns = ['block-chords'] // eslint-disable-line no-unused-vars -- Reserved for future bass pattern implementations
+    bassPatterns = ['block-chords']
   } = options;
 
   // Parse time signature
@@ -155,8 +155,14 @@ export function generateRandomABC(options) {
     // Treble: start at C4 (index 0), lowest G3 (index -3), harmonize with chord
     trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord));
     
-    // Bass: generate whole note block chord
-    bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
+    // Bass: generate pattern based on selected bass patterns
+    const selectedBassPattern = bassPatterns && bassPatterns.length > 0 ? bassPatterns[0] : 'block-chords';
+    
+    if (selectedBassPattern === 'alberti-bass') {
+      bassMeasures.push(generateAlbertiBass(currentChord, totalBeatsPerMeasure));
+    } else {
+      bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
+    }
   }
 
   // Build ABC with both voices interleaved
@@ -263,7 +269,14 @@ export const AVAILABLE_BASS_PATTERNS = [
   {
     id: 'block-chords',
     label: 'Block Chords',
-    description: 'Whole note chords in the bass'
+    description: 'Whole note chords in the bass',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  },
+  {
+    id: 'alberti-bass',
+    label: 'Alberti Bass',
+    description: 'Broken chord pattern (root-fifth-third-fifth)',
+    supportedTimeSignatures: ['4/4', '3/4']
   }
 ];
 
@@ -474,4 +487,37 @@ function generateBassChord(chordNotes, totalBeats) {
   const blockChord = `[${abcChordNotes.join('')}]${durationNotation}`;
   
   return blockChord + '|';
+}
+
+/**
+ * Generate an Alberti bass measure (root-fifth-third-fifth pattern)
+ * @param {string[]} chordNotes - Array of chord note names
+ * @param {number} totalBeats - Total beats in the measure
+ * @returns {string} ABC notation for Alberti bass measure
+ */
+function generateAlbertiBass(chordNotes, totalBeats) {
+  if (chordNotes.length < 3) {
+    // Fallback to block chord if not enough notes
+    return generateBassChord(chordNotes, totalBeats);
+  }
+  
+  // Extract chord tones: root, third, fifth
+  const root = convertNoteToABC(chordNotes[0]);
+  const third = convertNoteToABC(chordNotes[1]);
+  const fifth = convertNoteToABC(chordNotes[2]);
+  
+  // Alberti pattern: root-fifth-third-fifth
+  const pattern = [root, fifth, third, fifth];
+  
+  let measure = '';
+  let beatsUsed = 0;
+  
+  // Fill measure with Alberti pattern (eighth notes)
+  while (beatsUsed < totalBeats) {
+    const patternIndex = beatsUsed % pattern.length;
+    measure += pattern[patternIndex];
+    beatsUsed += 1; // Each note is an eighth note (1 beat in our system)
+  }
+  
+  return measure + '|';
 }

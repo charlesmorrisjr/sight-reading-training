@@ -72,3 +72,6 @@ To start, modify the music generation algorithm so the left hand contains whole 
 Add a menu to the settings page that allows the user to select the chord progressions they want to practice. Use the chord progressions in the musicGenerator.js file in the CHORD_PROGRESSIONS array.
 
 Also add a menu to the settings page that allows the user to select the bass patterns they want to practice. The only bass pattern that will be available for now is block chords. More bass patterns will be added later.
+
+# Next step
+Add an Alberti bass pattern to the music generation algorithm. This should be available in the hamburger slide in menu under the "Bass Patterns" submenu.

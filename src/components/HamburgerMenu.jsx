@@ -43,7 +43,20 @@ const HamburgerMenu = ({
   };
 
   const handleSettingChange = (field, value) => {
-    onSettingsChange({ ...settings, [field]: value });
+    let newSettings = { ...settings, [field]: value };
+    
+    // If changing time signature, validate bass pattern compatibility
+    if (field === 'timeSignature') {
+      const currentBassPattern = settings.bassPatterns?.[0] || 'block-chords';
+      const pattern = AVAILABLE_BASS_PATTERNS.find(p => p.id === currentBassPattern);
+      
+      if (pattern && !pattern.supportedTimeSignatures.includes(value)) {
+        // Auto-switch to block chords if current pattern unsupported
+        newSettings.bassPatterns = ['block-chords'];
+      }
+    }
+    
+    onSettingsChange(newSettings);
   };
 
   const handleIntervalToggle = (interval) => {
@@ -80,14 +93,8 @@ const HamburgerMenu = ({
   };
 
   const handleBassPatternToggle = (patternId) => {
-    const currentPatterns = settings.bassPatterns || ['block-chords'];
-    const newPatterns = currentPatterns.includes(patternId)
-      ? currentPatterns.filter(p => p !== patternId)
-      : [...currentPatterns, patternId];
-    
-    if (newPatterns.length > 0) {
-      handleSettingChange('bassPatterns', newPatterns);
-    }
+    // Always set as the single selected pattern (radio button behavior)
+    handleSettingChange('bassPatterns', [patternId]);
   };
 
   // Close menu when clicking outside
@@ -363,14 +370,20 @@ const HamburgerMenu = ({
           </div>
         );
 
-      case 'bassPatterns':
+      case 'bassPatterns': {
+        // Filter bass patterns based on current time signature
+        const currentTimeSignature = settings.timeSignature || '4/4';
+        const availablePatterns = AVAILABLE_BASS_PATTERNS.filter(pattern => 
+          pattern.supportedTimeSignatures.includes(currentTimeSignature)
+        );
+        
         return (
           <div>
             <button className="back-button" onClick={goBack}>
               ← Back
             </button>
             <div className="button-grid">
-              {AVAILABLE_BASS_PATTERNS.map(({ id, label }) => (
+              {availablePatterns.map(({ id, label }) => (
                 <button
                   key={id}
                   className={`button-grid-item ${(settings.bassPatterns || ['block-chords']).includes(id) ? 'selected' : ''}`}
@@ -382,6 +395,7 @@ const HamburgerMenu = ({
             </div>
           </div>
         );
+      }
 
       default:
         return null;
