@@ -105,7 +105,13 @@ const HamburgerMenu = ({
 
   const handleRightHandIntervalToggle = (intervalId) => {
     // Always set as the single selected interval (radio button behavior)
-    handleSettingChange('rightHandIntervals', [intervalId]);
+    // Also set rightHandPatterns to 'intervals' to enable interval generation
+    const newSettings = { 
+      ...settings, 
+      rightHandIntervals: [intervalId],
+      rightHandPatterns: ['intervals']
+    };
+    onSettingsChange(newSettings);
   };
 
   // Close menu when clicking outside
