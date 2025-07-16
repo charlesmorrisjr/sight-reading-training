@@ -5,7 +5,8 @@ import {
   AVAILABLE_NOTE_DURATIONS, 
   AVAILABLE_INTERVALS,
   CHORD_PROGRESSIONS,
-  AVAILABLE_LEFT_HAND_PATTERNS
+  AVAILABLE_LEFT_HAND_PATTERNS,
+  AVAILABLE_RIGHT_HAND_PATTERNS
 } from '../utils/musicGenerator';
 import './HamburgerMenu.css';
 
@@ -95,6 +96,11 @@ const HamburgerMenu = ({
   const handleLeftHandPatternToggle = (patternId) => {
     // Always set as the single selected pattern (radio button behavior)
     handleSettingChange('leftHandPatterns', [patternId]);
+  };
+
+  const handleRightHandPatternToggle = (patternId) => {
+    // Always set as the single selected pattern (radio button behavior)
+    handleSettingChange('rightHandPatterns', [patternId]);
   };
 
   // Close menu when clicking outside
@@ -191,6 +197,13 @@ const HamburgerMenu = ({
               onClick={() => navigateToMenu('chordProgressions')}
             >
               Chord Progressions
+              <span className="menu-nav-arrow">→</span>
+            </button>
+            <button 
+              className="menu-nav-item"
+              onClick={() => navigateToMenu('rightHandPatterns')}
+            >
+              Right Hand Patterns
               <span className="menu-nav-arrow">→</span>
             </button>
             <button 
@@ -369,6 +382,33 @@ const HamburgerMenu = ({
             </div>
           </div>
         );
+
+      case 'rightHandPatterns': {
+        // Filter right hand patterns based on current time signature
+        const currentTimeSignature = settings.timeSignature || '4/4';
+        const availablePatterns = AVAILABLE_RIGHT_HAND_PATTERNS.filter(pattern => 
+          pattern.supportedTimeSignatures.includes(currentTimeSignature)
+        );
+        
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {availablePatterns.map(({ id, label }) => (
+                <button
+                  key={id}
+                  className={`button-grid-item ${(settings.rightHandPatterns || ['single-notes']).includes(id) ? 'selected' : ''}`}
+                  onClick={() => handleRightHandPatternToggle(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
       case 'bassPatterns': {
         // Filter left hand patterns based on current time signature

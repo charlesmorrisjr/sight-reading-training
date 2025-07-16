@@ -287,6 +287,42 @@ export const AVAILABLE_LEFT_HAND_PATTERNS = [
 ];
 
 /**
+ * Available right hand patterns
+ */
+export const AVAILABLE_RIGHT_HAND_PATTERNS = [
+  {
+    id: 'single-notes',
+    label: 'Single Notes',
+    description: 'Single note melody line',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  },
+  {
+    id: 'intervals',
+    label: 'Intervals',
+    description: 'Two-note intervals',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  },
+  {
+    id: '3-note-chords',
+    label: '3 Note Chords',
+    description: 'Three-note chord voicings',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  },
+  {
+    id: '4-note-chords',
+    label: '4 Note Chords',
+    description: 'Four-note chord voicings',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  },
+  {
+    id: 'arpeggios',
+    label: 'Arpeggios',
+    description: 'Broken chord patterns',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  }
+];
+
+/**
  * Scale degree to note mapping for major keys
  */
 const MAJOR_SCALE_DEGREES = {
