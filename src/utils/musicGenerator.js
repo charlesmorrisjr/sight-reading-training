@@ -657,7 +657,17 @@ function generateRightHandOctaves(startIndex, lowestIndex, octaveOffset, highest
       nextNote = nextNote.toLowerCase();
     }
     
-    const octaveNote = nextNote.includes(',') ? nextNote.replace(',', '') : nextNote.toLowerCase();
+    let octaveNote;
+    if (nextNote.includes(',')) {
+      // Remove one comma for octave higher
+      octaveNote = nextNote.replace(/,$/, '');
+    } else if (nextNote === nextNote.toUpperCase()) {
+      // Uppercase to lowercase for octave higher
+      octaveNote = nextNote.toLowerCase();
+    } else {
+      // Lowercase note gets apostrophe for octave higher
+      octaveNote = nextNote + "'";
+    }
     
     const remainingBeats = totalBeatsPerMeasure - beatsUsed;
     const validDurations = availableDurations.filter(d => d.beats <= remainingBeats);
