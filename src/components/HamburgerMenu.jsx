@@ -483,15 +483,21 @@ const HamburgerMenu = ({
               ← Back
             </button>
             <div className="button-grid">
-              {intervalOptions.map(({ id, label }) => (
-                <button
-                  key={id}
-                  className={`button-grid-item ${(settings.rightHandIntervals || ['2nd'])[0] === id ? 'selected' : ''}`}
-                  onClick={() => handleRightHandIntervalToggle(id)}
-                >
-                  {label}
-                </button>
-              ))}
+              {intervalOptions.map(({ id, label }) => {
+                const isIntervalsPatternActive = (settings.rightHandPatterns || ['single-notes']).includes('intervals');
+                const isThisIntervalSelected = (settings.rightHandIntervals || ['2nd'])[0] === id;
+                const shouldHighlight = isIntervalsPatternActive && isThisIntervalSelected;
+                
+                return (
+                  <button
+                    key={id}
+                    className={`button-grid-item ${shouldHighlight ? 'selected' : ''}`}
+                    onClick={() => handleRightHandIntervalToggle(id)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
