@@ -410,15 +410,16 @@ const HamburgerMenu = ({
               {availablePatterns.map(({ id, label }) => {
                 if (id === 'intervals') {
                   // Make intervals button navigate to submenu
+                  const isSelected = (settings.rightHandPatterns || ['single-notes']).includes('intervals');
                   return (
                     <button
                       key={id}
-                      className="button-grid-item"
+                      className={`button-grid-item ${isSelected ? 'selected' : ''}`}
                       onClick={() => navigateToMenu('rightHandIntervals')}
                       style={{ justifyContent: 'space-between' }}
                     >
                       <span>{label}</span>
-                      <span className="menu-nav-arrow">→</span>
+                      <span className="menu-nav-arrow" style={isSelected ? { color: 'white' } : {}}>→</span>
                     </button>
                   );
                 } else {
