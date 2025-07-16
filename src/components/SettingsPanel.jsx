@@ -5,7 +5,7 @@ import {
   AVAILABLE_NOTE_DURATIONS, 
   AVAILABLE_INTERVALS,
   CHORD_PROGRESSIONS,
-  AVAILABLE_BASS_PATTERNS
+  AVAILABLE_LEFT_HAND_PATTERNS
 } from '../utils/musicGenerator';
 import './SettingsPanel.css';
 
@@ -55,15 +55,15 @@ const SettingsPanel = ({
     }
   };
 
-  const handleBassPatternToggle = (patternId) => {
-    const currentPatterns = settings.bassPatterns || ['block-chords'];
+  const handleLeftHandPatternToggle = (patternId) => {
+    const currentPatterns = settings.leftHandPatterns || ['block-chords'];
     const newPatterns = currentPatterns.includes(patternId)
       ? currentPatterns.filter(p => p !== patternId)
       : [...currentPatterns, patternId];
     
     // Ensure at least one pattern is selected
     if (newPatterns.length > 0) {
-      handleInputChange('bassPatterns', newPatterns);
+      handleInputChange('leftHandPatterns', newPatterns);
     }
   };
 
@@ -181,16 +181,16 @@ const SettingsPanel = ({
         </div>
       </div>
 
-      {/* Bass Patterns Selection */}
+      {/* Left Hand Patterns Selection */}
       <div className="setting-group">
-        <h3>Bass Patterns</h3>
+        <h3>Left Hand Patterns</h3>
         <div className="button-grid">
-          {AVAILABLE_BASS_PATTERNS.map(({ id, label }) => (
+          {AVAILABLE_LEFT_HAND_PATTERNS.map(({ id, label }) => (
             <button
               key={id}
-              className={`toggle-button ${(settings.bassPatterns || ['block-chords']).includes(id) ? 'active' : ''}`}
-              onClick={() => handleBassPatternToggle(id)}
-              aria-pressed={(settings.bassPatterns || ['block-chords']).includes(id)}
+              className={`toggle-button ${(settings.leftHandPatterns || ['block-chords']).includes(id) ? 'active' : ''}`}
+              onClick={() => handleLeftHandPatternToggle(id)}
+              aria-pressed={(settings.leftHandPatterns || ['block-chords']).includes(id)}
             >
               {label}
             </button>

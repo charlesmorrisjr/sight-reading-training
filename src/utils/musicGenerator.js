@@ -12,7 +12,7 @@
  * @param {number[]} options.intervals - Available intervals (1-8)
  * @param {string[]} options.noteDurations - Available note durations ('1/16', '1/8', '1/4', '1/2', '1')
  * @param {string[]} options.chordProgressions - Selected chord progression IDs
- * @param {string[]} options.bassPatterns - Selected bass pattern IDs
+ * @param {string[]} options.leftHandPatterns - Selected left hand pattern IDs
  * @returns {string} ABC notation string
  */
 export function generateRandomABC(options) {
@@ -23,7 +23,7 @@ export function generateRandomABC(options) {
     intervals = [1, 2, 3, 4, 5],
     noteDurations = ['1/8', '1/4'],
     chordProgressions = null,
-    bassPatterns = ['block-chords']
+    leftHandPatterns = ['block-chords']
   } = options;
 
   // Parse time signature
@@ -158,10 +158,10 @@ export function generateRandomABC(options) {
     // Treble: start at C4 (index 0), lowest G3 (index -3), harmonize with chord
     trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord));
     
-    // Bass: generate pattern based on selected bass patterns
-    const selectedBassPattern = bassPatterns && bassPatterns.length > 0 ? bassPatterns[0] : 'block-chords';
+    // Bass: generate pattern based on selected left hand patterns
+    const selectedLeftHandPattern = leftHandPatterns && leftHandPatterns.length > 0 ? leftHandPatterns[0] : 'block-chords';
     
-    if (selectedBassPattern === 'alberti-bass') {
+    if (selectedLeftHandPattern === 'alberti-bass') {
       bassMeasures.push(generateAlbertiBass(currentChord, totalBeatsPerMeasure));
     } else {
       bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
@@ -269,9 +269,9 @@ export const CHORD_PROGRESSIONS = [
 ];
 
 /**
- * Available bass patterns
+ * Available left hand patterns
  */
-export const AVAILABLE_BASS_PATTERNS = [
+export const AVAILABLE_LEFT_HAND_PATTERNS = [
   {
     id: 'block-chords',
     label: 'Block Chords',

@@ -13,7 +13,7 @@ function App() {
     intervals: [1, 2, 3, 4, 5],
     noteDurations: ['1/8', '1/4'],
     chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
-    bassPatterns: ['block-chords']
+    leftHandPatterns: ['block-chords']
   });
 
   // Current ABC notation

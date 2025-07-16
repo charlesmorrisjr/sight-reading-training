@@ -5,7 +5,7 @@ import {
   AVAILABLE_NOTE_DURATIONS, 
   AVAILABLE_INTERVALS,
   CHORD_PROGRESSIONS,
-  AVAILABLE_BASS_PATTERNS
+  AVAILABLE_LEFT_HAND_PATTERNS
 } from '../utils/musicGenerator';
 import './HamburgerMenu.css';
 
@@ -47,12 +47,12 @@ const HamburgerMenu = ({
     
     // If changing time signature, validate bass pattern compatibility
     if (field === 'timeSignature') {
-      const currentBassPattern = settings.bassPatterns?.[0] || 'block-chords';
-      const pattern = AVAILABLE_BASS_PATTERNS.find(p => p.id === currentBassPattern);
+      const currentLeftHandPattern = settings.leftHandPatterns?.[0] || 'block-chords';
+      const pattern = AVAILABLE_LEFT_HAND_PATTERNS.find(p => p.id === currentLeftHandPattern);
       
       if (pattern && !pattern.supportedTimeSignatures.includes(value)) {
         // Auto-switch to block chords if current pattern unsupported
-        newSettings.bassPatterns = ['block-chords'];
+        newSettings.leftHandPatterns = ['block-chords'];
       }
     }
     
@@ -92,9 +92,9 @@ const HamburgerMenu = ({
     }
   };
 
-  const handleBassPatternToggle = (patternId) => {
+  const handleLeftHandPatternToggle = (patternId) => {
     // Always set as the single selected pattern (radio button behavior)
-    handleSettingChange('bassPatterns', [patternId]);
+    handleSettingChange('leftHandPatterns', [patternId]);
   };
 
   // Close menu when clicking outside
@@ -197,7 +197,7 @@ const HamburgerMenu = ({
               className="menu-nav-item"
               onClick={() => navigateToMenu('bassPatterns')}
             >
-              Bass Patterns
+              Left Hand Patterns
               <span className="menu-nav-arrow">→</span>
             </button>
           </div>
@@ -371,9 +371,9 @@ const HamburgerMenu = ({
         );
 
       case 'bassPatterns': {
-        // Filter bass patterns based on current time signature
+        // Filter left hand patterns based on current time signature
         const currentTimeSignature = settings.timeSignature || '4/4';
-        const availablePatterns = AVAILABLE_BASS_PATTERNS.filter(pattern => 
+        const availablePatterns = AVAILABLE_LEFT_HAND_PATTERNS.filter(pattern => 
           pattern.supportedTimeSignatures.includes(currentTimeSignature)
         );
         
@@ -386,8 +386,8 @@ const HamburgerMenu = ({
               {availablePatterns.map(({ id, label }) => (
                 <button
                   key={id}
-                  className={`button-grid-item ${(settings.bassPatterns || ['block-chords']).includes(id) ? 'selected' : ''}`}
-                  onClick={() => handleBassPatternToggle(id)}
+                  className={`button-grid-item ${(settings.leftHandPatterns || ['block-chords']).includes(id) ? 'selected' : ''}`}
+                  onClick={() => handleLeftHandPatternToggle(id)}
                 >
                   {label}
                 </button>
