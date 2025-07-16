@@ -601,42 +601,42 @@ function generateLeftHandOctaves(chordNotes, totalBeats) {
 }
 
 /**
+ * Convert note index and octave information to proper ABC notation
+ * @param {number} noteIndex - Index in the scale (0-6, can be negative or > 6)
+ * @param {number} octaveOffset - Base octave offset
+ * @param {number} maxOctavesLower - Maximum octaves lower allowed
+ * @returns {string} ABC notation for the note
+ */
+function convertNoteIndexToABC(noteIndex, octaveOffset, maxOctavesLower) {
+  const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  let octaveLower = false;
+  
+  if (noteIndex < 0) {
+    octaveLower = true;
+  }
+  
+  let note = notes[((noteIndex % 7) + 7) % 7];
+  
+  if (octaveLower) {
+    let numOctavesLower = Math.abs(Math.floor((noteIndex + octaveOffset) / 7));
+    if (maxOctavesLower !== null) {
+      numOctavesLower = Math.min(numOctavesLower, maxOctavesLower);
+    }
+    note = note + ",".repeat(numOctavesLower);
+  } else if (noteIndex + octaveOffset >= 7) {
+    note = note.toLowerCase();
+  }
+  
+  return note;
+}
+
+/**
  * Calculate the note at a given interval above a root note
  * @param {string} rootNote - Root note name (e.g., 'C', 'E', 'G')
  * @param {string} intervalType - Interval type ('2nd', '3rd', '4th', '5th', '6th', '7th')
  * @param {string} key - Musical key for scale context
  * @returns {string} The interval note name
  */
-function calculateIntervalNote(rootNote, intervalType, key) {
-  const isMinorKey = key.includes('m');
-  const scaleDegrees = isMinorKey ? MINOR_SCALE_DEGREES[key] : MAJOR_SCALE_DEGREES[key];
-  
-  if (!scaleDegrees) {
-    return rootNote; // Fallback to root note if key not found
-  }
-  
-  // Find the root note index in the scale
-  const rootIndex = scaleDegrees.findIndex(note => note.replace(/[#b]/g, '') === rootNote.replace(/[#b]/g, ''));
-  
-  if (rootIndex === -1) {
-    return rootNote; // Fallback if root note not found in scale
-  }
-  
-  // Calculate interval steps
-  const intervalSteps = {
-    '2nd': 1,
-    '3rd': 2,
-    '4th': 3,
-    '5th': 4,
-    '6th': 5,
-    '7th': 6
-  };
-  
-  const steps = intervalSteps[intervalType] || 2; // Default to 3rd if unknown
-  const intervalIndex = (rootIndex + steps) % 7;
-  
-  return scaleDegrees[intervalIndex];
-}
 
 /**
  * Generate a right-hand intervals measure (melody notes with selected interval above)
@@ -655,11 +655,9 @@ function calculateIntervalNote(rootNote, intervalType, key) {
  */
 function generateRightHandIntervals(startIndex, lowestIndex, octaveOffset, highestIndex, maxOctavesLower, chordNotes, totalBeatsPerMeasure, intervals, availableDurations, key, selectedInterval) {
   let lastNoteIndex = startIndex;
-  let octaveLower = false;
   let measure = '';
   let beatsUsed = 0;
   
-  const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
   const harmonicIndices = chordNotes ? getHarmonicNoteIndices(chordNotes, key) : null;
   
   while (beatsUsed < totalBeatsPerMeasure) {
@@ -683,39 +681,24 @@ function generateRightHandIntervals(startIndex, lowestIndex, octaveOffset, highe
     }
     lastNoteIndex = candidateIndex;
     
-    let nextNoteIndex = lastNoteIndex;
-    if (nextNoteIndex < 0) {
-      octaveLower = true;
-    }
+    // Calculate root note with proper octave handling
+    const rootNote = convertNoteIndexToABC(lastNoteIndex, octaveOffset, maxOctavesLower);
     
-    let nextNote = notes[((lastNoteIndex % 7) + 7) % 7];
+    // Calculate interval note index
+    const intervalSteps = {
+      '2nd': 1,
+      '3rd': 2,
+      '4th': 3,
+      '5th': 4,
+      '6th': 5,
+      '7th': 6
+    };
     
-    if (octaveLower) {
-      let numOctavesLower = Math.abs(Math.floor((nextNoteIndex + octaveOffset) / 7));
-      if (maxOctavesLower !== null) {
-        numOctavesLower = Math.min(numOctavesLower, maxOctavesLower);
-      }
-      nextNote = nextNote + ",".repeat(numOctavesLower);
-      octaveLower = false;
-    } else if (nextNoteIndex + octaveOffset >= 7) {
-      nextNote = nextNote.toLowerCase();
-    }
+    const steps = intervalSteps[selectedInterval] || 2; // Default to 3rd if unknown
+    const intervalNoteIndex = lastNoteIndex + steps;
     
-    // Calculate interval note
-    const intervalNoteName = calculateIntervalNote(nextNote.replace(/[,']/g, ''), selectedInterval, key);
-    let intervalNote = intervalNoteName;
-    
-    // Apply same octave modifications to interval note
-    if (nextNote.includes(',')) {
-      // If root note is in lower octave, interval note might need adjustment
-      intervalNote = intervalNote + ',';
-    } else if (nextNote === nextNote.toUpperCase()) {
-      // Uppercase root note, interval note should be uppercase too
-      intervalNote = intervalNote.toUpperCase();
-    } else {
-      // Lowercase root note, interval note should be lowercase
-      intervalNote = intervalNote.toLowerCase();
-    }
+    // Calculate interval note with proper octave handling
+    const intervalNote = convertNoteIndexToABC(intervalNoteIndex, octaveOffset, maxOctavesLower);
     
     const remainingBeats = totalBeatsPerMeasure - beatsUsed;
     const validDurations = availableDurations.filter(d => d.beats <= remainingBeats);
@@ -725,14 +708,14 @@ function generateRightHandIntervals(startIndex, lowestIndex, octaveOffset, highe
         current.beats < shortest.beats ? current : shortest
       );
       
-      measure += `[${nextNote}${intervalNote}]${shortestDuration.abcNotation}`;
+      measure += `[${rootNote}${intervalNote}]${shortestDuration.abcNotation}`;
       beatsUsed += shortestDuration.beats;
       break;
     }
     
     const selectedDuration = validDurations[Math.floor(Math.random() * validDurations.length)];
     
-    measure += `[${nextNote}${intervalNote}]${selectedDuration.abcNotation}`;
+    measure += `[${rootNote}${intervalNote}]${selectedDuration.abcNotation}`;
     beatsUsed += selectedDuration.beats;
     
     if (selectedDuration.abcNotation && beatsUsed < totalBeatsPerMeasure) {
