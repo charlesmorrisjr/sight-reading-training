@@ -75,3 +75,6 @@ Also add a menu to the settings page that allows the user to select the left han
 
 # Next step
 Add an Alberti bass pattern to the music generation algorithm. This should be available in the hamburger slide in menu under the "Left Hand Patterns" submenu.
+
+# Next step
+I want to add an octave pattern to the music generation algorithm. This should be available in the hamburger slide in menu under the "Right Hand Patterns" and "Left Hand Patterns" submenus. The octave pattern should be a single note that is an octave higher than the root note of the chord.

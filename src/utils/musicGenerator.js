@@ -13,6 +13,7 @@
  * @param {string[]} options.noteDurations - Available note durations ('1/16', '1/8', '1/4', '1/2', '1')
  * @param {string[]} options.chordProgressions - Selected chord progression IDs
  * @param {string[]} options.leftHandPatterns - Selected left hand pattern IDs
+ * @param {string[]} options.rightHandPatterns - Selected right hand pattern IDs
  * @returns {string} ABC notation string
  */
 export function generateRandomABC(options) {
@@ -23,7 +24,8 @@ export function generateRandomABC(options) {
     intervals = [1, 2, 3, 4, 5],
     noteDurations = ['1/8', '1/4'],
     chordProgressions = null,
-    leftHandPatterns = ['block-chords']
+    leftHandPatterns = ['block-chords'],
+    rightHandPatterns = ['single-notes']
   } = options;
 
   // Parse time signature
@@ -155,14 +157,23 @@ export function generateRandomABC(options) {
   for (let i = 0; i < measures; i++) {
     const currentChord = chordProgression[i];
     
-    // Treble: start at C4 (index 0), lowest G3 (index -3), harmonize with chord
-    trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord));
+    // Treble: generate pattern based on selected right hand patterns
+    const selectedRightHandPattern = rightHandPatterns && rightHandPatterns.length > 0 ? rightHandPatterns[0] : 'single-notes';
+    
+    if (selectedRightHandPattern === 'octaves') {
+      trebleMeasures.push(generateRightHandOctaves(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key));
+    } else {
+      // Default to single notes for all other patterns (including single-notes)
+      trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord));
+    }
     
     // Bass: generate pattern based on selected left hand patterns
     const selectedLeftHandPattern = leftHandPatterns && leftHandPatterns.length > 0 ? leftHandPatterns[0] : 'block-chords';
     
     if (selectedLeftHandPattern === 'alberti-bass') {
       bassMeasures.push(generateAlbertiBass(currentChord, totalBeatsPerMeasure));
+    } else if (selectedLeftHandPattern === 'octaves') {
+      bassMeasures.push(generateLeftHandOctaves(currentChord, totalBeatsPerMeasure));
     } else {
       bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
     }
@@ -283,6 +294,12 @@ export const AVAILABLE_LEFT_HAND_PATTERNS = [
     label: 'Alberti Bass',
     description: 'Broken chord pattern (root-fifth-third-fifth)',
     supportedTimeSignatures: ['4/4', '3/4']
+  },
+  {
+    id: 'octaves',
+    label: 'Octaves',
+    description: 'Root note with octave higher',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
   }
 ];
 
@@ -318,6 +335,12 @@ export const AVAILABLE_RIGHT_HAND_PATTERNS = [
     id: 'arpeggios',
     label: 'Arpeggios',
     description: 'Broken chord patterns',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  },
+  {
+    id: 'octaves',
+    label: 'Octaves',
+    description: 'Melody notes with octave higher',
     supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
   }
 ];
@@ -510,20 +533,7 @@ function generateBassChord(chordNotes, totalBeats) {
   
   // Create a block chord (notes played simultaneously)
   // For a whole note in 4/4 time (8 eighth note beats), we use 8
-  const wholeDuration = totalBeats;
-  let durationNotation = '';
-  
-  if (wholeDuration === 8) {
-    durationNotation = '8'; // Whole note in 4/4 time
-  } else if (wholeDuration === 6) {
-    durationNotation = '6'; // Dotted half note in 3/4 time
-  } else if (wholeDuration === 4) {
-    durationNotation = '4'; // Half note in 2/4 time
-  } else if (wholeDuration === 12) {
-    durationNotation = '12'; // Dotted whole note in 6/8 time
-  } else {
-    durationNotation = wholeDuration.toString();
-  }
+  const durationNotation = totalBeats.toString();
   
   // Create block chord notation [notes]duration
   const blockChord = `[${abcChordNotes.join('')}]${durationNotation}`;
@@ -559,6 +569,117 @@ function generateAlbertiBass(chordNotes, totalBeats) {
     const patternIndex = beatsUsed % pattern.length;
     measure += pattern[patternIndex]; // No duration notation = eighth notes (default)
     beatsUsed += 1; // Each note is an eighth note (1 beat in our system)
+  }
+  
+  return measure + '|';
+}
+
+/**
+ * Generate a left-hand octaves measure (root note with octave higher)
+ * @param {string[]} chordNotes - Array of chord note names
+ * @param {number} totalBeats - Total beats in the measure
+ * @returns {string} ABC notation for left-hand octaves measure
+ */
+function generateLeftHandOctaves(chordNotes, totalBeats) {
+  if (chordNotes.length === 0) {
+    return generateBassChord(['C', 'E', 'G'], totalBeats);
+  }
+  
+  const root = convertNoteToABC(chordNotes[0]);
+  const rootOctaveHigher = root.replace(/,/g, '');
+  
+  const durationNotation = totalBeats.toString();
+  
+  const octaveInterval = `[${root}${rootOctaveHigher}]${durationNotation}`;
+  
+  return octaveInterval + '|';
+}
+
+/**
+ * Generate a right-hand octaves measure (melody notes with octave higher)
+ * @param {number} startIndex - Starting note index
+ * @param {number} lowestIndex - Lowest allowed note index
+ * @param {number} octaveOffset - Octave offset for note positioning
+ * @param {number} highestIndex - Highest allowed note index
+ * @param {number} maxOctavesLower - Maximum octaves lower allowed
+ * @param {string[]} chordNotes - Current chord notes for harmonic context
+ * @param {number} totalBeatsPerMeasure - Total beats in the measure
+ * @param {number[]} intervals - Available intervals for movement
+ * @param {object[]} availableDurations - Available note durations
+ * @param {string} key - Musical key for harmonic context
+ * @returns {string} ABC notation for right-hand octaves measure
+ */
+function generateRightHandOctaves(startIndex, lowestIndex, octaveOffset, highestIndex, maxOctavesLower, chordNotes, totalBeatsPerMeasure, intervals, availableDurations, key) {
+  let lastNoteIndex = startIndex;
+  let octaveLower = false;
+  let measure = '';
+  let beatsUsed = 0;
+  
+  const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const harmonicIndices = chordNotes ? getHarmonicNoteIndices(chordNotes, key) : null;
+  
+  while (beatsUsed < totalBeatsPerMeasure) {
+    let candidateIndex;
+    let interval = 0;
+    
+    if (harmonicIndices && Math.random() < 0.7) {
+      const harmonicIndex = harmonicIndices[Math.floor(Math.random() * harmonicIndices.length)];
+      candidateIndex = harmonicIndex;
+    } else {
+      interval = intervals[Math.floor(Math.random() * intervals.length)] - 1;
+      interval = Math.random() < 0.5 ? -interval : interval;
+      candidateIndex = lastNoteIndex + interval;
+    }
+    
+    if (highestIndex !== null && candidateIndex > highestIndex) {
+      candidateIndex = lastNoteIndex - Math.abs(interval || 1);
+    }
+    if (candidateIndex < lowestIndex) {
+      candidateIndex = lastNoteIndex + Math.abs(interval || 1);
+    }
+    lastNoteIndex = candidateIndex;
+    
+    let nextNoteIndex = lastNoteIndex;
+    if (nextNoteIndex < 0) {
+      octaveLower = true;
+    }
+    
+    let nextNote = notes[((lastNoteIndex % 7) + 7) % 7];
+    
+    if (octaveLower) {
+      let numOctavesLower = Math.abs(Math.floor((nextNoteIndex + octaveOffset) / 7));
+      if (maxOctavesLower !== null) {
+        numOctavesLower = Math.min(numOctavesLower, maxOctavesLower);
+      }
+      nextNote = nextNote + ",".repeat(numOctavesLower);
+      octaveLower = false;
+    } else if (nextNoteIndex + octaveOffset >= 7) {
+      nextNote = nextNote.toLowerCase();
+    }
+    
+    const octaveNote = nextNote.includes(',') ? nextNote.replace(',', '') : nextNote.toLowerCase();
+    
+    const remainingBeats = totalBeatsPerMeasure - beatsUsed;
+    const validDurations = availableDurations.filter(d => d.beats <= remainingBeats);
+    
+    if (validDurations.length === 0) {
+      const shortestDuration = availableDurations.reduce((shortest, current) => 
+        current.beats < shortest.beats ? current : shortest
+      );
+      
+      measure += `[${nextNote}${octaveNote}]${shortestDuration.abcNotation}`;
+      beatsUsed += shortestDuration.beats;
+      break;
+    }
+    
+    const selectedDuration = validDurations[Math.floor(Math.random() * validDurations.length)];
+    
+    measure += `[${nextNote}${octaveNote}]${selectedDuration.abcNotation}`;
+    beatsUsed += selectedDuration.beats;
+    
+    if (selectedDuration.abcNotation && beatsUsed < totalBeatsPerMeasure) {
+      measure += ' ';
+    }
   }
   
   return measure + '|';
