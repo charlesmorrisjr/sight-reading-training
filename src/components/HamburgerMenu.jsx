@@ -208,7 +208,7 @@ const HamburgerMenu = ({
             </button>
             <button 
               className="menu-nav-item"
-              onClick={() => navigateToMenu('bassPatterns')}
+              onClick={() => navigateToMenu('leftHandPatterns')}
             >
               Left Hand Patterns
               <span className="menu-nav-arrow">→</span>
@@ -410,7 +410,7 @@ const HamburgerMenu = ({
         );
       }
 
-      case 'bassPatterns': {
+      case 'leftHandPatterns': {
         // Filter left hand patterns based on current time signature
         const currentTimeSignature = settings.timeSignature || '4/4';
         const availablePatterns = AVAILABLE_LEFT_HAND_PATTERNS.filter(pattern => 
