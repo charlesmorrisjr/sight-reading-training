@@ -103,6 +103,11 @@ const HamburgerMenu = ({
     handleSettingChange('rightHandPatterns', [patternId]);
   };
 
+  const handleRightHandIntervalToggle = (intervalId) => {
+    // Always set as the single selected interval (radio button behavior)
+    handleSettingChange('rightHandIntervals', [intervalId]);
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -396,15 +401,33 @@ const HamburgerMenu = ({
               ← Back
             </button>
             <div className="button-grid">
-              {availablePatterns.map(({ id, label }) => (
-                <button
-                  key={id}
-                  className={`button-grid-item ${(settings.rightHandPatterns || ['single-notes']).includes(id) ? 'selected' : ''}`}
-                  onClick={() => handleRightHandPatternToggle(id)}
-                >
-                  {label}
-                </button>
-              ))}
+              {availablePatterns.map(({ id, label }) => {
+                if (id === 'intervals') {
+                  // Make intervals button navigate to submenu
+                  return (
+                    <button
+                      key={id}
+                      className="button-grid-item"
+                      onClick={() => navigateToMenu('rightHandIntervals')}
+                      style={{ justifyContent: 'space-between' }}
+                    >
+                      <span>{label}</span>
+                      <span className="menu-nav-arrow">→</span>
+                    </button>
+                  );
+                } else {
+                  // Regular pattern selection buttons
+                  return (
+                    <button
+                      key={id}
+                      className={`button-grid-item ${(settings.rightHandPatterns || ['single-notes']).includes(id) ? 'selected' : ''}`}
+                      onClick={() => handleRightHandPatternToggle(id)}
+                    >
+                      {label}
+                    </button>
+                  );
+                }
+              })}
             </div>
           </div>
         );
@@ -428,6 +451,36 @@ const HamburgerMenu = ({
                   key={id}
                   className={`button-grid-item ${(settings.leftHandPatterns || ['block-chords']).includes(id) ? 'selected' : ''}`}
                   onClick={() => handleLeftHandPatternToggle(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      case 'rightHandIntervals': {
+        const intervalOptions = [
+          { id: '2nd', label: '2nd' },
+          { id: '3rd', label: '3rd' },
+          { id: '4th', label: '4th' },
+          { id: '5th', label: '5th' },
+          { id: '6th', label: '6th' },
+          { id: '7th', label: '7th' }
+        ];
+        
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {intervalOptions.map(({ id, label }) => (
+                <button
+                  key={id}
+                  className={`button-grid-item ${(settings.rightHandIntervals || ['2nd'])[0] === id ? 'selected' : ''}`}
+                  onClick={() => handleRightHandIntervalToggle(id)}
                 >
                   {label}
                 </button>

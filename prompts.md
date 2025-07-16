@@ -78,3 +78,9 @@ Add an Alberti bass pattern to the music generation algorithm. This should be av
 
 # Next step
 I want to add an octave pattern to the music generation algorithm. This should be available in the hamburger slide in menu under the "Right Hand Patterns" and "Left Hand Patterns" submenus. The octave pattern should be a single note that is an octave higher than the root note of the chord.
+
+# Next step
+Now create a submenu under the Intervals button in the Right Hand Patterns submenu. This button should contain a submenu with buttons for each interval. The intervals should be 2nd, 3rd, 4th, 5th, 6th, and 7th.
+
+# Next step
+Now implement the logic for the Intervals button in the Right Hand Patterns submenu. This button should contain a submenu with buttons for each interval. The intervals should be 2nd, 3rd, 4th, 5th, 6th, 7th, and 8th. When selected, the music generation algorithm should generate a melody where each note has a second note above it that is the interval selected.
