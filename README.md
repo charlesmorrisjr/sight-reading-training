@@ -1,12 +1,74 @@
-# React + Vite
+# Sight Reading Trainer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern web application for piano sight reading practice, built with React and Vite. This interactive training tool generates customizable musical exercises to help pianists improve their sight reading skills.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Dynamic Music Generation**: Algorithmically generates random musical exercises using ABC notation
+- **Customizable Settings**: Configure key signatures, time signatures, intervals, note durations, and chord progressions
+- **Responsive Design**: Optimized for desktop, tablet, and mobile devices with adaptive music notation layout
+- **Real-time Rendering**: Instant musical notation rendering using ABCJS library
+- **Accessibility**: Screen reader support and keyboard navigation
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend**: React 19 with functional components and hooks
+- **Build Tool**: Vite for fast development and optimized production builds
+- **Music Notation**: AbcJS library for rendering ABC notation to SVG
+- **Styling**: CSS3 with responsive design principles
+- **Code Quality**: ESLint for code linting and consistency
+
+## 🚀 Getting Started
+
+## 📖 Usage
+
+1. Open the application in your browser
+2. Click the hamburger menu to access settings
+3. Customize your practice session:
+   - Select key signature and time signature
+   - Choose intervals and note durations
+   - Configure chord progressions and hand patterns
+4. Click "Generate New Exercise" to create a new sight reading challenge
+5. Practice reading the generated musical notation
+
+## 📁 Project Structure
+
+```
+src/
+├── components/
+│   ├── HamburgerMenu.jsx      # Settings menu component
+│   ├── MusicDisplay.jsx       # Music notation rendering
+│   └── SettingsPanel.jsx      # Configuration panel
+├── utils/
+│   └── musicGenerator.js      # ABC notation generation logic
+├── App.jsx                    # Main application component
+└── main.jsx                   # Application entry point
+```
+
+## 🔧 Key Technical Implementations
+
+### 🎵 Music Generation Algorithm
+- Custom algorithm for generating valid ABC notation
+- Supports multiple time signatures (4/4, 3/4, 2/4, 6/8, 12/8, 2/2)
+- Configurable chord progressions and hand patterns
+- Interval-based melody generation based on the chords in the chord progression
+
+### 📱 Responsive Music Notation
+- Dynamic staff width calculation based on viewport
+- Adaptive measures per line for different screen sizes
+- Optimized spacing for various time signatures
+
+### ⚡ Performance Optimizations
+- React hooks for state management and memoization
+- Efficient re-rendering with useCallback and useEffect
+- Debounced resize handling for responsive layouts
+
+## 🔮 Future Enhancements
+
+- Audio playback integration
+- Progress tracking and statistics
+- Custom exercise creation
+- Exercise library
+- MIDI input support
+- Performance analysis and feedback
+
