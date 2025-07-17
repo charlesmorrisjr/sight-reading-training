@@ -15,6 +15,7 @@
  * @param {string[]} options.leftHandPatterns - Selected left hand pattern IDs
  * @param {string[]} options.rightHandPatterns - Selected right hand pattern IDs
  * @param {string[]} options.rightHandIntervals - Selected right hand interval types ('2nd', '3rd', etc.)
+ * @param {string[]} options.rightHand4NoteChords - Selected right hand 4-note chord types ('major', '7th')
  * @returns {string} ABC notation string
  */
 export function generateRandomABC(options) {
@@ -27,7 +28,8 @@ export function generateRandomABC(options) {
     chordProgressions = null,
     leftHandPatterns = ['block-chords'],
     rightHandPatterns = ['single-notes'],
-    rightHandIntervals = ['2nd']
+    rightHandIntervals = ['2nd'],
+    rightHand4NoteChords = ['major']
   } = options;
 
   // Parse time signature
@@ -169,6 +171,9 @@ export function generateRandomABC(options) {
       trebleMeasures.push(generateRightHandIntervals(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, selectedInterval));
     } else if (selectedRightHandPattern === '3-note-chords') {
       trebleMeasures.push(generateRightHand3NoteChords(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations));
+    } else if (selectedRightHandPattern === '4-note-chords') {
+      const selectedChordType = rightHand4NoteChords && rightHand4NoteChords.length > 0 ? rightHand4NoteChords[0] : 'major';
+      trebleMeasures.push(generateRightHand4NoteChords(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, selectedChordType));
     } else {
       // Default to single notes for all other patterns (including single-notes)
       trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord));
@@ -952,6 +957,165 @@ function generate3NoteChordVoicing(chordNotes, octaveOffset, maxOctavesLower) {
       }
       
       // If no perfect 3rd/4th found, use the closest interval that's ascending
+      if (bestInterval === Infinity) {
+        for (let testOctave = 0; testOctave <= 2; testOctave++) {
+          const testPosition = noteIndex + (testOctave * 7);
+          const interval = testPosition - previousNotePosition;
+          
+          if (interval > 0 && interval < bestInterval) {
+            bestOctave = testOctave;
+            bestInterval = interval;
+          }
+        }
+      }
+      
+      // Place the note at the calculated octave
+      const adjustedIndex = noteIndex + (bestOctave * 7);
+      voicing.push(convertNoteIndexToABC(adjustedIndex, octaveOffset, maxOctavesLower));
+      previousNotePosition = adjustedIndex;
+    }
+  }
+  
+  return voicing;
+}
+
+/**
+ * Generate a right-hand 4-note chord measure
+ * @param {number} startIndex - Starting note index
+ * @param {number} lowestIndex - Lowest allowed note index
+ * @param {number} octaveOffset - Octave offset for note positioning
+ * @param {number} highestIndex - Highest allowed note index
+ * @param {number} maxOctavesLower - Maximum octaves lower allowed
+ * @param {string[]} chordNotes - Current chord notes for harmonic context
+ * @param {number} totalBeatsPerMeasure - Total beats in the measure
+ * @param {number[]} intervals - Available intervals for movement
+ * @param {object[]} availableDurations - Available note durations
+ * @param {string} key - Musical key for harmonic context
+ * @param {string} selectedChordType - Selected chord type ('major', '7th')
+ * @returns {string} ABC notation for right-hand 4-note chord measure
+ */
+function generateRightHand4NoteChords(startIndex, lowestIndex, octaveOffset, highestIndex, maxOctavesLower, chordNotes, totalBeatsPerMeasure, intervals, availableDurations, key, selectedChordType) {
+  let measure = '';
+  let beatsUsed = 0;
+  
+  // If no chord notes provided, use default C major chord
+  const currentChordNotes = chordNotes || ['C', 'E', 'G'];
+  
+  while (beatsUsed < totalBeatsPerMeasure) {
+    // Generate a 4-note chord using chord tones
+    const chordVoicing = generate4NoteChordVoicing(currentChordNotes, octaveOffset, maxOctavesLower, selectedChordType);
+    
+    // Select duration that fits in remaining beats
+    const remainingBeats = totalBeatsPerMeasure - beatsUsed;
+    const validDurations = availableDurations.filter(d => d.beats <= remainingBeats);
+    
+    if (validDurations.length === 0) {
+      const shortestDuration = availableDurations.reduce((shortest, current) => 
+        current.beats < shortest.beats ? current : shortest
+      );
+      
+      measure += `[${chordVoicing.join('')}]${shortestDuration.abcNotation}`;
+      beatsUsed += shortestDuration.beats;
+      break;
+    }
+    
+    const selectedDuration = validDurations[Math.floor(Math.random() * validDurations.length)];
+    
+    // Add 4-note chord to measure
+    measure += `[${chordVoicing.join('')}]${selectedDuration.abcNotation}`;
+    beatsUsed += selectedDuration.beats;
+    
+    // Add space after chord if not at end of measure
+    if (selectedDuration.abcNotation && beatsUsed < totalBeatsPerMeasure) {
+      measure += ' ';
+    }
+  }
+  
+  return measure + '|';
+}
+
+/**
+ * Generate a 4-note chord voicing using chord tones with varied inversions and octaves
+ * @param {string[]} chordNotes - Current chord notes (root, third, fifth)
+ * @param {number} octaveOffset - Octave offset for note positioning
+ * @param {number} maxOctavesLower - Maximum octaves lower allowed
+ * @param {string} chordType - Type of chord ('major', '7th')
+ * @returns {string[]} Array of ABC notation strings for the 4 chord notes
+ */
+function generate4NoteChordVoicing(chordNotes, octaveOffset, maxOctavesLower, chordType) {
+  const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  
+  if (chordNotes.length < 3) {
+    // Fallback to default C major chord if not enough notes
+    chordNotes = ['C', 'E', 'G'];
+  }
+  
+  // Extract chord tones
+  const root = chordNotes[0];
+  const third = chordNotes[1];
+  const fifth = chordNotes[2];
+  
+  // Convert chord note names to note indices
+  const rootIndex = notes.findIndex(note => note === root.replace(/[#b]/g, ''));
+  const thirdIndex = notes.findIndex(note => note === third.replace(/[#b]/g, ''));
+  const fifthIndex = notes.findIndex(note => note === fifth.replace(/[#b]/g, ''));
+  
+  // Calculate seventh note index based on chord type
+  let seventhIndex;
+  if (chordType === '7th') {
+    // For 7th chord, add the 7th scale degree
+    seventhIndex = (rootIndex + 6) % 7; // 7th is 6 steps from root in scale
+  } else {
+    // For major chord, double the root for 4-note voicing
+    seventhIndex = rootIndex;
+  }
+  
+  // Create 4-note chord voicings
+  const chordOrderings = chordType === '7th' ? [
+    [rootIndex, thirdIndex, fifthIndex, seventhIndex],  // Root position 7th
+    [thirdIndex, fifthIndex, seventhIndex, rootIndex],  // First inversion 7th
+    [fifthIndex, seventhIndex, rootIndex, thirdIndex],  // Second inversion 7th
+    [seventhIndex, rootIndex, thirdIndex, fifthIndex],  // Third inversion 7th
+  ] : [
+    [rootIndex, thirdIndex, fifthIndex, rootIndex],     // Root position with doubled root
+    [thirdIndex, fifthIndex, rootIndex, thirdIndex],    // First inversion with doubled third
+    [fifthIndex, rootIndex, thirdIndex, fifthIndex],    // Second inversion with doubled fifth
+  ];
+  
+  // Randomly select a chord ordering
+  const selectedOrdering = chordOrderings[Math.floor(Math.random() * chordOrderings.length)];
+  
+  // Build voicing with close spacing - each note 2nd-4th apart
+  const voicing = [];
+  let previousNotePosition = null;
+  
+  for (let i = 0; i < selectedOrdering.length; i++) {
+    const noteIndex = selectedOrdering[i];
+    
+    if (i === 0) {
+      // First note - place in middle register (octave 0)
+      const adjustedIndex = noteIndex + (0 * 7);
+      voicing.push(convertNoteIndexToABC(adjustedIndex, octaveOffset, maxOctavesLower));
+      previousNotePosition = adjustedIndex;
+    } else {
+      // Subsequent notes - find closest position that's 2nd-4th above previous note
+      let bestOctave = 0;
+      let bestInterval = Infinity;
+      
+      // Try different octaves to find the one that gives 2nd-4th interval
+      for (let testOctave = -1; testOctave <= 2; testOctave++) {
+        const testPosition = noteIndex + (testOctave * 7);
+        const interval = testPosition - previousNotePosition;
+        
+        // Check if this interval is 2nd-4th (1-4 scale steps) and ascending
+        if (interval >= 1 && interval <= 4) {
+          bestOctave = testOctave;
+          bestInterval = interval;
+          break;
+        }
+      }
+      
+      // If no perfect 2nd-4th found, use the closest interval that's ascending
       if (bestInterval === Infinity) {
         for (let testOctave = 0; testOctave <= 2; testOctave++) {
           const testPosition = noteIndex + (testOctave * 7);

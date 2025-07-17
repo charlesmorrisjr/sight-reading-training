@@ -87,3 +87,6 @@ Now implement the logic for the Intervals submenu in the Right Hand Patterns sub
 
 # Next step
 Implement the logic for the 3 Note Chord pattern in the Right Hand Patterns submenu. When the 3 Note Chord button is selected, the music generation algorithm should generate a melody with sets of 3 notes in a row. The melody notes should match the notes in the current chord of the chord progression. Each note within each set of 3 notes should be a different note in the chord. Each note within each set of 3 notes should be a 3rd or a 4th above or below the root note of the chord.
+
+# Next step
+Create a submenu under the 4 Note Chord button in the Right Hand Patterns submenu. This button should contain a submenu with buttons for different 4 note chord patterns. Only one button should be selected at a time. The available patterns should be Major and 7th. There will be more patterns added later.

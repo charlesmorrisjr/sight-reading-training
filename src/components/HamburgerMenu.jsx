@@ -114,6 +114,17 @@ const HamburgerMenu = ({
     onSettingsChange(newSettings);
   };
 
+  const handleRightHand4NoteChordToggle = (chordId) => {
+    // Always set as the single selected chord type (radio button behavior)
+    // Also set rightHandPatterns to '4-note-chords' to enable 4-note chord generation
+    const newSettings = { 
+      ...settings, 
+      rightHand4NoteChords: [chordId],
+      rightHandPatterns: ['4-note-chords']
+    };
+    onSettingsChange(newSettings);
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -422,6 +433,20 @@ const HamburgerMenu = ({
                       <span className="menu-nav-arrow" style={isSelected ? { color: 'white' } : {}}>→</span>
                     </button>
                   );
+                } else if (id === '4-note-chords') {
+                  // Make 4-note chords button navigate to submenu
+                  const isSelected = (settings.rightHandPatterns || ['single-notes']).includes('4-note-chords');
+                  return (
+                    <button
+                      key={id}
+                      className={`button-grid-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => navigateToMenu('rightHand4NoteChords')}
+                      style={{ justifyContent: 'space-between' }}
+                    >
+                      <span>{label}</span>
+                      <span className="menu-nav-arrow" style={isSelected ? { color: 'white' } : {}}>→</span>
+                    </button>
+                  );
                 } else {
                   // Regular pattern selection buttons
                   return (
@@ -493,6 +518,38 @@ const HamburgerMenu = ({
                     key={id}
                     className={`button-grid-item ${shouldHighlight ? 'selected' : ''}`}
                     onClick={() => handleRightHandIntervalToggle(id)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      case 'rightHand4NoteChords': {
+        const chordOptions = [
+          { id: 'major', label: 'Major' },
+          { id: '7th', label: '7th' }
+        ];
+        
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {chordOptions.map(({ id, label }) => {
+                const is4NoteChordsPatternActive = (settings.rightHandPatterns || ['single-notes']).includes('4-note-chords');
+                const isThisChordSelected = (settings.rightHand4NoteChords || ['major'])[0] === id;
+                const shouldHighlight = is4NoteChordsPatternActive && isThisChordSelected;
+                
+                return (
+                  <button
+                    key={id}
+                    className={`button-grid-item ${shouldHighlight ? 'selected' : ''}`}
+                    onClick={() => handleRightHand4NoteChordToggle(id)}
                   >
                     {label}
                   </button>
