@@ -14,7 +14,8 @@ function App() {
     noteDurations: ['1/8', '1/4'],
     chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
     leftHandPatterns: ['block-chords'],
-    rightHandIntervals: ['2nd']
+    rightHandIntervals: ['2nd'],
+    musicScale: 1.0
   });
 
   // Current ABC notation

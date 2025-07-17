@@ -35,8 +35,8 @@ const MusicDisplay = ({ abcNotation, settings }) => {
           preferredMeasuresPerLine: preferredMeasuresPerLine
         },
         staffwidth: staffWidth,
-        responsive: 'resize',
-        scale: 1.0,
+        // responsive: 'resize',
+        scale: settings?.musicScale || 1.0,
         paddingleft: 20,
         paddingright: 20,
         paddingtop: 20,

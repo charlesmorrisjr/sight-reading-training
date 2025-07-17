@@ -125,6 +125,12 @@ const HamburgerMenu = ({
     onSettingsChange(newSettings);
   };
 
+  const handleScaleChange = (delta) => {
+    const currentScale = settings.musicScale || 1.0;
+    const newScale = Math.max(1.0, Math.min(2.0, currentScale + delta));
+    handleSettingChange('musicScale', newScale);
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -604,6 +610,34 @@ const HamburgerMenu = ({
           
           <div className="hamburger-menu-body">
             {renderMenuContent()}
+          </div>
+          
+          {/* Zoom Controller - Fixed at bottom */}
+          <div className="zoom-controller-footer">
+            <div className="zoom-controller">
+              <span className="zoom-label">Zoom</span>
+              <div className="zoom-controls">
+                <button 
+                  className="zoom-button"
+                  onClick={() => handleScaleChange(-0.25)}
+                  disabled={(settings.musicScale || 1.0) <= 1.0}
+                  aria-label="Zoom out"
+                >
+                  −
+                </button>
+                <span className="zoom-display">
+                  {Math.round((settings.musicScale || 1.0) * 100)}%
+                </span>
+                <button 
+                  className="zoom-button"
+                  onClick={() => handleScaleChange(0.25)}
+                  disabled={(settings.musicScale || 1.0) >= 2.0}
+                  aria-label="Zoom in"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

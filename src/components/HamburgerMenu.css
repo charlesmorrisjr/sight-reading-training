@@ -74,6 +74,8 @@
   transition: transform 0.3s ease;
   overflow-y: auto;
   z-index: 1001;
+  display: flex;
+  flex-direction: column;
 }
 
 .hamburger-menu-content.open {
@@ -130,6 +132,8 @@
 /* Menu body */
 .hamburger-menu-body {
   padding: 0 24px 24px;
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
 /* Menu navigation styles */
@@ -255,6 +259,77 @@
   border-color: #2563eb;
 }
 
+/* Zoom Controller Styles */
+.zoom-controller-footer {
+  position: sticky;
+  bottom: 0;
+  padding: 16px 24px;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  margin-top: auto;
+}
+
+.zoom-controller {
+  padding: 16px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.zoom-label {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.zoom-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-button:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.zoom-button:active:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #6b7280;
+}
+
+.zoom-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.zoom-display {
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  min-width: 48px;
+  text-align: center;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .hamburger-menu-header {
@@ -314,6 +389,34 @@
     padding: 14px 18px;
     font-size: 15px;
     min-height: 46px;
+  }
+  
+  .zoom-controller-footer {
+    padding: 14px 20px;
+  }
+  
+  .zoom-controller {
+    padding: 14px 16px;
+  }
+  
+  .zoom-label {
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+  
+  .zoom-controls {
+    gap: 12px;
+  }
+  
+  .zoom-button {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .zoom-display {
+    font-size: 15px;
+    min-width: 44px;
   }
 }
 
