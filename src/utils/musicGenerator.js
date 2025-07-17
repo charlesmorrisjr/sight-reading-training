@@ -886,7 +886,7 @@ function generateRightHand3NoteChords(startIndex, lowestIndex, octaveOffset, hig
 }
 
 /**
- * Generate a 3-note chord voicing using chord tones positioned as 3rds and 4ths
+ * Generate a 3-note chord voicing using chord tones with varied inversions and octaves
  * @param {string[]} chordNotes - Current chord notes (root, third, fifth)
  * @param {number} octaveOffset - Octave offset for note positioning
  * @param {number} maxOctavesLower - Maximum octaves lower allowed
@@ -910,32 +910,66 @@ function generate3NoteChordVoicing(chordNotes, octaveOffset, maxOctavesLower) {
   const thirdIndex = notes.findIndex(note => note === third.replace(/[#b]/g, ''));
   const fifthIndex = notes.findIndex(note => note === fifth.replace(/[#b]/g, ''));
   
-  // Create voicing with proper intervals (3rd and 4th spacing)
-  // Position root in middle register, then add third and fifth at intervals
-  const baseOctave = 0; // Start in middle register
+  // Create chord voicings where each note is only a 3rd or 4th apart from the next
+  // Start with different chord orderings (inversions)
+  const chordOrderings = [
+    [rootIndex, thirdIndex, fifthIndex],  // Root position
+    [thirdIndex, fifthIndex, rootIndex],  // First inversion
+    [fifthIndex, rootIndex, thirdIndex],  // Second inversion
+  ];
   
-  // Position notes with 3rd and 4th intervals relative to root
-  // Third is 2 semitones (major 3rd) from root
-  // Fifth is 4 semitones (perfect 4th) from root
-  const rootNoteIndex = rootIndex + baseOctave;
+  // Randomly select a chord ordering
+  const selectedOrdering = chordOrderings[Math.floor(Math.random() * chordOrderings.length)];
   
-  // Position third as a 3rd above root (2 scale steps)
-  let thirdNoteIndex = rootIndex + 2; // 3rd above root
-  if (thirdNoteIndex >= 7) {
-    thirdNoteIndex = thirdNoteIndex - 7; // Wrap around scale
+  // Build voicing with close spacing - each note 3rd or 4th apart
+  const voicing = [];
+  let previousNotePosition = null; // Track actual position of previous note
+  
+  for (let i = 0; i < selectedOrdering.length; i++) {
+    const noteIndex = selectedOrdering[i];
+    
+    if (i === 0) {
+      // First note - place in middle register (octave 0)
+      const adjustedIndex = noteIndex + (0 * 7);
+      voicing.push(convertNoteIndexToABC(adjustedIndex, octaveOffset, maxOctavesLower));
+      previousNotePosition = adjustedIndex;
+    } else {
+      // Subsequent notes - find closest position that's 3rd or 4th above previous note
+      let bestOctave = 0;
+      let bestInterval = Infinity;
+      
+      // Try different octaves to find the one that gives 3rd or 4th interval
+      for (let testOctave = -1; testOctave <= 2; testOctave++) {
+        const testPosition = noteIndex + (testOctave * 7);
+        const interval = testPosition - previousNotePosition;
+        
+        // Check if this interval is 3rd or 4th (2-4 semitones) and ascending
+        if (interval >= 2 && interval <= 4) {
+          bestOctave = testOctave;
+          bestInterval = interval;
+          break; // Found a good interval, use it
+        }
+      }
+      
+      // If no perfect 3rd/4th found, use the closest interval that's ascending
+      if (bestInterval === Infinity) {
+        for (let testOctave = 0; testOctave <= 2; testOctave++) {
+          const testPosition = noteIndex + (testOctave * 7);
+          const interval = testPosition - previousNotePosition;
+          
+          if (interval > 0 && interval < bestInterval) {
+            bestOctave = testOctave;
+            bestInterval = interval;
+          }
+        }
+      }
+      
+      // Place the note at the calculated octave
+      const adjustedIndex = noteIndex + (bestOctave * 7);
+      voicing.push(convertNoteIndexToABC(adjustedIndex, octaveOffset, maxOctavesLower));
+      previousNotePosition = adjustedIndex;
+    }
   }
   
-  // Position fifth as a 4th above root (3 scale steps)
-  let fifthNoteIndex = rootIndex + 3; // 4th above root
-  if (fifthNoteIndex >= 7) {
-    fifthNoteIndex = fifthNoteIndex - 7; // Wrap around scale
-  }
-  
-  // Ensure we use the actual chord tones, not just scale positions
-  // Use the provided chord notes for accurate harmony
-  const rootABC = convertNoteIndexToABC(rootNoteIndex, octaveOffset, maxOctavesLower);
-  const thirdABC = convertNoteIndexToABC(thirdIndex, octaveOffset, maxOctavesLower);
-  const fifthABC = convertNoteIndexToABC(fifthIndex, octaveOffset, maxOctavesLower);
-  
-  return [rootABC, thirdABC, fifthABC];
+  return voicing;
 }
