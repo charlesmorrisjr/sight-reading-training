@@ -625,6 +625,10 @@ function convertNoteIndexToABC(noteIndex, octaveOffset, maxOctavesLower) {
     note = note + ",".repeat(numOctavesLower);
   } else if (noteIndex + octaveOffset >= 7) {
     note = note.toLowerCase();
+    const octavesHigher = Math.floor((noteIndex + octaveOffset) / 7);
+    if (octavesHigher > 1) {
+      note = note + "'".repeat(octavesHigher - 1);
+    }
   }
   
   return note;
