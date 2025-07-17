@@ -7,8 +7,6 @@ A modern web application for piano sight reading practice, built with React and 
 - **Dynamic Music Generation**: Algorithmically generates random musical exercises using ABC notation
 - **Customizable Settings**: Configure key signatures, time signatures, intervals, note durations, and chord progressions
 - **Responsive Design**: Optimized for desktop, tablet, and mobile devices with adaptive music notation layout
-- **Real-time Rendering**: Instant musical notation rendering using ABCJS library
-- **Accessibility**: Screen reader support and keyboard navigation
 
 ## 🛠️ Tech Stack
 
@@ -65,6 +63,7 @@ src/
 
 ## 🔮 Future Enhancements
 
+- AI generated exercises
 - Audio playback integration
 - Progress tracking and statistics
 - Custom exercise creation
