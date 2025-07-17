@@ -20,7 +20,7 @@ A modern web application for piano sight reading practice, built with React and 
 
 ## 📖 Usage
 
-1. Open the application in your browser
+1. Open the website at this link: [TO BE ADDED]
 2. Click the hamburger menu to access settings
 3. Customize your practice session:
    - Select key signature and time signature
