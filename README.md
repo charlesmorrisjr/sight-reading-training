@@ -12,7 +12,7 @@ A modern web application for piano sight reading practice, built with React and 
 
 - **Frontend**: React 19 with functional components and hooks
 - **Build Tool**: Vite for fast development and optimized production builds
-- **Music Notation**: AbcJS library for rendering ABC notation to SVG
+- **Music Notation**: abcjs library for rendering ABC notation to SVG
 - **Styling**: CSS3 with responsive design principles
 - **Code Quality**: ESLint for code linting and consistency
 
