@@ -84,3 +84,6 @@ Now create a submenu under the Intervals button in the Right Hand Patterns subme
 
 # Next step
 Now implement the logic for the Intervals submenu in the Right Hand Patterns submenu. When an interval button is selected, the music generation algorithm should generate a melody where each note has a second note above it that is the interval selected. For example, if the user selects the 2nd interval, the music generation algorithm should generate a melody where each note has a note that is a 2nd above it. If the user selects the 3rd interval, the music generation algorithm should generate a melody where each note has a note that is a 3rd above it.
+
+# Next step
+Implement the logic for the 3 Note Chord pattern in the Right Hand Patterns submenu. When the 3 Note Chord button is selected, the music generation algorithm should generate a melody with sets of 3 notes in a row. The melody notes should match the notes in the current chord of the chord progression. Each note within each set of 3 notes should be a different note in the chord. Each note within each set of 3 notes should be a 3rd or a 4th above or below the root note of the chord.

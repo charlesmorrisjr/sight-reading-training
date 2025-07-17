@@ -167,6 +167,8 @@ export function generateRandomABC(options) {
     } else if (selectedRightHandPattern === 'intervals') {
       const selectedInterval = rightHandIntervals && rightHandIntervals.length > 0 ? rightHandIntervals[0] : '2nd';
       trebleMeasures.push(generateRightHandIntervals(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, selectedInterval));
+    } else if (selectedRightHandPattern === '3-note-chords') {
+      trebleMeasures.push(generateRightHand3NoteChords(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations));
     } else {
       // Default to single notes for all other patterns (including single-notes)
       trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord));
@@ -828,4 +830,112 @@ function generateRightHandOctaves(startIndex, lowestIndex, octaveOffset, highest
   }
   
   return measure + '|';
+}
+
+/**
+ * Generate a right-hand 3-note chord measure
+ * @param {number} startIndex - Starting note index
+ * @param {number} lowestIndex - Lowest allowed note index
+ * @param {number} octaveOffset - Octave offset for note positioning
+ * @param {number} highestIndex - Highest allowed note index
+ * @param {number} maxOctavesLower - Maximum octaves lower allowed
+ * @param {string[]} chordNotes - Current chord notes for harmonic context
+ * @param {number} totalBeatsPerMeasure - Total beats in the measure
+ * @param {number[]} intervals - Available intervals for movement
+ * @param {object[]} availableDurations - Available note durations
+ * @returns {string} ABC notation for right-hand 3-note chord measure
+ */
+function generateRightHand3NoteChords(startIndex, lowestIndex, octaveOffset, highestIndex, maxOctavesLower, chordNotes, totalBeatsPerMeasure, intervals, availableDurations) {
+  let measure = '';
+  let beatsUsed = 0;
+  
+  // If no chord notes provided, use default C major chord
+  const currentChordNotes = chordNotes || ['C', 'E', 'G'];
+  
+  while (beatsUsed < totalBeatsPerMeasure) {
+    // Generate a 3-note chord using chord tones
+    const chordVoicing = generate3NoteChordVoicing(currentChordNotes, octaveOffset, maxOctavesLower);
+    
+    // Select duration that fits in remaining beats
+    const remainingBeats = totalBeatsPerMeasure - beatsUsed;
+    const validDurations = availableDurations.filter(d => d.beats <= remainingBeats);
+    
+    if (validDurations.length === 0) {
+      const shortestDuration = availableDurations.reduce((shortest, current) => 
+        current.beats < shortest.beats ? current : shortest
+      );
+      
+      measure += `[${chordVoicing.join('')}]${shortestDuration.abcNotation}`;
+      beatsUsed += shortestDuration.beats;
+      break;
+    }
+    
+    const selectedDuration = validDurations[Math.floor(Math.random() * validDurations.length)];
+    
+    // Add 3-note chord to measure
+    measure += `[${chordVoicing.join('')}]${selectedDuration.abcNotation}`;
+    beatsUsed += selectedDuration.beats;
+    
+    // Add space after chord if not at end of measure
+    if (selectedDuration.abcNotation && beatsUsed < totalBeatsPerMeasure) {
+      measure += ' ';
+    }
+  }
+  
+  return measure + '|';
+}
+
+/**
+ * Generate a 3-note chord voicing using chord tones positioned as 3rds and 4ths
+ * @param {string[]} chordNotes - Current chord notes (root, third, fifth)
+ * @param {number} octaveOffset - Octave offset for note positioning
+ * @param {number} maxOctavesLower - Maximum octaves lower allowed
+ * @returns {string[]} Array of ABC notation strings for the 3 chord notes
+ */
+function generate3NoteChordVoicing(chordNotes, octaveOffset, maxOctavesLower) {
+  const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  
+  if (chordNotes.length < 3) {
+    // Fallback to default C major chord if not enough notes
+    chordNotes = ['C', 'E', 'G'];
+  }
+  
+  // Extract chord tones
+  const root = chordNotes[0];
+  const third = chordNotes[1];
+  const fifth = chordNotes[2];
+  
+  // Convert chord note names to note indices
+  const rootIndex = notes.findIndex(note => note === root.replace(/[#b]/g, ''));
+  const thirdIndex = notes.findIndex(note => note === third.replace(/[#b]/g, ''));
+  const fifthIndex = notes.findIndex(note => note === fifth.replace(/[#b]/g, ''));
+  
+  // Create voicing with proper intervals (3rd and 4th spacing)
+  // Position root in middle register, then add third and fifth at intervals
+  const baseOctave = 0; // Start in middle register
+  
+  // Position notes with 3rd and 4th intervals relative to root
+  // Third is 2 semitones (major 3rd) from root
+  // Fifth is 4 semitones (perfect 4th) from root
+  const rootNoteIndex = rootIndex + baseOctave;
+  
+  // Position third as a 3rd above root (2 scale steps)
+  let thirdNoteIndex = rootIndex + 2; // 3rd above root
+  if (thirdNoteIndex >= 7) {
+    thirdNoteIndex = thirdNoteIndex - 7; // Wrap around scale
+  }
+  
+  // Position fifth as a 4th above root (3 scale steps)
+  let fifthNoteIndex = rootIndex + 3; // 4th above root
+  if (fifthNoteIndex >= 7) {
+    fifthNoteIndex = fifthNoteIndex - 7; // Wrap around scale
+  }
+  
+  // Ensure we use the actual chord tones, not just scale positions
+  // Use the provided chord notes for accurate harmony
+  const rootABC = convertNoteIndexToABC(rootNoteIndex, octaveOffset, maxOctavesLower);
+  const thirdABC = convertNoteIndexToABC(thirdIndex, octaveOffset, maxOctavesLower);
+  const fifthABC = convertNoteIndexToABC(fifthIndex, octaveOffset, maxOctavesLower);
+  
+  return [rootABC, thirdABC, fifthABC];
 }
