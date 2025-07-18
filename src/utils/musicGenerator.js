@@ -186,6 +186,12 @@ export function generateRandomABC(options) {
       bassMeasures.push(generateAlbertiBass(currentChord, totalBeatsPerMeasure));
     } else if (selectedLeftHandPattern === 'octaves') {
       bassMeasures.push(generateLeftHandOctaves(currentChord, totalBeatsPerMeasure));
+    } else if (selectedLeftHandPattern === 'walking-bass') {
+      // Placeholder implementation - will be replaced with actual walking bass logic later
+      bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
+    } else if (selectedLeftHandPattern === 'broken-chords') {
+      // Placeholder implementation - will be replaced with actual broken chords logic later
+      bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
     } else {
       bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
     }
@@ -312,6 +318,18 @@ export const AVAILABLE_LEFT_HAND_PATTERNS = [
     label: 'Octaves',
     description: 'Root note with octave higher',
     supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  },
+  {
+    id: 'walking-bass',
+    label: 'Walking Bass',
+    description: 'Quarter note bass line walking through chord changes',
+    supportedTimeSignatures: ['4/4']
+  },
+  {
+    id: 'broken-chords',
+    label: 'Broken Chords',
+    description: 'Arpeggiated chord patterns with various sequences',
+    supportedTimeSignatures: ['4/4', '3/4']
   }
 ];
 

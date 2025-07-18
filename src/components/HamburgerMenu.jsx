@@ -48,7 +48,7 @@ const HamburgerMenu = ({
     
     // If changing time signature, validate bass pattern compatibility
     if (field === 'timeSignature') {
-      const currentLeftHandPattern = settings.leftHandPatterns?.[0] || 'block-chords';
+      const currentLeftHandPattern = settings.leftHandPatterns?.[0];
       const pattern = AVAILABLE_LEFT_HAND_PATTERNS.find(p => p.id === currentLeftHandPattern);
       
       if (pattern && !pattern.supportedTimeSignatures.includes(value)) {
@@ -121,6 +121,17 @@ const HamburgerMenu = ({
       ...settings, 
       rightHand4NoteChords: [chordId],
       rightHandPatterns: ['4-note-chords']
+    };
+    onSettingsChange(newSettings);
+  };
+
+  const handleLeftHandBrokenChordToggle = (patternId) => {
+    // Always set as the single selected pattern (radio button behavior)
+    // Also set leftHandPatterns to 'broken-chords' to enable broken chord generation
+    const newSettings = { 
+      ...settings, 
+      leftHandBrokenChords: [patternId],
+      leftHandPatterns: ['broken-chords']
     };
     onSettingsChange(newSettings);
   };
@@ -484,15 +495,34 @@ const HamburgerMenu = ({
               ← Back
             </button>
             <div className="button-grid">
-              {availablePatterns.map(({ id, label }) => (
-                <button
-                  key={id}
-                  className={`button-grid-item ${(settings.leftHandPatterns || ['block-chords']).includes(id) ? 'selected' : ''}`}
-                  onClick={() => handleLeftHandPatternToggle(id)}
-                >
-                  {label}
-                </button>
-              ))}
+              {availablePatterns.map(({ id, label }) => {
+                if (id === 'broken-chords') {
+                  // Make broken chords button navigate to submenu
+                  const isSelected = (settings.leftHandPatterns).includes('broken-chords');
+                  return (
+                    <button
+                      key={id}
+                      className={`button-grid-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => navigateToMenu('leftHandBrokenChords')}
+                      style={{ justifyContent: 'space-between' }}
+                    >
+                      <span>{label}</span>
+                      <span className="menu-nav-arrow" style={isSelected ? { color: 'white' } : {}}>→</span>
+                    </button>
+                  );
+                } else {
+                  // Regular pattern selection buttons
+                  return (
+                    <button
+                      key={id}
+                      className={`button-grid-item ${(settings.leftHandPatterns).includes(id) ? 'selected' : ''}`}
+                      onClick={() => handleLeftHandPatternToggle(id)}
+                    >
+                      {label}
+                    </button>
+                  );
+                }
+              })}
             </div>
           </div>
         );
@@ -556,6 +586,38 @@ const HamburgerMenu = ({
                     key={id}
                     className={`button-grid-item ${shouldHighlight ? 'selected' : ''}`}
                     onClick={() => handleRightHand4NoteChordToggle(id)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      case 'leftHandBrokenChords': {
+        const brokenChordOptions = [
+          { id: '1-3-5-3', label: '1-3-5-3' },
+          { id: '1-5-3-5', label: '1-5-3-5' }
+        ];
+        
+        return (
+          <div>
+            <button className="back-button" onClick={goBack}>
+              ← Back
+            </button>
+            <div className="button-grid">
+              {brokenChordOptions.map(({ id, label }) => {
+                const isBrokenChordsPatternActive = (settings.leftHandPatterns).includes('broken-chords');
+                const isThisPatternSelected = (settings.leftHandBrokenChords || ['1-3-5-3'])[0] === id;
+                const shouldHighlight = isBrokenChordsPatternActive && isThisPatternSelected;
+                
+                return (
+                  <button
+                    key={id}
+                    className={`button-grid-item ${shouldHighlight ? 'selected' : ''}`}
+                    onClick={() => handleLeftHandBrokenChordToggle(id)}
                   >
                     {label}
                   </button>
