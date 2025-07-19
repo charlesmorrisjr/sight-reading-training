@@ -639,13 +639,60 @@ function generateLeftHandBrokenChords(chordNotes, totalBeats, pattern) {
     return generateBassChord(chordNotes, totalBeats);
   }
   
-  // Extract chord tones: root, third, fifth
-  const root = convertNoteToABC(chordNotes[0]);
-  const third = convertNoteToABC(chordNotes[1]);
-  const fifth = convertNoteToABC(chordNotes[2]);
+  const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  
+  // Extract chord note names and convert to scale indices
+  const root = chordNotes[0].replace(/[#b]/g, '');
+  const third = chordNotes[1].replace(/[#b]/g, '');
+  const fifth = chordNotes[2].replace(/[#b]/g, '');
+  
+  const rootIndex = notes.findIndex(note => note === root);
+  const thirdIndex = notes.findIndex(note => note === third);
+  const fifthIndex = notes.findIndex(note => note === fifth);
+  
+  // Create properly spaced chord voicing for bass clef
+  // Start with root in lower octave, then space 3rd and 5th appropriately
+  const octaveOffset = 0;
+  const maxOctavesLower = 2;
+  
+  // Place root note in bass register (lower octave)
+  const rootNote = convertNoteIndexToABC(rootIndex - 7, octaveOffset, maxOctavesLower);
+  
+  // Find best octave placement for third and fifth to maintain close voicing
+  let thirdNote, fifthNote;
+  
+  // Try to place third within 3rd or 4th above root
+  let bestThirdOctave = 0;
+  for (let testOctave = -1; testOctave <= 1; testOctave++) {
+    const testPosition = thirdIndex + (testOctave * 7);
+    const rootPosition = rootIndex - 7; // Root position
+    const interval = testPosition - rootPosition;
+    
+    // Look for interval of 2-4 scale steps (3rd or 4th)
+    if (interval >= 2 && interval <= 4) {
+      bestThirdOctave = testOctave;
+      break;
+    }
+  }
+  thirdNote = convertNoteIndexToABC(thirdIndex + (bestThirdOctave * 7), octaveOffset, maxOctavesLower);
+  
+  // Place fifth within 3rd or 4th above third
+  let bestFifthOctave = bestThirdOctave;
+  const thirdPosition = thirdIndex + (bestThirdOctave * 7);
+  for (let testOctave = bestThirdOctave; testOctave <= bestThirdOctave + 1; testOctave++) {
+    const testPosition = fifthIndex + (testOctave * 7);
+    const interval = testPosition - thirdPosition;
+    
+    // Look for interval of 2-4 scale steps (3rd or 4th)
+    if (interval >= 2 && interval <= 4) {
+      bestFifthOctave = testOctave;
+      break;
+    }
+  }
+  fifthNote = convertNoteIndexToABC(fifthIndex + (bestFifthOctave * 7), octaveOffset, maxOctavesLower);
   
   // Pattern: 1-3-5-3 (root-third-fifth-third)
-  const chordPattern = [root, third, fifth, third];
+  const chordPattern = [rootNote, thirdNote, fifthNote, thirdNote];
   
   let measure = '';
   let beatsUsed = 0;
