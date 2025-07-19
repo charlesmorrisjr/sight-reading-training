@@ -29,7 +29,8 @@ export function generateRandomABC(options) {
     leftHandPatterns = ['block-chords'],
     rightHandPatterns = ['single-notes'],
     rightHandIntervals = ['2nd'],
-    rightHand4NoteChords = ['major']
+    rightHand4NoteChords = ['major'],
+    leftHandBrokenChords = ['1-3-5-3']
   } = options;
 
   // Parse time signature
@@ -190,8 +191,8 @@ export function generateRandomABC(options) {
       // Placeholder implementation - will be replaced with actual walking bass logic later
       bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
     } else if (selectedLeftHandPattern === 'broken-chords') {
-      // Placeholder implementation - will be replaced with actual broken chords logic later
-      bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
+      const selectedBrokenChordPattern = leftHandBrokenChords && leftHandBrokenChords.length > 0 ? leftHandBrokenChords[0] : '1-3-5-3';
+      bassMeasures.push(generateLeftHandBrokenChords(currentChord, totalBeatsPerMeasure, selectedBrokenChordPattern));
     } else {
       bassMeasures.push(generateBassChord(currentChord, totalBeatsPerMeasure));
     }
@@ -329,7 +330,7 @@ export const AVAILABLE_LEFT_HAND_PATTERNS = [
     id: 'broken-chords',
     label: 'Broken Chords',
     description: 'Arpeggiated chord patterns with various sequences',
-    supportedTimeSignatures: ['4/4', '3/4']
+    supportedTimeSignatures: ['4/4']
   }
 ];
 
@@ -623,6 +624,52 @@ function generateLeftHandOctaves(chordNotes, totalBeats) {
   const octaveInterval = `[${root}${rootOctaveHigher}]${durationNotation}`;
   
   return octaveInterval + '|';
+}
+
+/**
+ * Generate a left-hand broken chord measure with specified pattern
+ * @param {string[]} chordNotes - Array of chord note names
+ * @param {number} totalBeats - Total beats in the measure
+ * @param {string} pattern - Pattern type ('1-3-5-3' or '1-3-5-3-quarter')
+ * @returns {string} ABC notation for left-hand broken chords measure
+ */
+function generateLeftHandBrokenChords(chordNotes, totalBeats, pattern) {
+  if (chordNotes.length < 3) {
+    // Fallback to block chord if not enough notes
+    return generateBassChord(chordNotes, totalBeats);
+  }
+  
+  // Extract chord tones: root, third, fifth
+  const root = convertNoteToABC(chordNotes[0]);
+  const third = convertNoteToABC(chordNotes[1]);
+  const fifth = convertNoteToABC(chordNotes[2]);
+  
+  // Pattern: 1-3-5-3 (root-third-fifth-third)
+  const chordPattern = [root, third, fifth, third];
+  
+  let measure = '';
+  let beatsUsed = 0;
+  
+  if (pattern === '1-3-5-3-quarter') {
+    // Quarter note pattern - 4 quarter notes in 4/4 time
+    // Each quarter note takes 2 eighth-note units in our system
+    const quarterNoteBeats = 2;
+    
+    for (let i = 0; i < 4 && beatsUsed < totalBeats; i++) {
+      const patternIndex = i % chordPattern.length;
+      measure += chordPattern[patternIndex] + '2'; // '2' suffix for quarter notes
+      beatsUsed += quarterNoteBeats;
+    }
+  } else {
+    // Default eighth note pattern (1-3-5-3)
+    while (beatsUsed < totalBeats) {
+      const patternIndex = beatsUsed % chordPattern.length;
+      measure += chordPattern[patternIndex]; // No duration notation = eighth notes (default)
+      beatsUsed += 1; // Each note is an eighth note (1 beat in our system)
+    }
+  }
+  
+  return measure + '|';
 }
 
 /**

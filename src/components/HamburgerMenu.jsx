@@ -598,8 +598,8 @@ const HamburgerMenu = ({
 
       case 'leftHandBrokenChords': {
         const brokenChordOptions = [
-          { id: '1-3-5-3', label: '1-3-5-3' },
-          { id: '1-5-3-5', label: '1-5-3-5' }
+          { id: '1-3-5-3', label: '1-3-5-3 (1/8 notes)' },
+          { id: '1-3-5-3-quarter', label: '1-3-5-3 (1/4 notes)' }
         ];
         
         return (
