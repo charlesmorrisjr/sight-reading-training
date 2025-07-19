@@ -63,9 +63,6 @@ function App() {
       <header className="app-header">
         <div className="header-content">
           <div className="app-title">
-            <span className="title-icon" role="img" aria-label="Musical note">
-              🎼
-            </span>
             <div>
               <h1>Sight Reading Trainer</h1>
               <p className="app-subtitle">
