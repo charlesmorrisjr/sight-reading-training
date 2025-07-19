@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as ABCJS from 'abcjs';
 import './MusicDisplay.css';
 
 const MusicDisplay = ({ abcNotation, settings }) => {
   const containerRef = useRef(null);
   const renderRef = useRef(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
     if (!abcNotation || !renderRef.current) return;
@@ -28,6 +29,10 @@ const MusicDisplay = ({ abcNotation, settings }) => {
         preferredMeasuresPerLine = Math.max(preferredMeasuresPerLine - 1, 2);
       }
 
+      // Determine if we should use responsive behavior
+      // Only use responsive on smaller screens (< 800px) to allow scale control on larger screens
+      const useResponsive = containerWidth < 800;
+      
       const renderOptions = {
         wrap: {
           minSpacing: 1.8,
@@ -35,7 +40,8 @@ const MusicDisplay = ({ abcNotation, settings }) => {
           preferredMeasuresPerLine: preferredMeasuresPerLine
         },
         staffwidth: staffWidth,
-        // responsive: 'resize',
+        // Only use responsive on smaller screens
+        ...(useResponsive && { responsive: 'resize' }),
         scale: settings?.musicScale || 1.0,
         paddingleft: 20,
         paddingright: 20,
@@ -60,19 +66,15 @@ const MusicDisplay = ({ abcNotation, settings }) => {
       console.error('Error rendering ABC notation:', error);
       renderRef.current.innerHTML = '<p class="error-message">Error rendering music notation</p>';
     }
-  }, [abcNotation, settings]);
+  }, [abcNotation, settings, windowWidth]);
 
-  // Handle window resize
+  // Handle window resize to update responsive behavior
   useEffect(() => {
     const handleResize = () => {
       // Debounce resize events
       clearTimeout(window.resizeTimer);
       window.resizeTimer = setTimeout(() => {
-        if (abcNotation && renderRef.current) {
-          // Trigger re-render on resize
-          const event = new Event('resize');
-          window.dispatchEvent(event);
-        }
+        setWindowWidth(window.innerWidth);
       }, 250);
     };
 
@@ -81,7 +83,7 @@ const MusicDisplay = ({ abcNotation, settings }) => {
       window.removeEventListener('resize', handleResize);
       clearTimeout(window.resizeTimer);
     };
-  }, [abcNotation]);
+  }, []);
 
   if (!abcNotation) {
     return (
