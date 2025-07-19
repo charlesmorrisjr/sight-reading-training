@@ -13,7 +13,7 @@ const MusicDisplay = ({ abcNotation, settings }) => {
     try {
       // Calculate responsive staff width
       const containerWidth = containerRef.current?.clientWidth || 900;
-      const staffWidth = Math.min(containerWidth - 40, 1200); // Max width with padding
+      const staffWidth = Math.min(containerWidth - 80, 1200); // Max width with padding
 
       // Determine measures per line based on screen size and time signature
       let preferredMeasuresPerLine = 4;
