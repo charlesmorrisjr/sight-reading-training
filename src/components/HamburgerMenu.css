@@ -345,6 +345,13 @@
   }
 }
 
+/* Hide zoom controller on smaller screens */
+@media (max-width: 855px) {
+  .zoom-controller-footer {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .hamburger-menu-header {
     padding: 16px;
