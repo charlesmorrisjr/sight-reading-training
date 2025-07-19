@@ -200,6 +200,11 @@ export function generateRandomABC(options) {
 
   // Build ABC with both voices interleaved
   for (let i = 0; i < measures; i++) {
+    if (i === measures - 1) {
+      trebleMeasures[i] = trebleMeasures[i].replace('|', '|]');
+      bassMeasures[i] = bassMeasures[i].replace('|', '|]');
+    }
+
     abc += `V:1\n${trebleMeasures[i]}\n`;
     abc += `V:2\n${bassMeasures[i]}\n`;
   }
