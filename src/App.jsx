@@ -70,6 +70,13 @@ function App() {
               </p>
             </div>
           </div>
+          <div className="play-button-container">
+            <button className="play-btn">
+              <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </button>
+          </div>
           <HamburgerMenu
             settings={settings}
             onSettingsChange={handleSettingsChange}

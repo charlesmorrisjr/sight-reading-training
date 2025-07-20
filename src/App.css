@@ -23,6 +23,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-md);
+  position: relative;
 }
 
 .app-title {
@@ -48,6 +49,50 @@
   font-size: 0.875rem;
   margin: 0;
   font-weight: 400;
+}
+
+.play-button-container {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.play-btn {
+  background: var(--primary-color, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: 20%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.play-btn:hover {
+  background: var(--primary-hover, #2563eb);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.play-btn:active {
+  transform: scale(0.95);
+}
+
+.play-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.play-icon {
+  width: 2rem;
+  height: 2rem;
+  margin-left: 2px;
 }
 
 .main-content {
@@ -157,6 +202,16 @@
     max-width: 300px;
     min-width: auto;
   }
+  
+  .play-btn {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .play-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -179,6 +234,16 @@
   .generate-btn.primary {
     padding: 12px 20px;
     font-size: 14px;
+  }
+  
+  .play-btn {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .play-icon {
+    width: 1.5rem;
+    height: 1.5rem;
   }
 }
 
