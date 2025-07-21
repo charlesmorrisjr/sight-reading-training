@@ -29,6 +29,7 @@ function App() {
   // Audio/synth state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isVisualsReady, setIsVisualsReady] = useState(false);
   const audioContextRef = useRef(null);
   const synthRef = useRef(null);
   const visualObjectRef = useRef(null);
@@ -41,6 +42,7 @@ function App() {
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
     setIsGenerating(true);
+    setIsVisualsReady(false);
     
     try {
       // Small delay to show loading state
@@ -58,6 +60,7 @@ function App() {
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback((visualObj) => {
     visualObjectRef.current = visualObj;
+    setIsVisualsReady(true);
     // Reset synth when new music is loaded
     if (synthRef.current) {
       synthRef.current.stop();
@@ -137,11 +140,12 @@ function App() {
 
       // Start playback
       setIsPlaying(true);
-      synthRef.current.start();
-
-      // Set up completion handler
-      synthRef.current.addEventListener('ended', () => {
-        setIsPlaying(false);
+      
+      // Start with completion callback
+      synthRef.current.start(undefined, {
+        end: () => {
+          setIsPlaying(false);
+        }
       });
 
     } catch (error) {
@@ -186,7 +190,7 @@ function App() {
             <button 
               className="play-btn"
               onClick={handlePlayClick}
-              disabled={isInitializing || !visualObjectRef.current}
+              disabled={isInitializing || !isVisualsReady}
               title={isPlaying ? 'Stop' : 'Play'}
             >
               {isInitializing ? (
@@ -198,8 +202,7 @@ function App() {
                 </svg>
               ) : isPlaying ? (
                 <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="6" y="4" width="4" height="16"/>
-                  <rect x="14" y="4" width="4" height="16"/>
+                  <rect x="6" y="6" width="12" height="12"/>
                 </svg>
               ) : (
                 <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
