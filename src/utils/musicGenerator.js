@@ -38,7 +38,7 @@ export function generateRandomABC(options) {
   const totalBeatsPerMeasure = beatsPerMeasure * (8 / beatUnit); // Convert to eighth note units
 
   // Basic ABC header
-  let abc = `X:1\nT:\nM:${timeSignature}\nL:1/8\nK:${key}\n`;
+  let abc = `X:1\nT:\nM:${timeSignature}\nL:1/8\nQ:100\nK:${key}\n`;
   abc += "V:1 clef=treble\nV:2 clef=bass\n";
   
   // Available notes based on chromatic scale
