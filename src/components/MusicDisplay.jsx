@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as ABCJS from 'abcjs';
 import './MusicDisplay.css';
 
-const MusicDisplay = ({ abcNotation, settings }) => {
+const MusicDisplay = ({ abcNotation, settings, onVisualsReady }) => {
   const containerRef = useRef(null);
   const renderRef = useRef(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -60,13 +60,18 @@ const MusicDisplay = ({ abcNotation, settings }) => {
       renderRef.current.innerHTML = '';
 
       // Render the ABC notation
-      ABCJS.renderAbc(renderRef.current, abcNotation, renderOptions);
+      const visualObjs = ABCJS.renderAbc(renderRef.current, abcNotation, renderOptions);
+      
+      // Pass the visual objects to parent for synth functionality
+      if (onVisualsReady && visualObjs && visualObjs.length > 0) {
+        onVisualsReady(visualObjs[0]);
+      }
 
     } catch (error) {
       console.error('Error rendering ABC notation:', error);
       renderRef.current.innerHTML = '<p class="error-message">Error rendering music notation</p>';
     }
-  }, [abcNotation, settings, windowWidth]);
+  }, [abcNotation, settings, windowWidth, onVisualsReady]);
 
   // Handle window resize to update responsive behavior
   useEffect(() => {

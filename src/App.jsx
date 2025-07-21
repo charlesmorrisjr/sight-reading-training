@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import * as ABCJS from 'abcjs';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import { generateRandomABC } from './utils/musicGenerator';
@@ -25,6 +26,13 @@ function App() {
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Audio/synth state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const audioContextRef = useRef(null);
+  const synthRef = useRef(null);
+  const visualObjectRef = useRef(null);
+
   // Handle settings changes
   const handleSettingsChange = useCallback((newSettings) => {
     setSettings(newSettings);
@@ -47,10 +55,114 @@ function App() {
     }
   }, [settings]);
 
+  // Handle when visual objects are ready from MusicDisplay
+  const handleVisualsReady = useCallback((visualObj) => {
+    visualObjectRef.current = visualObj;
+    // Reset synth when new music is loaded
+    if (synthRef.current) {
+      synthRef.current.stop();
+      synthRef.current = null;
+    }
+    setIsPlaying(false);
+  }, []);
+
+  // Initialize audio context and synth
+  const initializeSynth = useCallback(async () => {
+    if (!visualObjectRef.current) {
+      console.error('No visual object available for synth');
+      return false;
+    }
+
+    try {
+      setIsInitializing(true);
+
+      // Create audio context if needed
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      // Resume audio context if suspended (required for user interaction)
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
+      // Create synth instance
+      synthRef.current = new ABCJS.synth.CreateSynth();
+
+      // Initialize synth with options
+      await synthRef.current.init({
+        audioContext: audioContextRef.current,
+        visualObj: visualObjectRef.current,
+        options: {
+          soundFontUrl: "https://paulrosen.github.io/midi-js-soundfonts/MusyngKite/"
+        }
+      });
+
+      // Prime the synth (load sounds)
+      await synthRef.current.prime();
+
+      return true;
+    } catch (error) {
+      console.error('Error initializing synth:', error);
+      return false;
+    } finally {
+      setIsInitializing(false);
+    }
+  }, []);
+
+  // Handle play button click
+  const handlePlayClick = useCallback(async () => {
+    if (isPlaying) {
+      // Stop current playback
+      if (synthRef.current) {
+        synthRef.current.stop();
+      }
+      setIsPlaying(false);
+      return;
+    }
+
+    if (!visualObjectRef.current) {
+      console.error('No music notation loaded');
+      return;
+    }
+
+    try {
+      // Initialize synth if needed
+      if (!synthRef.current) {
+        const initialized = await initializeSynth();
+        if (!initialized) {
+          return;
+        }
+      }
+
+      // Start playback
+      setIsPlaying(true);
+      synthRef.current.start();
+
+      // Set up completion handler
+      synthRef.current.addEventListener('ended', () => {
+        setIsPlaying(false);
+      });
+
+    } catch (error) {
+      console.error('Error playing music:', error);
+      setIsPlaying(false);
+    }
+  }, [isPlaying, initializeSynth]);
+
   // Generate initial exercise on mount
   React.useEffect(() => {
     handleGenerateNew();
   }, [handleGenerateNew]);
+
+  // Cleanup audio context on unmount
+  React.useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   return (
     <div className="app">
@@ -71,10 +183,29 @@ function App() {
             </div>
           </div>
           <div className="play-button-container">
-            <button className="play-btn">
-              <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
+            <button 
+              className="play-btn"
+              onClick={handlePlayClick}
+              disabled={isInitializing || !visualObjectRef.current}
+              title={isPlaying ? 'Stop' : 'Play'}
+            >
+              {isInitializing ? (
+                <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="3">
+                    <animate attributeName="r" values="3;8;3" dur="1s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+                  </circle>
+                </svg>
+              ) : isPlaying ? (
+                <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="6" y="4" width="4" height="16"/>
+                  <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+              ) : (
+                <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              )}
             </button>
           </div>
           <HamburgerMenu
@@ -91,6 +222,7 @@ function App() {
           <MusicDisplay 
             abcNotation={abcNotation} 
             settings={settings}
+            onVisualsReady={handleVisualsReady}
           />
         </section>
 
