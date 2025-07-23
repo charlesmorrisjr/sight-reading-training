@@ -170,11 +170,6 @@ function App() {
 
   return (
     <div className="app">
-      {/* Skip link for accessibility */}
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
-
       {/* Header */}
       <header className="app-header">
         <div className="header-content">
