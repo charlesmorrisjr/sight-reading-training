@@ -2,10 +2,14 @@ import React, { useState, useCallback, useRef } from 'react';
 import * as ABCJS from 'abcjs';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
+import Dashboard from './components/Dashboard';
 import { generateRandomABC } from './utils/musicGenerator';
 import './App.css';
 
 function App() {
+  // Navigation state
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' or 'practice'
+
   // Default settings
   const [settings, setSettings] = useState({
     key: 'C',
@@ -168,6 +172,23 @@ function App() {
     };
   }, []);
 
+  // Handle navigation
+  const handleNavigationChange = useCallback((view) => {
+    setCurrentView(view);
+  }, []);
+
+  // Render dashboard view
+  if (currentView === 'dashboard') {
+    return (
+      <Dashboard 
+        settings={settings} 
+        onSettingsChange={handleSettingsChange}
+        onNavigate={handleNavigationChange}
+      />
+    );
+  }
+
+  // Render practice view (original app)
   return (
     <div className="app">
       {/* Header */}
@@ -204,6 +225,14 @@ function App() {
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               )}
+            </button>
+          </div>
+          <div className="nav-toggle">
+            <button 
+              className="nav-btn"
+              onClick={() => handleNavigationChange('dashboard')}
+            >
+              ← Dashboard
             </button>
           </div>
           <HamburgerMenu
