@@ -73,16 +73,6 @@ const Dashboard = ({ settings, onSettingsChange, onNavigate }) => {
         </div>
       </nav>
 
-      {/* Profile and Settings Row */}
-      <div className="profile-settings-row">
-        <div className="profile-section">
-          <div className="profile-icon">👤</div>
-        </div>
-        <div className="settings-section">
-          <button className="settings-link">Settings ⚙️</button>
-        </div>
-      </div>
-
       {/* Main Dashboard Content */}
       <main className="dashboard-main">
         {/* Progress Summary */}

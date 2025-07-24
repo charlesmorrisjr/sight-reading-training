@@ -84,55 +84,6 @@
   color: white;
 }
 
-/* Profile and Settings Row */
-.profile-settings-row {
-  background: rgba(255, 255, 255, 0.8);
-  padding: var(--spacing-md) 0;
-  border-bottom: 1px solid var(--gray-200);
-}
-
-.profile-settings-row {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: var(--spacing-md) var(--spacing-lg);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.profile-section {
-  display: flex;
-  align-items: center;
-}
-
-.profile-icon {
-  font-size: 2rem;
-  background: var(--gray-100);
-  padding: var(--spacing-md);
-  border-radius: 50%;
-  border: 2px solid var(--gray-200);
-}
-
-.settings-section {
-  display: flex;
-  align-items: center;
-}
-
-.settings-link {
-  background: none;
-  border: none;
-  color: var(--primary-color);
-  font-size: 1rem;
-  cursor: pointer;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  transition: background-color 0.2s;
-}
-
-.settings-link:hover {
-  background: var(--primary-light);
-}
-
 /* Main Dashboard Content */
 .dashboard-main {
   flex: 1;
