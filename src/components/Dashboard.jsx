@@ -37,8 +37,10 @@ const Dashboard = ({ settings, onSettingsChange, onNavigate }) => {
           <div className="app-title">
             <h1>🎹 Sight Reading Trainer</h1>
           </div>
-          <button className="settings-btn" title="Settings">
-            ⚙️
+          <button className="hamburger-button" title="Settings">
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
           </button>
         </div>
       </header>
