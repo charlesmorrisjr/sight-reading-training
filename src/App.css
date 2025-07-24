@@ -67,13 +67,6 @@
   color: var(--primary-color);
 }
 
-.app-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin: 0;
-  font-weight: 400;
-}
-
 .play-button-container {
   position: absolute;
   left: 50%;

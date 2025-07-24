@@ -35,7 +35,7 @@ const Dashboard = ({ settings, onSettingsChange, onNavigate }) => {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="app-title">
-            <h1>🎹 Sight Reading Exercises</h1>
+            <h1>🎹 Sight Reading Trainer</h1>
           </div>
           <button className="settings-btn" title="Settings">
             ⚙️

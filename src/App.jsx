@@ -196,10 +196,7 @@ function App() {
         <div className="header-content">
           <div className="app-title">
             <div>
-              <h1>Sight Reading Trainer</h1>
-              <p className="app-subtitle">
-                Perfect your piano sight reading skills
-              </p>
+              <h1>🎹 Sight Reading Trainer</h1>
             </div>
           </div>
           <div className="play-button-container">
