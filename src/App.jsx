@@ -224,17 +224,10 @@ function App() {
               )}
             </button>
           </div>
-          <div className="nav-toggle">
-            <button 
-              className="nav-btn"
-              onClick={() => handleNavigationChange('dashboard')}
-            >
-              ← Dashboard
-            </button>
-          </div>
           <HamburgerMenu
             settings={settings}
             onSettingsChange={handleSettingsChange}
+            onNavigate={handleNavigationChange}
           />
         </div>
       </header>

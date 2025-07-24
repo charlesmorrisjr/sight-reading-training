@@ -12,7 +12,8 @@ import './HamburgerMenu.css';
 
 const HamburgerMenu = ({ 
   settings, 
-  onSettingsChange
+  onSettingsChange,
+  onNavigate
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMenu, setCurrentMenu] = useState('main');
@@ -660,7 +661,12 @@ const HamburgerMenu = ({
           aria-labelledby="settings-menu-title"
         >
           <div className="hamburger-menu-header">
-            <h2 id="settings-menu-title">Practice Settings</h2>
+            <button 
+              className="back-button"
+              onClick={() => onNavigate('dashboard')}
+            >
+              ← Dashboard
+            </button>
             <button 
               className="close-button"
               onClick={closeMenu}
