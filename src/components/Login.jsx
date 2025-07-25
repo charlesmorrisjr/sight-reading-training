@@ -66,6 +66,7 @@ const Login = () => {
           <input
             type="email"
             id="email"
+            autoComplete="email"
             className={`form-input ${errors.email ? 'error' : ''}`}
             placeholder="Enter your email"
             {...register('email', {
@@ -89,6 +90,7 @@ const Login = () => {
             <input
               type={showPassword ? 'text' : 'password'}
               id="password"
+              autoComplete="current-password"
               className={`form-input ${errors.password ? 'error' : ''}`}
               placeholder="Enter your password"
               {...register('password', {
