@@ -1,29 +1,22 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import Dashboard from './components/Dashboard';
+import Login from './components/Login';
+import Signup from './components/Signup';
+import { useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthProvider';
 import { generateRandomABC } from './utils/musicGenerator';
 import './App.css';
 
-function App() {
-  // Navigation state
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' or 'practice'
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
 
-  // Default settings
-  const [settings, setSettings] = useState({
-    key: 'C',
-    timeSignature: '4/4',
-    measures: 8,
-    intervals: [1, 2, 3, 4, 5],
-    noteDurations: ['1/8', '1/4'],
-    chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
-    leftHandPatterns: ['block-chords'],
-    leftHandBrokenChords: ['1-3-5-3'],
-    rightHandIntervals: ['2nd'],
-    musicScale: 1.0
-  });
-
+const PracticeView = ({ settings, onSettingsChange }) => {
   // Current ABC notation
   const [abcNotation, setAbcNotation] = useState('');
 
@@ -38,20 +31,13 @@ function App() {
   const synthRef = useRef(null);
   const visualObjectRef = useRef(null);
 
-  // Handle settings changes
-  const handleSettingsChange = useCallback((newSettings) => {
-    setSettings(newSettings);
-  }, []);
-
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
     setIsGenerating(true);
     setIsVisualsReady(false);
     
     try {
-      // Small delay to show loading state
       await new Promise(resolve => setTimeout(resolve, 100));
-      
       const newAbc = generateRandomABC(settings);
       setAbcNotation(newAbc);
     } catch (error) {
@@ -65,7 +51,6 @@ function App() {
   const handleVisualsReady = useCallback((visualObj) => {
     visualObjectRef.current = visualObj;
     setIsVisualsReady(true);
-    // Reset synth when new music is loaded
     if (synthRef.current) {
       synthRef.current.stop();
       synthRef.current = null;
@@ -83,20 +68,16 @@ function App() {
     try {
       setIsInitializing(true);
 
-      // Create audio context if needed
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
 
-      // Resume audio context if suspended (required for user interaction)
       if (audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume();
       }
 
-      // Create synth instance
       synthRef.current = new ABCJS.synth.CreateSynth();
 
-      // Initialize synth with options
       await synthRef.current.init({
         audioContext: audioContextRef.current,
         visualObj: visualObjectRef.current,
@@ -105,9 +86,7 @@ function App() {
         }
       });
 
-      // Prime the synth (load sounds)
       await synthRef.current.prime();
-
       return true;
     } catch (error) {
       console.error('Error initializing synth:', error);
@@ -120,7 +99,6 @@ function App() {
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
     if (isPlaying) {
-      // Stop current playback
       if (synthRef.current) {
         synthRef.current.stop();
       }
@@ -134,7 +112,6 @@ function App() {
     }
 
     try {
-      // Initialize synth if needed
       if (!synthRef.current) {
         const initialized = await initializeSynth();
         if (!initialized) {
@@ -142,10 +119,8 @@ function App() {
         }
       }
 
-      // Start playback
       setIsPlaying(true);
       
-      // Start with completion callback
       synthRef.current.start(undefined, {
         end: () => {
           setIsPlaying(false);
@@ -158,12 +133,10 @@ function App() {
     }
   }, [isPlaying, initializeSynth]);
 
-  // Generate initial exercise on mount
   React.useEffect(() => {
     handleGenerateNew();
   }, [handleGenerateNew]);
 
-  // Cleanup audio context on unmount
   React.useEffect(() => {
     return () => {
       if (audioContextRef.current) {
@@ -172,26 +145,8 @@ function App() {
     };
   }, []);
 
-  // Handle navigation
-  const handleNavigationChange = useCallback((view) => {
-    setCurrentView(view);
-  }, []);
-
-  // Render dashboard view
-  if (currentView === 'dashboard') {
-    return (
-      <Dashboard 
-        settings={settings} 
-        onSettingsChange={handleSettingsChange}
-        onNavigate={handleNavigationChange}
-      />
-    );
-  }
-
-  // Render practice view (original app)
   return (
     <div className="app">
-      {/* Header */}
       <header className="app-header">
         <div className="header-content">
           <div className="app-title">
@@ -226,15 +181,12 @@ function App() {
           </div>
           <HamburgerMenu
             settings={settings}
-            onSettingsChange={handleSettingsChange}
-            onNavigate={handleNavigationChange}
+            onSettingsChange={onSettingsChange}
           />
         </div>
       </header>
 
-      {/* Main content */}
       <main id="main-content" className="main-content">
-        {/* Music display */}
         <section className="music-section">
           <MusicDisplay 
             abcNotation={abcNotation} 
@@ -243,7 +195,6 @@ function App() {
           />
         </section>
 
-        {/* Generate button */}
         <div className="generate-button-container">
           <button 
             className="generate-btn primary"
@@ -255,6 +206,60 @@ function App() {
         </div>
       </main>
     </div>
+  );
+};
+
+function App() {
+  // Default settings
+  const [settings, setSettings] = useState({
+    key: 'C',
+    timeSignature: '4/4',
+    measures: 8,
+    intervals: [1, 2, 3, 4, 5],
+    noteDurations: ['1/8', '1/4'],
+    chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
+    leftHandPatterns: ['block-chords'],
+    leftHandBrokenChords: ['1-3-5-3'],
+    rightHandIntervals: ['2nd'],
+    musicScale: 1.0
+  });
+
+  const handleSettingsChange = useCallback((newSettings) => {
+    setSettings(newSettings);
+  }, []);
+
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <Dashboard 
+                  settings={settings} 
+                  onSettingsChange={handleSettingsChange}
+                />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/practice" 
+            element={
+              <ProtectedRoute>
+                <PracticeView 
+                  settings={settings} 
+                  onSettingsChange={handleSettingsChange}
+                />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

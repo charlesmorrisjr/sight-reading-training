@@ -1,7 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
 
-const Dashboard = ({ settings, onSettingsChange, onNavigate }) => {
+const Dashboard = ({ settings, onSettingsChange }) => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   // TODO: settings and onSettingsChange will be used for future database integration
   // Currently these props are prepared for future database integration
   console.debug('Dashboard props:', { settings, onSettingsChange });
@@ -22,11 +26,16 @@ const Dashboard = ({ settings, onSettingsChange, onNavigate }) => {
   };
 
   const handleNavClick = (navItem) => {
-    if (navItem === 'practice' && onNavigate) {
-      onNavigate('practice');
+    if (navItem === 'practice') {
+      navigate('/practice');
     } else {
       console.log(`Navigation clicked: ${navItem}`);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -72,6 +81,18 @@ const Dashboard = ({ settings, onSettingsChange, onNavigate }) => {
           >
             👤 Profile
           </button>
+          <div className="nav-user-section">
+            <span className="nav-user-greeting">
+              Hi, {user?.name}!
+            </span>
+            <button 
+              className="nav-btn logout-btn"
+              onClick={handleLogout}
+              title="Logout"
+            >
+              🚪 Logout
+            </button>
+          </div>
         </div>
       </nav>
 
