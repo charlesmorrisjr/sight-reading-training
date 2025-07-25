@@ -9,7 +9,7 @@
 
 .auth-container {
   width: 100%;
-  max-width: 420px;
+  max-width: 600px;
   background: var(--bg-primary);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
@@ -63,7 +63,7 @@
   text-decoration: underline;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 630px) {
   .auth-layout {
     padding: var(--spacing-md);
   }
