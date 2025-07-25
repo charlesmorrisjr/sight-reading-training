@@ -27,12 +27,14 @@
 }
 
 .form-input {
+  width: 100%;
   padding: var(--spacing-md);
   border: 1px solid var(--gray-300);
   border-radius: var(--radius-md);
   font-size: 1rem;
   transition: all 0.2s;
   background: var(--bg-primary);
+  box-sizing: border-box;
 }
 
 .form-input:focus {
@@ -52,9 +54,13 @@
   position: relative;
 }
 
+.password-input-container .form-input {
+  padding-right: calc(var(--spacing-md) * 2.5);
+}
+
 .password-toggle {
   position: absolute;
-  right: var(--spacing-md);
+  right: var(--spacing-sm);
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -66,10 +72,17 @@
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  border-radius: var(--radius-sm);
 }
 
 .password-toggle:hover {
   color: var(--text-primary);
+  background: var(--gray-100);
+}
+
+.password-toggle:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .form-error {
@@ -172,5 +185,14 @@
   .google-auth-btn {
     padding: var(--spacing-md);
     font-size: 0.95rem;
+  }
+  
+  .password-input-container .form-input {
+    padding-right: calc(var(--spacing-md) * 2.2);
+  }
+  
+  .password-toggle {
+    right: var(--spacing-xs);
+    padding: var(--spacing-xs);
   }
 }
