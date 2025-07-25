@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   AVAILABLE_KEYS, 
   AVAILABLE_TIME_SIGNATURES, 
@@ -12,9 +13,9 @@ import './HamburgerMenu.css';
 
 const HamburgerMenu = ({ 
   settings, 
-  onSettingsChange,
-  onNavigate
+  onSettingsChange
 }) => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [currentMenu, setCurrentMenu] = useState('main');
   const [menuHistory, setMenuHistory] = useState(['main']);
@@ -663,7 +664,7 @@ const HamburgerMenu = ({
           <div className="hamburger-menu-header">
             <button 
               className="back-button"
-              onClick={() => onNavigate('dashboard')}
+              onClick={() => navigate('/dashboard')}
             >
               ← Dashboard
             </button>
