@@ -10,7 +10,11 @@ const Dashboard = ({ settings, onSettingsChange }) => {
   // Currently these props are prepared for future database integration
   console.debug('Dashboard props:', { settings, onSettingsChange });
   const handleCategoryClick = (categoryId) => {
-    console.log(`Category clicked: ${categoryId}`);
+    if (categoryId === 'intervals') {
+      navigate('/intervals');
+    } else {
+      console.log(`Category clicked: ${categoryId}`);
+    }
   };
 
   const handleDrillPlay = () => {

@@ -4,10 +4,12 @@ import * as ABCJS from 'abcjs';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import Dashboard from './components/Dashboard';
+import Intervals from './components/Intervals';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
 import { AuthProvider } from './contexts/AuthProvider';
+import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { generateRandomABC } from './utils/musicGenerator';
 import './App.css';
 
@@ -230,35 +232,45 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard 
-                  settings={settings} 
-                  onSettingsChange={handleSettingsChange}
-                />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/practice" 
-            element={
-              <ProtectedRoute>
-                <PracticeView 
-                  settings={settings} 
-                  onSettingsChange={handleSettingsChange}
-                />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
+      <IntervalsProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/intervals" 
+              element={
+                <ProtectedRoute>
+                  <Intervals />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/practice" 
+              element={
+                <ProtectedRoute>
+                  <PracticeView 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Router>
+      </IntervalsProvider>
     </AuthProvider>
   );
 }
