@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
@@ -17,6 +17,18 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const PracticeView = ({ settings, onSettingsChange }) => {
+  const location = useLocation();
+  
+  // Get intervals from location state if available
+  const intervalsFromState = location.state?.intervals;
+  
+  // Merge location state with settings if intervals were passed
+  const effectiveSettings = useMemo(() => {
+    return intervalsFromState 
+      ? { ...settings, intervals: intervalsFromState }
+      : settings;
+  }, [settings, intervalsFromState]);
+  
   // Current ABC notation
   const [abcNotation, setAbcNotation] = useState('');
 
@@ -38,14 +50,14 @@ const PracticeView = ({ settings, onSettingsChange }) => {
     
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
-      const newAbc = generateRandomABC(settings);
+      const newAbc = generateRandomABC(effectiveSettings);
       setAbcNotation(newAbc);
     } catch (error) {
       console.error('Error generating ABC notation:', error);
     } finally {
       setIsGenerating(false);
     }
-  }, [settings]);
+  }, [effectiveSettings]);
 
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback((visualObj) => {
@@ -180,7 +192,7 @@ const PracticeView = ({ settings, onSettingsChange }) => {
             </button>
           </div>
           <HamburgerMenu
-            settings={settings}
+            settings={effectiveSettings}
             onSettingsChange={onSettingsChange}
           />
         </div>
@@ -190,7 +202,7 @@ const PracticeView = ({ settings, onSettingsChange }) => {
         <section className="music-section">
           <MusicDisplay 
             abcNotation={abcNotation} 
-            settings={settings}
+            settings={effectiveSettings}
             onVisualsReady={handleVisualsReady}
           />
         </section>
