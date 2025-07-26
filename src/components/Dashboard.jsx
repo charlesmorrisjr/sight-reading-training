@@ -102,8 +102,9 @@ const Dashboard = ({ settings, onSettingsChange }) => {
               <button className="back-btn" onClick={handleBackToMain}>
                 ← Back
               </button>
-              <h2>Select Intervals</h2>
             </div>
+            
+            <h2>Select Intervals</h2>
             
             <div className="intervals-description">
               <p>Choose which intervals you'd like to practice:</p>

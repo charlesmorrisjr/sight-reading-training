@@ -399,10 +399,7 @@
 }
 
 .intervals-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .back-btn {
@@ -421,9 +418,8 @@
   border-color: var(--gray-400);
 }
 
-.intervals-header h2 {
-  margin: 0;
-  flex: 1;
+.intervals-page h2 {
+  margin: 0 0 var(--spacing-lg) 0;
 }
 
 .intervals-description {
