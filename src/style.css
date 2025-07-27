@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-secondary: #6b7280;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  
+  --animation-fade-in: fadeIn 0.5s ease-in-out;
+  --animation-slide-up: slideUp 0.3s ease-out;
+  --animation-scale-in: scaleIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: var(--animation-fade-in);
+}
+
+.animate-slide-up {
+  animation: var(--animation-slide-up);
+}
+
+.animate-scale-in {
+  animation: var(--animation-scale-in);
+}
+
+/* DaisyUI-like components */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-medium rounded-lg transition-all duration-200 border border-transparent cursor-pointer select-none;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800;
+}
+
+.btn-ghost {
+  @apply bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900;
+}
+
+.btn-outline {
+  @apply bg-transparent border border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+
+.btn-error {
+  @apply bg-red-600 text-white hover:bg-red-700 active:bg-red-800;
+}
+
+.btn-white {
+  @apply bg-white text-gray-900 hover:bg-gray-50 border border-gray-200;
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
+.btn-lg {
+  @apply px-6 py-3 text-lg;
+}
+
+.btn-square {
+  @apply w-10 h-10 p-0;
+}
+
+.btn-block {
+  @apply w-full;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-md overflow-hidden;
+}
+
+.card-body {
+  @apply p-6;
+}
+
+.card-title {
+  @apply text-lg font-semibold text-gray-900 mb-2;
+}
+
+.hero {
+  @apply relative overflow-hidden;
+}
+
+.hero-content {
+  @apply relative z-10;
+}
+
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-info {
+  @apply bg-blue-100 text-blue-800;
+}
