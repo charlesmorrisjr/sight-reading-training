@@ -229,9 +229,9 @@ const Dashboard = ({ settings, onSettingsChange }) => {
         <div className="space-y-8">
           
           {/* Welcome Section */}
-          <div className="hero bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl animate-fade-in">
+          <div className="hero bg-blue-600 text-white rounded-2xl animate-fade-in">
             <div className="hero-content text-center py-12">
-              <div className="max-w-md">
+              <div className="max-w-md mx-auto">
                 <h1 className="text-4xl font-bold mb-4">Welcome Back!</h1>
                 <p className="text-blue-100 mb-6">
                   Ready to improve your sight reading skills? Let's continue your musical journey.
@@ -280,7 +280,7 @@ const Dashboard = ({ settings, onSettingsChange }) => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Last Practice</p>
-                    <p className="text-2xl font-bold text-gray-900">Aug 20</p>
+                    <p className="text-2xl font-bold text-gray-900">July 20</p>
                   </div>
                 </div>
               </div>
@@ -375,32 +375,6 @@ const Dashboard = ({ settings, onSettingsChange }) => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Suggested Drill */}
-            <div className="card bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-lg">
-              <div className="card-body">
-                <h2 className="card-title text-xl mb-4 flex items-center">
-                  <span className="text-2xl mr-2">🔥</span>
-                  Suggested Drill
-                </h2>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Interval Drill #7: 3rds and 4ths</h3>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <div className="badge badge-warning">3 min</div>
-                      <div className="badge badge-info">★★☆☆☆</div>
-                    </div>
-                  </div>
-                  <button 
-                    className="btn btn-white btn-lg w-full"
-                    onClick={handleDrillPlay}
-                  >
-                    <FaPlay className="mr-2" />
-                    Start Drill
-                  </button>
-                </div>
-              </div>
-            </div>
-
             {/* My Exercises */}
             <div className="card bg-white shadow-lg">
               <div className="card-body">
@@ -448,6 +422,34 @@ const Dashboard = ({ settings, onSettingsChange }) => {
                       </div>
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Suggested Drill */}
+            <div className="card bg-white text-gray-900 shadow-lg">
+              <div className="card-body flex flex-col h-full">
+                <div>
+                  <h2 className="card-title text-xl mb-4 flex items-center">
+                    <span className="text-2xl mr-2">🔥</span>
+                    Suggested Drill
+                  </h2>
+                  <div>
+                    <h3 className="text-lg font-semibold">Interval Drill #7: 3rds and 4ths</h3>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <div className="badge badge-warning">3 min</div>
+                      <div className="badge badge-info">★★☆☆☆</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-auto pt-6">
+                  <button 
+                    className="btn btn-outline btn-lg w-full"
+                    onClick={handleDrillPlay}
+                  >
+                    <FaPlay className="mr-2" />
+                    Start Drill
+                  </button>
                 </div>
               </div>
             </div>
