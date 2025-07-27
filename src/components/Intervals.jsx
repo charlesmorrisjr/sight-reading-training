@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaArrowLeft, FaMusic, FaPlay } from 'react-icons/fa';
 import { useIntervals } from '../contexts/useIntervals';
 import { AVAILABLE_INTERVALS } from '../utils/musicGenerator';
-import './Intervals.css';
 
 const Intervals = () => {
   const navigate = useNavigate();
@@ -16,55 +16,117 @@ const Intervals = () => {
   };
 
   return (
-    <div className="intervals-page">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
       {/* Header */}
-      <header className="intervals-header">
-        <div className="header-content">
-          <button 
-            className="back-button"
-            onClick={handleBackClick}
-            aria-label="Back to Dashboard"
-          >
-            ← Back
-          </button>
-          <div className="app-title">
-            <h1>Intervals</h1>
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            
+            {/* Back Button */}
+            <button 
+              className="btn btn-ghost btn-sm"
+              onClick={handleBackClick}
+              aria-label="Back to Dashboard"
+            >
+              <FaArrowLeft className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+            
+            {/* Title */}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+                <FaMusic className="text-white text-lg" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                Intervals Practice
+              </h1>
+            </div>
+            
+            {/* Spacer for centering */}
+            <div className="w-20"></div>
           </div>
-          <div className="header-spacer"></div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="intervals-main">
-        <section className="intervals-section">
-          <h2>Select Practice Intervals</h2>
-          <p className="intervals-description">
-            Choose which intervals you'd like to practice. Selected intervals will be used in your sight reading exercises.
-          </p>
-          
-          <div className="intervals-grid">
-            {displayIntervals.map(({ value, label }) => (
-              <button
-                key={value}
-                className={`interval-toggle-button ${selectedIntervals.includes(value) ? 'active' : ''}`}
-                onClick={() => toggleInterval(value)}
-                aria-pressed={selectedIntervals.includes(value)}
-              >
-                {label}
-              </button>
-            ))}
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Welcome Section */}
+        <div className="card bg-white shadow-lg mb-8 animate-fade-in">
+          <div className="card-body p-8 text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Select Practice Intervals
+            </h2>
+            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+              Choose which intervals you'd like to practice. Selected intervals will be used in your sight reading exercises to help improve your musical reading skills.
+            </p>
+            
+            {/* Selected Count Badge */}
+            <div className="inline-flex items-center space-x-2">
+              <span className="text-sm text-gray-500">Selected:</span>
+              <div className="badge badge-primary badge-lg">
+                {selectedIntervals.length} {selectedIntervals.length === 1 ? 'interval' : 'intervals'}
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
+        
+        {/* Intervals Grid */}
+        <div className="card bg-white shadow-lg mb-8 animate-slide-up">
+          <div className="card-body p-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {displayIntervals.map(({ value, label }) => {
+                const isSelected = selectedIntervals.includes(value);
+                return (
+                  <button
+                    key={value}
+                    className={`btn btn-lg h-auto py-6 px-4 transition-all duration-300 transform hover:scale-105 ${
+                      isSelected 
+                        ? 'btn-primary shadow-lg' 
+                        : 'btn-outline btn-primary hover:btn-primary'
+                    }`}
+                    onClick={() => toggleInterval(value)}
+                    aria-pressed={isSelected}
+                  >
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        isSelected 
+                          ? 'bg-white text-blue-600' 
+                          : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        {value}
+                      </div>
+                      <span className="font-medium">{label}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-        {/* Practice Button at Bottom */}
-        <section className="intervals-footer">
+        {/* Practice Button */}
+        <div className="text-center animate-scale-in">
           <button 
-            className="practice-button"
+            className="btn btn-success btn-lg px-8 py-4"
             onClick={() => navigate('/practice')}
+            disabled={selectedIntervals.length === 0}
           >
-            Practice
+            <FaPlay className="mr-3" />
+            Start Practice
+            {selectedIntervals.length > 0 && (
+              <div className="badge badge-white text-success ml-3">
+                {selectedIntervals.length}
+              </div>
+            )}
           </button>
-        </section>
+          
+          {selectedIntervals.length === 0 && (
+            <p className="text-gray-500 text-sm mt-3">
+              Please select at least one interval to start practicing
+            </p>
+          )}
+        </div>
       </main>
     </div>
   );
