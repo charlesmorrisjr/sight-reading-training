@@ -112,3 +112,36 @@
 .badge-info {
   @apply bg-blue-100 text-blue-800;
 }
+
+.input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-base transition-all duration-200;
+}
+
+.input:focus {
+  @apply outline-none ring-2 ring-blue-500/50 border-blue-500;
+}
+
+.input-bordered {
+  @apply border-gray-300;
+}
+
+.input-error {
+  @apply border-red-500;
+}
+
+.divider {
+  @apply flex items-center my-4;
+}
+
+.divider::before,
+.divider::after {
+  @apply flex-1 h-px bg-gray-300 content-[''];
+}
+
+.divider:not(:empty)::before {
+  @apply mr-4;
+}
+
+.divider:not(:empty)::after {
+  @apply ml-4;
+}

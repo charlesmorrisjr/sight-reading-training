@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import { FaGoogle, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from './AuthLayout';
-import './Auth.css';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -56,22 +55,22 @@ const Signup = () => {
       footerLinkText="Sign in"
       footerLinkTo="/login"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {authError && (
-          <div className="auth-error">
+          <div className="alert alert-error bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg text-sm text-center">
             {authError}
           </div>
         )}
 
-        <div className="form-group">
-          <label htmlFor="email" className="form-label">
+        <div className="space-y-2">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email Address
           </label>
           <input
             type="email"
             id="email"
             autoComplete="email"
-            className={`form-input ${errors.email ? 'error' : ''}`}
+            className={`input input-bordered w-full ${errors.email ? 'input-error border-red-500' : ''}`}
             placeholder="Enter your email"
             {...register('email', {
               required: 'Email is required',
@@ -82,20 +81,20 @@ const Signup = () => {
             })}
           />
           {errors.email && (
-            <span className="form-error">{errors.email.message}</span>
+            <span className="text-red-500 text-xs">{errors.email.message}</span>
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="password" className="form-label">
+        <div className="space-y-2">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
             Password
           </label>
-          <div className="password-input-container">
+          <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
               id="password"
               autoComplete="new-password"
-              className={`form-input ${errors.password ? 'error' : ''}`}
+              className={`input input-bordered w-full pr-12 ${errors.password ? 'input-error border-red-500' : ''}`}
               placeholder="Create a password"
               {...register('password', {
                 required: 'Password is required',
@@ -111,7 +110,7 @@ const Signup = () => {
             />
             <button
               type="button"
-              className="password-toggle"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -119,20 +118,20 @@ const Signup = () => {
             </button>
           </div>
           {errors.password && (
-            <span className="form-error">{errors.password.message}</span>
+            <span className="text-red-500 text-xs">{errors.password.message}</span>
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="confirmPassword" className="form-label">
+        <div className="space-y-2">
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
             Confirm Password
           </label>
-          <div className="password-input-container">
+          <div className="relative">
             <input
               type={showConfirmPassword ? 'text' : 'password'}
               id="confirmPassword"
               autoComplete="new-password"
-              className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
+              className={`input input-bordered w-full pr-12 ${errors.confirmPassword ? 'input-error border-red-500' : ''}`}
               placeholder="Confirm your password"
               {...register('confirmPassword', {
                 required: 'Please confirm your password',
@@ -141,7 +140,7 @@ const Signup = () => {
             />
             <button
               type="button"
-              className="password-toggle"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
             >
@@ -149,29 +148,34 @@ const Signup = () => {
             </button>
           </div>
           {errors.confirmPassword && (
-            <span className="form-error">{errors.confirmPassword.message}</span>
+            <span className="text-red-500 text-xs">{errors.confirmPassword.message}</span>
           )}
         </div>
 
         <button
           type="submit"
-          className="auth-submit-btn"
+          className="btn btn-primary w-full"
           disabled={isSubmitting || loading}
         >
-          {isSubmitting || loading ? 'Creating Account...' : 'Create Account'}
+          {isSubmitting || loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+              Creating Account...
+            </>
+          ) : (
+            'Create Account'
+          )}
         </button>
 
-        <div className="auth-divider">
-          <span>or</span>
-        </div>
+        <div className="divider text-gray-500">or</div>
 
         <button
           type="button"
-          className="google-auth-btn"
+          className="btn btn-outline w-full"
           onClick={handleGoogleLogin}
           disabled={loading}
         >
-          <FaGoogle className="google-icon" />
+          <FaGoogle className="mr-2 text-red-500" />
           Continue with Google
         </button>
       </form>
