@@ -1,15 +1,17 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
+import { FaMusic, FaPlay, FaStop } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import Dashboard from './components/Dashboard';
+import Intervals from './components/Intervals';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
 import { AuthProvider } from './contexts/AuthProvider';
+import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { generateRandomABC } from './utils/musicGenerator';
-import './App.css';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -158,62 +160,83 @@ const PracticeView = ({ settings, onSettingsChange }) => {
   }, []);
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <div className="header-content">
-          <div className="app-title">
-            <div>
-              <h1>🎹 Sight Reading Trainer</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            
+            {/* App Title */}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+                <FaMusic className="text-white text-lg" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                Sight Reading Trainer
+              </h1>
+            </div>
+
+            {/* Play Button */}
+            <div className="flex items-center space-x-4">
+              <button 
+                className={`btn btn-lg ${isPlaying ? 'btn-error' : 'btn-primary'} ${
+                  (isInitializing || !isVisualsReady) ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                onClick={handlePlayClick}
+                disabled={isInitializing || !isVisualsReady}
+                title={isPlaying ? 'Stop' : 'Play'}
+              >
+                {isInitializing ? (
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : isPlaying ? (
+                  <FaStop className="w-5 h-5" />
+                ) : (
+                  <FaPlay className="w-5 h-5" />
+                )}
+                <span className="hidden sm:inline">
+                  {isInitializing ? 'Loading...' : isPlaying ? 'Stop' : 'Play'}
+                </span>
+              </button>
+
+              {/* Settings */}
+              <HamburgerMenu
+                settings={settings}
+                onSettingsChange={onSettingsChange}
+              />
             </div>
           </div>
-          <div className="play-button-container">
-            <button 
-              className="play-btn"
-              onClick={handlePlayClick}
-              disabled={isInitializing || !isVisualsReady}
-              title={isPlaying ? 'Stop' : 'Play'}
-            >
-              {isInitializing ? (
-                <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="3">
-                    <animate attributeName="r" values="3;8;3" dur="1s" repeatCount="indefinite"/>
-                    <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
-                  </circle>
-                </svg>
-              ) : isPlaying ? (
-                <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="6" y="6" width="12" height="12"/>
-                </svg>
-              ) : (
-                <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              )}
-            </button>
-          </div>
-          <HamburgerMenu
-            settings={effectiveSettings}
-            onSettingsChange={onSettingsChange}
-          />
         </div>
       </header>
 
-      <main id="main-content" className="main-content">
-        <section className="music-section">
-          <MusicDisplay 
-            abcNotation={abcNotation} 
-            settings={effectiveSettings}
-            onVisualsReady={handleVisualsReady}
-          />
-        </section>
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Music Display Section */}
+        <div className="card bg-white shadow-lg mb-8">
+          <div className="card-body p-8">
+            <MusicDisplay 
+              abcNotation={abcNotation} 
+              settings={effectiveSettings}
+              onVisualsReady={handleVisualsReady}
+            />
+          </div>
+        </div>
 
-        <div className="generate-button-container">
+        {/* Generate Button */}
+        <div className="text-center">
           <button 
-            className="generate-btn primary"
+            className={`btn btn-primary btn-lg ${isGenerating ? 'loading' : ''}`}
             onClick={handleGenerateNew}
             disabled={isGenerating}
           >
-            {isGenerating ? 'Generating...' : 'Generate New Exercise'}
+            {isGenerating ? (
+              <>
+                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                Generating...
+              </>
+            ) : (
+              'Generate New Exercise'
+            )}
           </button>
         </div>
       </main>
@@ -242,35 +265,45 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard 
-                  settings={settings} 
-                  onSettingsChange={handleSettingsChange}
-                />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/practice" 
-            element={
-              <ProtectedRoute>
-                <PracticeView 
-                  settings={settings} 
-                  onSettingsChange={handleSettingsChange}
-                />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
+      <IntervalsProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/intervals" 
+              element={
+                <ProtectedRoute>
+                  <Intervals />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/practice" 
+              element={
+                <ProtectedRoute>
+                  <PracticeView 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Router>
+      </IntervalsProvider>
     </AuthProvider>
   );
 }

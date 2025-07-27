@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIntervals } from '../contexts/useIntervals';
 import { 
   AVAILABLE_KEYS, 
   AVAILABLE_TIME_SIGNATURES, 
@@ -16,6 +17,7 @@ const HamburgerMenu = ({
   onSettingsChange
 }) => {
   const navigate = useNavigate();
+  const { selectedIntervals, toggleInterval } = useIntervals();
   const [isOpen, setIsOpen] = useState(false);
   const [currentMenu, setCurrentMenu] = useState('main');
   const [menuHistory, setMenuHistory] = useState(['main']);
@@ -45,7 +47,7 @@ const HamburgerMenu = ({
     }
   };
 
-  const handleSettingChange = (field, value) => {
+  const handleSettingChange = useCallback((field, value) => {
     let newSettings = { ...settings, [field]: value };
     
     // If changing time signature, validate bass pattern compatibility
@@ -60,16 +62,17 @@ const HamburgerMenu = ({
     }
     
     onSettingsChange(newSettings);
-  };
+  }, [settings, onSettingsChange]);
 
   const handleIntervalToggle = (interval) => {
-    const currentIntervals = settings.intervals || [1, 2, 3, 4, 5];
-    const newIntervals = currentIntervals.includes(interval)
-      ? currentIntervals.filter(i => i !== interval)
-      : [...currentIntervals, interval].sort((a, b) => a - b);
+    toggleInterval(interval);
+    // Also update settings to maintain sync with music generation
+    const currentIntervals = selectedIntervals.includes(interval)
+      ? selectedIntervals.filter(i => i !== interval)
+      : [...selectedIntervals, interval].sort((a, b) => a - b);
     
-    if (newIntervals.length > 0) {
-      handleSettingChange('intervals', newIntervals);
+    if (currentIntervals.length > 0) {
+      handleSettingChange('intervals', currentIntervals);
     }
   };
 
@@ -143,6 +146,15 @@ const HamburgerMenu = ({
     const newScale = Math.max(1.0, Math.min(2.0, currentScale + delta));
     handleSettingChange('musicScale', newScale);
   };
+
+  // Sync intervals context with settings on mount and when settings change
+  useEffect(() => {
+    const settingsIntervals = settings.intervals || [1, 2, 3, 4, 5];
+    // Only sync if there's a meaningful difference
+    if (JSON.stringify(settingsIntervals.sort()) !== JSON.stringify(selectedIntervals.sort())) {
+      handleSettingChange('intervals', selectedIntervals);
+    }
+  }, [selectedIntervals, handleSettingChange, settings.intervals]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -374,7 +386,7 @@ const HamburgerMenu = ({
               {AVAILABLE_INTERVALS.map(({ value, label }) => (
                 <button
                   key={value}
-                  className={`button-grid-item ${(settings.intervals || [1, 2, 3, 4, 5]).includes(value) ? 'selected' : ''}`}
+                  className={`button-grid-item ${selectedIntervals.includes(value) ? 'selected' : ''}`}
                   onClick={() => handleIntervalToggle(value)}
                 >
                   {label}

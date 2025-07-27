@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import './Dashboard.css';
+import { 
+  FaHome, 
+  FaKeyboard, 
+  FaChartBar, 
+  FaUser, 
+  FaSignOutAlt, 
+  FaPlay,
+  FaPlus,
+  FaMusic,
+  FaChartArea,
+  FaBars
+} from 'react-icons/fa';
 
 const Dashboard = ({ settings, onSettingsChange }) => {
   const navigate = useNavigate();
@@ -15,7 +26,7 @@ const Dashboard = ({ settings, onSettingsChange }) => {
   console.debug('Dashboard props:', { settings, onSettingsChange });
   const handleCategoryClick = (categoryId) => {
     if (categoryId === 'intervals') {
-      setShowIntervalsPage(true);
+      navigate('/intervals');
     } else {
       console.log(`Category clicked: ${categoryId}`);
     }
@@ -138,160 +149,310 @@ const Dashboard = ({ settings, onSettingsChange }) => {
   }
 
   return (
-    <div className="dashboard">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-content">
-          <div className="app-title">
-            <h1>🎹 Sight Reading Trainer</h1>
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+                <FaMusic className="text-white text-lg" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                Sight Reading Trainer
+              </h1>
+            </div>
+            <button 
+              className="btn btn-ghost btn-square"
+              title="Settings"
+            >
+              <FaBars className="text-lg" />
+            </button>
           </div>
-          <button className="hamburger-button" title="Settings">
-            <span className="hamburger-line"></span>
-            <span className="hamburger-line"></span>
-            <span className="hamburger-line"></span>
-          </button>
         </div>
       </header>
 
-      {/* Top Navigation Bar */}
-      <nav className="top-nav">
-        <div className="nav-buttons">
-          <button 
-            className="nav-btn active"
-            onClick={() => handleNavClick('home')}
-          >
-            🏠 Home
-          </button>
-          <button 
-            className="nav-btn"
-            onClick={() => handleNavClick('practice')}
-          >
-            🎹 Practice
-          </button>
-          <button 
-            className="nav-btn"
-            onClick={() => handleNavClick('stats')}
-          >
-            📊 Stats
-          </button>
-          <button 
-            className="nav-btn"
-            onClick={() => handleNavClick('profile')}
-          >
-            👤 Profile
-          </button>
-          <div className="nav-user-section">
-            <span className="nav-user-greeting">
-              Hi, {user?.name}!
-            </span>
-            <button 
-              className="nav-btn logout-btn"
-              onClick={handleLogout}
-              title="Logout"
-            >
-              🚪 Logout
-            </button>
+      {/* Navigation */}
+      <nav className="bg-white/90 backdrop-blur-sm border-b border-gray-100 sticky top-16 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-3">
+            <div className="flex space-x-1 overflow-x-auto">
+              <button 
+                className="btn btn-primary btn-sm"
+                onClick={() => handleNavClick('home')}
+              >
+                <FaHome className="w-4 h-4" />
+                <span className="hidden sm:inline">Home</span>
+              </button>
+              <button 
+                className="btn btn-ghost btn-sm"
+                onClick={() => handleNavClick('practice')}
+              >
+                <FaKeyboard className="w-4 h-4" />
+                <span className="hidden sm:inline">Practice</span>
+              </button>
+              <button 
+                className="btn btn-ghost btn-sm"
+                onClick={() => handleNavClick('stats')}
+              >
+                <FaChartBar className="w-4 h-4" />
+                <span className="hidden sm:inline">Stats</span>
+              </button>
+              <button 
+                className="btn btn-ghost btn-sm"
+                onClick={() => handleNavClick('profile')}
+              >
+                <FaUser className="w-4 h-4" />
+                <span className="hidden sm:inline">Profile</span>
+              </button>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600 hidden sm:block">
+                Hi, {user?.name}!
+              </span>
+              <button 
+                className="btn btn-error btn-sm"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <FaSignOutAlt className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* Main Dashboard Content */}
-      <main className="dashboard-main">
-        {/* Progress Summary */}
-        <section className="progress-summary card">
-          <h2>🎯 Progress Summary</h2>
-          <div className="progress-content">
-            <div className="progress-stat">
-              <span className="progress-label">Pattern Mastery:</span>
-              <span className="progress-value">68%</span>
-            </div>
-            <div className="progress-stat">
-              <span className="progress-label">Last practiced:</span>
-              <span className="progress-value">Aug 20</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Exercise Categories */}
-        <section className="exercise-categories card">
-          <h2>🎼 Exercise Categories</h2>
-          <div className="categories-grid">
-            <button 
-              className="category-item"
-              onClick={() => handleCategoryClick('intervals')}
-            >
-              🔁 Intervals (Steps, Skips, Leaps)
-            </button>
-            <button 
-              className="category-item"
-              onClick={() => handleCategoryClick('chords')}
-            >
-              🔣 Chord Shapes & Arpeggios
-            </button>
-            <button 
-              className="category-item"
-              onClick={() => handleCategoryClick('melodic')}
-            >
-              🧩 Melodic Patterns (Scales, Sequences)
-            </button>
-            <button 
-              className="category-item"
-              onClick={() => handleCategoryClick('clefs')}
-            >
-              🎼 Bass vs Treble clef challenges
-            </button>
-          </div>
-        </section>
-
-        {/* Suggested Drill */}
-        <section className="suggested-drill card">
-          <h2>🔥 Suggested Drill</h2>
-          <div className="drill-content">
-            <div className="drill-info">
-              <h3>Interval Drill #7: 3rds and 4ths</h3>
-              <div className="drill-meta">
-                <span className="drill-time">[ Time: 3 min ]</span>
-                <span className="drill-difficulty">[ Difficulty: ★★☆☆☆ ]</span>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          
+          {/* Welcome Section */}
+          <div className="hero bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl animate-fade-in">
+            <div className="hero-content text-center py-12">
+              <div className="max-w-md">
+                <h1 className="text-4xl font-bold mb-4">Welcome Back!</h1>
+                <p className="text-blue-100 mb-6">
+                  Ready to improve your sight reading skills? Let's continue your musical journey.
+                </p>
+                <button 
+                  className="btn btn-white btn-lg"
+                  onClick={() => handleNavClick('practice')}
+                >
+                  <FaPlay className="mr-2" />
+                  Start Practicing
+                </button>
               </div>
             </div>
-            <button className="drill-play-btn" onClick={handleDrillPlay}>
-              ▶
-            </button>
           </div>
-        </section>
 
-        {/* My Exercises */}
-        <section className="my-exercises card">
-          <h2>📚 My Exercises</h2>
-          <div className="exercises-content">
-            <button 
-              className="add-drill-btn"
-              onClick={handleAddCustomDrill}
-            >
-              [ + Add Custom Drill ]
-            </button>
-            <div className="exercises-list">
-              <button 
-                className="exercise-item"
-                onClick={() => handleCustomDrillClick('arpeggios')}
-              >
-                • 5-note Arpeggios in C Major
-              </button>
-              <button 
-                className="exercise-item"
-                onClick={() => handleCustomDrillClick('step-skip')}
-              >
-                • Step-Skip Mix in Treble Clef
-              </button>
-              <button 
-                className="exercise-item"
-                onClick={() => handleCustomDrillClick('grand-staff')}
-              >
-                • Grand Staff Leap Challenge
-              </button>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up">
+            <div className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <div className="card-body">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                      <FaChartArea className="text-green-600 text-xl" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Pattern Mastery</p>
+                    <p className="text-2xl font-bold text-gray-900">68%</p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-green-500 h-2 rounded-full" style={{width: '68%'}}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <div className="card-body">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <FaKeyboard className="text-blue-600 text-xl" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Last Practice</p>
+                    <p className="text-2xl font-bold text-gray-900">Aug 20</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <div className="card-body">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <FaMusic className="text-purple-600 text-xl" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Exercises Completed</p>
+                    <p className="text-2xl font-bold text-gray-900">24</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </section>
+
+          {/* Exercise Categories */}
+          <div className="card bg-white shadow-lg animate-scale-in">
+            <div className="card-body">
+              <h2 className="card-title text-2xl mb-6 flex items-center">
+                <FaMusic className="mr-3 text-blue-600" />
+                Exercise Categories
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button 
+                  className="btn btn-outline btn-lg h-auto p-6 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-300"
+                  onClick={() => handleCategoryClick('intervals')}
+                >
+                  <div className="flex items-center w-full">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                      <span className="text-2xl">🔁</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-base">Intervals</div>
+                      <div className="text-sm text-gray-500">Steps, Skips, Leaps</div>
+                    </div>
+                  </div>
+                </button>
+
+                <button 
+                  className="btn btn-outline btn-lg h-auto p-6 text-left hover:bg-green-50 hover:border-green-300 transition-all duration-300"
+                  onClick={() => handleCategoryClick('chords')}
+                >
+                  <div className="flex items-center w-full">
+                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                      <span className="text-2xl">🔣</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-base">Chords</div>
+                      <div className="text-sm text-gray-500">Shapes & Arpeggios</div>
+                    </div>
+                  </div>
+                </button>
+
+                <button 
+                  className="btn btn-outline btn-lg h-auto p-6 text-left hover:bg-purple-50 hover:border-purple-300 transition-all duration-300"
+                  onClick={() => handleCategoryClick('melodic')}
+                >
+                  <div className="flex items-center w-full">
+                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                      <span className="text-2xl">🧩</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-base">Melodic Patterns</div>
+                      <div className="text-sm text-gray-500">Scales, Sequences</div>
+                    </div>
+                  </div>
+                </button>
+
+                <button 
+                  className="btn btn-outline btn-lg h-auto p-6 text-left hover:bg-orange-50 hover:border-orange-300 transition-all duration-300"
+                  onClick={() => handleCategoryClick('clefs')}
+                >
+                  <div className="flex items-center w-full">
+                    <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4">
+                      <span className="text-2xl">🎼</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-base">Clef Challenges</div>
+                      <div className="text-sm text-gray-500">Bass vs Treble</div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Suggested Drill */}
+            <div className="card bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-lg">
+              <div className="card-body">
+                <h2 className="card-title text-xl mb-4 flex items-center">
+                  <span className="text-2xl mr-2">🔥</span>
+                  Suggested Drill
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">Interval Drill #7: 3rds and 4ths</h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="badge badge-warning">3 min</div>
+                      <div className="badge badge-info">★★☆☆☆</div>
+                    </div>
+                  </div>
+                  <button 
+                    className="btn btn-white btn-lg w-full"
+                    onClick={handleDrillPlay}
+                  >
+                    <FaPlay className="mr-2" />
+                    Start Drill
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* My Exercises */}
+            <div className="card bg-white shadow-lg">
+              <div className="card-body">
+                <h2 className="card-title text-xl mb-4 flex items-center">
+                  <span className="text-2xl mr-2">📚</span>
+                  My Exercises
+                </h2>
+                <div className="space-y-4">
+                  <button 
+                    className="btn btn-outline btn-block btn-lg border-dashed hover:bg-blue-50"
+                    onClick={handleAddCustomDrill}
+                  >
+                    <FaPlus className="mr-2" />
+                    Add Custom Drill
+                  </button>
+                  
+                  <div className="space-y-2">
+                    <button 
+                      className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+                      onClick={() => handleCustomDrillClick('arpeggios')}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                        <span className="font-medium">5-note Arpeggios in C Major</span>
+                      </div>
+                    </button>
+                    
+                    <button 
+                      className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+                      onClick={() => handleCustomDrillClick('step-skip')}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                        <span className="font-medium">Step-Skip Mix in Treble Clef</span>
+                      </div>
+                    </button>
+                    
+                    <button 
+                      className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+                      onClick={() => handleCustomDrillClick('grand-staff')}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                        <span className="font-medium">Grand Staff Leap Challenge</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
