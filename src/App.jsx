@@ -253,7 +253,9 @@ function App() {
     chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
     leftHandPatterns: ['block-chords'],
     leftHandBrokenChords: ['1-3-5-3'],
+    rightHandPatterns: ['single-notes'],
     rightHandIntervals: ['2nd'],
+    rightHand4NoteChords: ['major'],
     musicScale: 1.0
   });
 
