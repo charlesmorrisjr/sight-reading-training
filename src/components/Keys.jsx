@@ -100,6 +100,24 @@ const Keys = ({
 
   return (
     <div className="space-y-6">
+      {/* Header Section */}
+      <div className="text-center">
+        <h3 className="text-2xl font-bold text-gray-900 mb-4">
+          Select Key Signature
+        </h3>
+        <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+          Choose which key you'd like to practice in.
+        </p>
+        
+        {/* Selected Count Badge */}
+        <div className="inline-flex items-center space-x-2 mb-6">
+          <span className="text-sm text-gray-500">Selected:</span>
+          <div className="badge badge-primary badge-lg">
+            {selectedKeys.length} {selectedKeys.length === 1 ? 'key' : 'keys'}
+          </div>
+        </div>
+      </div>
+
       {/* Major Keys Section */}
       <div>
         <h4 className="text-md font-semibold text-gray-700 mb-3">Major Keys</h4>
