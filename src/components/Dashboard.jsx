@@ -13,6 +13,12 @@ import {
   FaChartArea,
   FaBars
 } from 'react-icons/fa';
+// Import SVG as URL
+import twoNotesRedIcon from '../assets/reshot-icon-music-F6RGPB5VSX.svg';
+// import twoNotesPurpleIcon from '../assets/reshot-icon-music-FVR3TH9EGY.svg';
+import threeNotesIcon from '../assets/reshot-icon-musical-notes-NQYZ4DAWFV.svg';
+import fourNotesIcon from '../assets/reshot-icon-musical-note-AT43GFYXHC.svg';
+import clefNotesIcon from '../assets/reshot-icon-music-MA3H8WZCPG.svg';
 
 const Dashboard = ({ settings, onSettingsChange }) => {
   const navigate = useNavigate();
@@ -200,6 +206,13 @@ const Dashboard = ({ settings, onSettingsChange }) => {
               </button>
               <button 
                 className="btn btn-ghost btn-sm"
+                onClick={() => handleNavClick('leaderboard')}
+              >
+                <FaChartBar className="w-4 h-4" />
+                <span className="hidden sm:inline">Leaderboard</span>
+              </button>
+              <button 
+                className="btn btn-ghost btn-sm"
                 onClick={() => handleNavClick('profile')}
               >
                 <FaUser className="w-4 h-4" />
@@ -317,7 +330,7 @@ const Dashboard = ({ settings, onSettingsChange }) => {
                 >
                   <div className="flex items-center w-full">
                     <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-                      <span className="text-2xl">🔁</span>
+                      <img src={twoNotesRedIcon} alt="Music icon" />
                     </div>
                     <div>
                       <div className="font-semibold text-base">Intervals</div>
@@ -332,7 +345,7 @@ const Dashboard = ({ settings, onSettingsChange }) => {
                 >
                   <div className="flex items-center w-full">
                     <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
-                      <span className="text-2xl">🔣</span>
+                      <img src={fourNotesIcon} alt="Music icon" />
                     </div>
                     <div>
                       <div className="font-semibold text-base">Chords</div>
@@ -347,7 +360,7 @@ const Dashboard = ({ settings, onSettingsChange }) => {
                 >
                   <div className="flex items-center w-full">
                     <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
-                      <span className="text-2xl">🧩</span>
+                      <img src={threeNotesIcon} alt="Music icon" />
                     </div>
                     <div>
                       <div className="font-semibold text-base">Melodic Patterns</div>
@@ -362,7 +375,7 @@ const Dashboard = ({ settings, onSettingsChange }) => {
                 >
                   <div className="flex items-center w-full">
                     <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4">
-                      <span className="text-2xl">🎼</span>
+                      <img src={clefNotesIcon} alt="Music icon" />
                     </div>
                     <div>
                       <div className="font-semibold text-base">Clef Challenges</div>
