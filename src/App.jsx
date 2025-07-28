@@ -212,14 +212,12 @@ const PracticeView = ({ settings, onSettingsChange }) => {
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Music Display Section */}
-        <div className="card bg-white shadow-lg mb-8">
-          <div className="card-body p-8">
-            <MusicDisplay 
-              abcNotation={abcNotation} 
-              settings={effectiveSettings}
-              onVisualsReady={handleVisualsReady}
-            />
-          </div>
+        <div className="card-body p-8">
+          <MusicDisplay 
+            abcNotation={abcNotation} 
+            settings={effectiveSettings}
+            onVisualsReady={handleVisualsReady}
+          />
         </div>
 
         {/* Generate Button */}
