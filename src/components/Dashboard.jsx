@@ -15,7 +15,7 @@ import {
 } from 'react-icons/fa';
 // Import SVG as URL
 import twoNotesRedIcon from '../assets/reshot-icon-music-F6RGPB5VSX.svg';
-// import twoNotesPurpleIcon from '../assets/reshot-icon-music-FVR3TH9EGY.svg';
+// import twoNotesPurpleIcon from '.things./assets/reshot-icon-music-FVR3TH9EGY.svg';
 import threeNotesIcon from '../assets/reshot-icon-musical-notes-NQYZ4DAWFV.svg';
 import fourNotesIcon from '../assets/reshot-icon-musical-note-AT43GFYXHC.svg';
 import clefNotesIcon from '../assets/reshot-icon-music-MA3H8WZCPG.svg';

@@ -1,18 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMusic, FaPlay } from 'react-icons/fa';
 import { useIntervals } from '../contexts/useIntervals';
 import { AVAILABLE_INTERVALS } from '../utils/musicGenerator';
+import Keys from './Keys';
 
 const Intervals = () => {
   const navigate = useNavigate();
   const { selectedIntervals, toggleInterval } = useIntervals();
+  
+  // State for selected keys
+  const [selectedKeys, setSelectedKeys] = useState(['C']);
 
   // Filter intervals to show only 2nd through 8th (excluding Unison)
   const displayIntervals = AVAILABLE_INTERVALS.filter(interval => interval.value >= 2 && interval.value <= 8);
 
   const handleBackClick = () => {
     navigate('/dashboard');
+  };
+
+  const handleKeyToggle = (newKeys) => {
+    setSelectedKeys(newKeys);
   };
 
   return (
@@ -102,6 +110,33 @@ const Intervals = () => {
                 );
               })}
             </div>
+          </div>
+        </div>
+
+        {/* Keys Selection */}
+        <div className="card bg-white shadow-lg mb-8 animate-slide-up">
+          <div className="card-body p-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              Select Musical Keys
+            </h3>
+            <p className="text-gray-600 mb-6 max-w-2xl">
+              Choose which musical keys you'd like to practice with. Selected keys will be used in your sight reading exercises.
+            </p>
+            
+            {/* Selected Count Badge */}
+            <div className="inline-flex items-center space-x-2 mb-6">
+              <span className="text-sm text-gray-500">Selected:</span>
+              <div className="badge badge-primary badge-lg">
+                {selectedKeys.length} {selectedKeys.length === 1 ? 'key' : 'keys'}
+              </div>
+            </div>
+
+            <Keys
+              selectedKeys={selectedKeys}
+              onKeyToggle={handleKeyToggle}
+              allowMultiple={true}
+              showRandom={true}
+            />
           </div>
         </div>
 
