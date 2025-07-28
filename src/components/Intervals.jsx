@@ -59,14 +59,15 @@ const Intervals = () => {
       {/* Main Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Welcome Section */}
         <div className="card bg-white shadow-lg mb-8 animate-fade-in">
-          <div className="card-body p-8 text-center">
+          
+          {/* Welcome Section */}
+          <div className="card-body p-8 text-center animate-fade-in">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Select Practice Intervals
             </h2>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Choose which intervals you'd like to practice. Selected intervals will be used in your sight reading exercises to help improve your musical reading skills.
+              Choose which intervals you'd like to practice.
             </p>
             
             {/* Selected Count Badge */}
@@ -77,10 +78,8 @@ const Intervals = () => {
               </div>
             </div>
           </div>
-        </div>
         
-        {/* Intervals Grid */}
-        <div className="card bg-white shadow-lg mb-8 animate-slide-up">
+          {/* Intervals Grid */}
           <div className="card-body p-8">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {displayIntervals.map(({ value, label }) => {
@@ -88,7 +87,7 @@ const Intervals = () => {
                 return (
                   <button
                     key={value}
-                    className={`btn btn-lg h-auto py-6 px-4 transition-all duration-300 transform hover:scale-105 ${
+                    className={`btn btn-lg h-24 py-12 px-6 transition-all duration-300 transform hover:scale-105 ${
                       isSelected 
                         ? 'btn-primary shadow-lg' 
                         : 'btn-outline btn-primary hover:btn-primary'
@@ -96,15 +95,8 @@ const Intervals = () => {
                     onClick={() => toggleInterval(value)}
                     aria-pressed={isSelected}
                   >
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        isSelected 
-                          ? 'bg-white text-blue-600' 
-                          : 'bg-blue-100 text-blue-600'
-                      }`}>
-                        {value}
-                      </div>
-                      <span className="font-medium">{label}</span>
+                    <div className="flex flex-col items-center space-y-4">
+                      <span className="font-bold text-2xl">{label}</span>
                     </div>
                   </button>
                 );
@@ -117,10 +109,10 @@ const Intervals = () => {
         <div className="card bg-white shadow-lg mb-8 animate-slide-up">
           <div className="card-body p-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Select Musical Keys
+              Select Key Signature
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl">
-              Choose which musical keys you'd like to practice with. Selected keys will be used in your sight reading exercises.
+              Choose which key you'd like to practice in.
             </p>
             
             {/* Selected Count Badge */}
