@@ -51,10 +51,10 @@ const Keys = ({
     if (!onKeyToggle) return;
 
     if (!allowMultiple) {
-      // Single selection mode
-      onKeyToggle([key]);
+      // Single selection mode - pass single key string
+      onKeyToggle(key);
     } else {
-      // Multiple selection mode
+      // Multiple selection mode - pass array of keys
       const isSelected = selectedKeys.includes(key);
       if (isSelected) {
         onKeyToggle(selectedKeys.filter(k => k !== key));

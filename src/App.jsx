@@ -283,7 +283,10 @@ function App() {
               path="/intervals" 
               element={
                 <ProtectedRoute>
-                  <Intervals />
+                  <Intervals 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
                 </ProtectedRoute>
               } 
             />

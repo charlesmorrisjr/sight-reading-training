@@ -1,16 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMusic, FaPlay } from 'react-icons/fa';
 import { useIntervals } from '../contexts/useIntervals';
 import { AVAILABLE_INTERVALS } from '../utils/musicGenerator';
 import Keys from './Keys';
 
-const Intervals = () => {
+const Intervals = ({ settings, onSettingsChange }) => {
   const navigate = useNavigate();
   const { selectedIntervals, toggleInterval } = useIntervals();
-  
-  // State for selected keys
-  const [selectedKeys, setSelectedKeys] = useState(['C']);
 
   // Filter intervals to show only 2nd through 8th (excluding Unison)
   const displayIntervals = AVAILABLE_INTERVALS.filter(interval => interval.value >= 2 && interval.value <= 8);
@@ -19,8 +16,12 @@ const Intervals = () => {
     navigate('/dashboard');
   };
 
-  const handleKeyToggle = (newKeys) => {
-    setSelectedKeys(newKeys);
+  const handleKeyToggle = (newKey) => {
+    // Update the key setting in the shared settings
+    onSettingsChange({
+      ...settings,
+      key: newKey
+    });
   };
 
   return (
@@ -98,9 +99,9 @@ const Intervals = () => {
         <div className="card bg-white shadow-lg mb-8 animate-slide-up">
           <div className="card-body p-8">
             <Keys
-              selectedKeys={selectedKeys}
+              selectedKeys={[settings.key]}
               onKeyToggle={handleKeyToggle}
-              allowMultiple={true}
+              allowMultiple={false}
               showRandom={true}
             />
           </div>
