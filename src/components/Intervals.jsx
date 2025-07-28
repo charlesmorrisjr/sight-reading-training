@@ -136,11 +136,6 @@ const Intervals = ({ settings, onSettingsChange }) => {
           >
             <FaPlay className="mr-3" />
             Start Practice
-            {selectedIntervals.length > 0 && (
-              <div className="badge badge-white text-success ml-3">
-                {selectedIntervals.length}
-              </div>
-            )}
           </button>
           
           {selectedIntervals.length === 0 && (
