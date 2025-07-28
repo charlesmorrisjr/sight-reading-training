@@ -229,7 +229,7 @@ export const AVAILABLE_KEYS = [
  * Get available time signatures
  */
 export const AVAILABLE_TIME_SIGNATURES = [
-  '4/4', '3/4', '2/4', '6/8', '12/8', '2/2'
+  '4/4', '3/4', '2/4', '5/4', '6/4', '6/8', '12/8', '3/8', '2/2', '3/2', '4/2'
 ];
 
 /**

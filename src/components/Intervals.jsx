@@ -4,6 +4,7 @@ import { FaArrowLeft, FaMusic, FaPlay } from 'react-icons/fa';
 import { useIntervals } from '../contexts/useIntervals';
 import { AVAILABLE_INTERVALS } from '../utils/musicGenerator';
 import Keys from './Keys';
+import TimeSignatures from './TimeSignatures';
 
 const Intervals = ({ settings, onSettingsChange }) => {
   const navigate = useNavigate();
@@ -21,6 +22,14 @@ const Intervals = ({ settings, onSettingsChange }) => {
     onSettingsChange({
       ...settings,
       key: newKey
+    });
+  };
+
+  const handleTimeSignatureChange = (newTimeSignature) => {
+    // Update the time signature setting in the shared settings
+    onSettingsChange({
+      ...settings,
+      timeSignature: newTimeSignature
     });
   };
 
@@ -103,6 +112,17 @@ const Intervals = ({ settings, onSettingsChange }) => {
               onKeyToggle={handleKeyToggle}
               allowMultiple={false}
               showRandom={true}
+            />
+          </div>
+        </div>
+
+        {/* Time Signatures Selection */}
+        <div className="card bg-white shadow-lg mb-8 animate-slide-up">
+          <div className="card-body p-8">
+            <TimeSignatures
+              selectedTimeSignature={settings.timeSignature}
+              onTimeSignatureChange={handleTimeSignatureChange}
+              showLabels={true}
             />
           </div>
         </div>
