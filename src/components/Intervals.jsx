@@ -64,19 +64,8 @@ const Intervals = () => {
           {/* Welcome Section */}
           <div className="card-body p-8 text-center animate-fade-in">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Select Practice Intervals
+              Select Intervals
             </h2>
-            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Choose which intervals you'd like to practice.
-            </p>
-            
-            {/* Selected Count Badge */}
-            <div className="inline-flex items-center space-x-2">
-              <span className="text-sm text-gray-500">Selected:</span>
-              <div className="badge badge-primary badge-lg">
-                {selectedIntervals.length} {selectedIntervals.length === 1 ? 'interval' : 'intervals'}
-              </div>
-            </div>
           </div>
         
           {/* Intervals Grid */}
