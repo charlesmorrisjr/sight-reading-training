@@ -338,6 +338,17 @@ export const AVAILABLE_LEFT_HAND_PATTERNS = [
     supportedTimeSignatures: ['4/4']
   }
 ];
+export const AVAILABLE_MELODIC_PATTERNS = [
+  { id: 'melodies', label: 'Melodies' },
+  { id: 'scales', label: 'Scales' },
+  { id: 'arpeggios', label: 'Arpeggios' }
+];
+
+export const AVAILABLE_MELODIC_ARTICULATIONS = [
+  { id: 'legato', label: 'Legato' },
+  { id: 'staccato', label: 'Staccato' },
+  { id: 'accent', label: 'Accent' }
+];
 
 /**
  * Available right hand patterns

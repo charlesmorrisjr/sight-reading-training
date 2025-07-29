@@ -1,35 +1,33 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMusic, FaPlay } from 'react-icons/fa';
-import { useChords } from '../contexts/useChords';
 import { 
-  AVAILABLE_CHORD_TYPES, 
-  AVAILABLE_CHORD_INVERSIONS, 
-  AVAILABLE_LEFT_HAND_PATTERNS, 
-  AVAILABLE_CHORD_RHYTHMS 
+  AVAILABLE_MELODIC_PATTERNS, 
+  AVAILABLE_MELODIC_ARTICULATIONS 
 } from '../utils/musicGenerator';
 import Settings from './Settings';
 
-const ChordsPractice = ({ settings, onSettingsChange }) => {
+const MelodicPractice = ({ settings, onSettingsChange }) => {
   const navigate = useNavigate();
-  const {
-    selectedChordTypes,
-    toggleChordType,
-    selectedChordInversions,
-    toggleChordInversion,
-    selectedChordRhythms,
-    toggleChordRhythm
-  } = useChords();
 
   const handleBackClick = () => {
     navigate('/dashboard');
   };
 
-  const handleLeftHandPatternToggle = (patternId) => {
+  const handleMelodicPatternToggle = (patternId) => {
     // Always set as the single selected pattern (radio button behavior)
     const newSettings = { 
       ...settings, 
-      leftHandPatterns: [patternId]
+      melodicPatterns: [patternId]
+    };
+    onSettingsChange(newSettings);
+  };
+
+  const handleArticulationToggle = (articulationId) => {
+    // Always set as the single selected articulation (radio button behavior)
+    const newSettings = { 
+      ...settings, 
+      melodicArticulations: [articulationId]
     };
     onSettingsChange(newSettings);
   };
@@ -76,7 +74,7 @@ const ChordsPractice = ({ settings, onSettingsChange }) => {
                 <FaMusic className="text-white text-lg" />
               </div>
               <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                Chords Practice
+                Melodic Practice
               </h1>
             </div>
             
@@ -93,106 +91,58 @@ const ChordsPractice = ({ settings, onSettingsChange }) => {
         <div className="card bg-white shadow-lg mb-8 animate-fade-in">
           <div className="card-body p-8 text-center animate-fade-in">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Configure Your Chord Practice
+              Configure Your Melodic Practice
             </h2>
             <p className="text-gray-600">
-              Select chord types, inversions, voicings, and rhythms for your practice session
+              Select melodic patterns and articulations for your practice session
             </p>
           </div>
         </div>
 
-        {/* Chord Selection Cards */}
+        {/* Melodic Selection Cards */}
         <div className="space-y-8">
-          {/* Chord Types Section */}
+          {/* Melodic Patterns Section */}
           <div className="card bg-white shadow-lg animate-fade-in">
             <div className="card-body p-8">
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Chord Types
+                  Melodic Patterns
                 </h3>
                 <p className="text-gray-600">
-                  Select which chord types to practice
+                  Select which melodic pattern to practice
                 </p>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {AVAILABLE_CHORD_TYPES.map((chordType) => 
-                  renderToggleButton(
-                    chordType, 
-                    selectedChordTypes.includes(chordType.id), 
-                    toggleChordType
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Chord Inversions Section */}
-          <div className="card bg-white shadow-lg animate-slide-up">
-            <div className="card-body p-8">
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Chord Inversions
-                </h3>
-                <p className="text-gray-600">
-                  Select which chord inversions to practice
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {AVAILABLE_CHORD_INVERSIONS.map((inversion) => 
-                  renderToggleButton(
-                    inversion, 
-                    selectedChordInversions.includes(inversion.id), 
-                    toggleChordInversion
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Chord Patterns Section */}
-          <div className="card bg-white shadow-lg animate-slide-up">
-            <div className="card-body p-8">
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Chord Patterns
-                </h3>
-                <p className="text-gray-600">
-                  Select which left hand chord patterns to practice
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {AVAILABLE_LEFT_HAND_PATTERNS.map((pattern) => 
+                {AVAILABLE_MELODIC_PATTERNS.map((pattern) => 
                   renderToggleButton(
                     pattern, 
-                    (settings.leftHandPatterns || ['block-chords']).includes(pattern.id), 
-                    handleLeftHandPatternToggle
+                    (settings.melodicPatterns || ['melodies']).includes(pattern.id), 
+                    handleMelodicPatternToggle
                   )
                 )}
               </div>
             </div>
           </div>
 
-          {/* Chord Rhythms Section */}
-          <div className="card bg-white shadow-lg animate-scale-in">
+          {/* Articulations Section */}
+          <div className="card bg-white shadow-lg animate-slide-up">
             <div className="card-body p-8">
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Chord Rhythms
+                  Articulations
                 </h3>
                 <p className="text-gray-600">
-                  Select which chord rhythms to practice
+                  Select which articulation to practice
                 </p>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {AVAILABLE_CHORD_RHYTHMS.map((rhythm) => 
+                {AVAILABLE_MELODIC_ARTICULATIONS.map((articulation) => 
                   renderToggleButton(
-                    rhythm, 
-                    selectedChordRhythms.includes(rhythm.id), 
-                    toggleChordRhythm
+                    articulation, 
+                    (settings.melodicArticulations || ['legato']).includes(articulation.id), 
+                    handleArticulationToggle
                   )
                 )}
               </div>
@@ -210,7 +160,7 @@ const ChordsPractice = ({ settings, onSettingsChange }) => {
             onClick={() => navigate('/practice')}
           >
             <FaPlay className="mr-3" />
-            Start Chord Practice
+            Start Melodic Practice
           </button>
         </div>
       </main>
@@ -218,4 +168,4 @@ const ChordsPractice = ({ settings, onSettingsChange }) => {
   );
 };
 
-export default ChordsPractice;
+export default MelodicPractice;

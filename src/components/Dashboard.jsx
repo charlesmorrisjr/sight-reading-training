@@ -35,6 +35,8 @@ const Dashboard = ({ settings, onSettingsChange }) => {
       navigate('/intervals');
     } else if (categoryId === 'chords') {
       navigate('/chords');
+    } else if (categoryId === 'melodic') {
+      navigate('/melodic');
     } else {
       console.log(`Category clicked: ${categoryId}`);
     }

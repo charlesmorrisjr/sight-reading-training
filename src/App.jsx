@@ -9,6 +9,7 @@ import Intervals from './components/Intervals';
 import Keys from './components/Keys';
 import MeasuresPage from './components/MeasuresPage';
 import ChordsPractice from './components/ChordsPractice';
+import MelodicPractice from './components/MelodicPractice';
 import TimeSignatures from './components/TimeSignatures';
 import Login from './components/Login';
 import Signup from './components/Signup';
@@ -265,6 +266,8 @@ function App() {
     chordInversions: ['root'],
     chordVoicings: ['closed'],
     chordRhythms: ['straight'],
+    melodicPatterns: ['melodies'],
+    melodicArticulations: ['legato'],
     musicScale: 1.0
   });
 
@@ -340,6 +343,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ChordsPractice 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/melodic" 
+              element={
+                <ProtectedRoute>
+                  <MelodicPractice 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
                   />
