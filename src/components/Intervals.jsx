@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMusic, FaPlay } from 'react-icons/fa';
 import { useIntervals } from '../contexts/useIntervals';
 import { AVAILABLE_INTERVALS } from '../utils/musicGenerator';
-import Keys from './Keys';
 import TimeSignatures from './TimeSignatures';
 
 const Intervals = ({ settings, onSettingsChange }) => {
@@ -17,13 +16,6 @@ const Intervals = ({ settings, onSettingsChange }) => {
     navigate('/dashboard');
   };
 
-  const handleKeyToggle = (newKey) => {
-    // Update the key setting in the shared settings
-    onSettingsChange({
-      ...settings,
-      key: newKey
-    });
-  };
 
   const handleTimeSignatureChange = (newTimeSignature) => {
     // Update the time signature setting in the shared settings
@@ -80,6 +72,19 @@ const Intervals = ({ settings, onSettingsChange }) => {
         
           {/* Intervals Grid */}
           <div className="card-body p-8">
+            {/* Key Selection Button */}
+            <div className="mb-6">
+              <button
+                className="btn btn-lg h-24 py-6 px-4 w-full transition-all duration-300 transform hover:scale-105 btn-outline btn-secondary hover:btn-secondary"
+                onClick={() => navigate('/keys')}
+              >
+                <div className="flex flex-col items-center">
+                  <span className="text-sm font-medium text-gray-600 mb-1">Selected Key</span>
+                  <span className="text-lg font-bold">{settings.key}</span>
+                </div>
+              </button>
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {displayIntervals.map(({ value, label }) => {
                 const isSelected = selectedIntervals.includes(value);
@@ -104,17 +109,6 @@ const Intervals = ({ settings, onSettingsChange }) => {
           </div>
         </div>
 
-        {/* Keys Selection */}
-        <div className="card bg-white shadow-lg mb-8 animate-slide-up">
-          <div className="card-body p-8">
-            <Keys
-              selectedKeys={[settings.key]}
-              onKeyToggle={handleKeyToggle}
-              allowMultiple={false}
-              showRandom={true}
-            />
-          </div>
-        </div>
 
         {/* Time Signatures Selection */}
         <div className="card bg-white shadow-lg mb-8 animate-slide-up">

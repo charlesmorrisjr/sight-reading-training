@@ -6,6 +6,7 @@ import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import Dashboard from './components/Dashboard';
 import Intervals from './components/Intervals';
+import Keys from './components/Keys';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
@@ -286,6 +287,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Intervals 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/keys" 
+              element={
+                <ProtectedRoute>
+                  <Keys 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
                   />
