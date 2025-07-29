@@ -113,7 +113,7 @@ const MelodicPractice = ({ settings, onSettingsChange }) => {
                 </p>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
                 {AVAILABLE_MELODIC_PATTERNS.map((pattern) => 
                   renderToggleButton(
                     pattern, 
@@ -137,7 +137,7 @@ const MelodicPractice = ({ settings, onSettingsChange }) => {
                 </p>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
                 {AVAILABLE_MELODIC_ARTICULATIONS.map((articulation) => 
                   renderToggleButton(
                     articulation, 
