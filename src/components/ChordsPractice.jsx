@@ -5,7 +5,7 @@ import { useChords } from '../contexts/useChords';
 import { 
   AVAILABLE_CHORD_TYPES, 
   AVAILABLE_CHORD_INVERSIONS, 
-  AVAILABLE_CHORD_VOICINGS, 
+  AVAILABLE_LEFT_HAND_PATTERNS, 
   AVAILABLE_CHORD_RHYTHMS 
 } from '../utils/musicGenerator';
 import Settings from './Settings';
@@ -18,14 +18,21 @@ const ChordsPractice = ({ settings, onSettingsChange }) => {
     toggleChordType,
     selectedChordInversions,
     toggleChordInversion,
-    selectedChordVoicings,
-    toggleChordVoicing,
     selectedChordRhythms,
     toggleChordRhythm
   } = useChords();
 
   const handleBackClick = () => {
     navigate('/dashboard');
+  };
+
+  const handleLeftHandPatternToggle = (patternId) => {
+    // Always set as the single selected pattern (radio button behavior)
+    const newSettings = { 
+      ...settings, 
+      leftHandPatterns: [patternId]
+    };
+    onSettingsChange(newSettings);
   };
 
   const renderToggleButton = (item, isSelected, onToggle) => {
@@ -145,24 +152,24 @@ const ChordsPractice = ({ settings, onSettingsChange }) => {
             </div>
           </div>
 
-          {/* Chord Voicings Section */}
+          {/* Chord Patterns Section */}
           <div className="card bg-white shadow-lg animate-slide-up">
             <div className="card-body p-8">
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Chord Voicings
+                  Chord Patterns
                 </h3>
                 <p className="text-gray-600">
-                  Select which chord voicings to practice
+                  Select which left hand chord patterns to practice
                 </p>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {AVAILABLE_CHORD_VOICINGS.map((voicing) => 
+                {AVAILABLE_LEFT_HAND_PATTERNS.map((pattern) => 
                   renderToggleButton(
-                    voicing, 
-                    selectedChordVoicings.includes(voicing.id), 
-                    toggleChordVoicing
+                    pattern, 
+                    (settings.leftHandPatterns || ['block-chords']).includes(pattern.id), 
+                    handleLeftHandPatternToggle
                   )
                 )}
               </div>
