@@ -7,6 +7,7 @@ import MusicDisplay from './components/MusicDisplay';
 import Dashboard from './components/Dashboard';
 import Intervals from './components/Intervals';
 import Keys from './components/Keys';
+import MeasuresPage from './components/MeasuresPage';
 import ChordsPractice from './components/ChordsPractice';
 import TimeSignatures from './components/TimeSignatures';
 import Login from './components/Login';
@@ -317,6 +318,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <TimeSignatures 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/measures" 
+              element={
+                <ProtectedRoute>
+                  <MeasuresPage 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
                   />
