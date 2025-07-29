@@ -103,14 +103,8 @@ const Intervals = ({ settings, onSettingsChange }) => {
             disabled={selectedIntervals.length === 0}
           >
             <FaPlay className="mr-3" />
-            Start Practice
+            Start Interval Practice
           </button>
-          
-          {selectedIntervals.length === 0 && (
-            <p className="text-gray-500 text-sm mt-3">
-              Please select at least one interval to start practicing
-            </p>
-          )}
         </div>
       </main>
     </div>
