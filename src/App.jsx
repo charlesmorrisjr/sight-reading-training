@@ -11,6 +11,7 @@ import MeasuresPage from './components/MeasuresPage';
 import ChordsPractice from './components/ChordsPractice';
 import MelodicPractice from './components/MelodicPractice';
 import NoteDuration from './components/NoteDuration';
+import FreePractice from './components/FreePractice';
 import TimeSignatures from './components/TimeSignatures';
 import Login from './components/Login';
 import Signup from './components/Signup';
@@ -355,6 +356,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MelodicPractice 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/free-practice" 
+              element={
+                <ProtectedRoute>
+                  <FreePractice 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
                   />

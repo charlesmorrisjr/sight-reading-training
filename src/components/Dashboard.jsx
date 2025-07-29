@@ -37,6 +37,8 @@ const Dashboard = ({ settings, onSettingsChange }) => {
       navigate('/chords');
     } else if (categoryId === 'melodic') {
       navigate('/melodic');
+    } else if (categoryId === 'clefs') {
+      navigate('/free-practice');
     } else {
       console.log(`Category clicked: ${categoryId}`);
     }
