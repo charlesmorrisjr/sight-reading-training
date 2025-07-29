@@ -7,12 +7,14 @@ import MusicDisplay from './components/MusicDisplay';
 import Dashboard from './components/Dashboard';
 import Intervals from './components/Intervals';
 import Keys from './components/Keys';
+import ChordsPractice from './components/ChordsPractice';
 import TimeSignatures from './components/TimeSignatures';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
 import { AuthProvider } from './contexts/AuthProvider';
 import { IntervalsProvider } from './contexts/IntervalsProvider';
+import { ChordsProvider } from './contexts/ChordsProvider';
 import { generateRandomABC } from './utils/musicGenerator';
 
 const ProtectedRoute = ({ children }) => {
@@ -258,6 +260,10 @@ function App() {
     rightHandPatterns: ['single-notes'],
     rightHandIntervals: ['2nd'],
     rightHand4NoteChords: ['major'],
+    chordTypes: ['major', 'minor'],
+    chordInversions: ['root'],
+    chordVoicings: ['closed'],
+    chordRhythms: ['straight'],
     musicScale: 1.0
   });
 
@@ -268,7 +274,8 @@ function App() {
   return (
     <AuthProvider>
       <IntervalsProvider>
-        <Router>
+        <ChordsProvider>
+          <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -317,6 +324,17 @@ function App() {
               } 
             />
             <Route 
+              path="/chords" 
+              element={
+                <ProtectedRoute>
+                  <ChordsPractice 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/practice" 
               element={
                 <ProtectedRoute>
@@ -330,6 +348,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Router>
+        </ChordsProvider>
       </IntervalsProvider>
     </AuthProvider>
   );

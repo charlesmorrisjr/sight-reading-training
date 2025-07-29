@@ -380,6 +380,52 @@ export const AVAILABLE_RIGHT_HAND_PATTERNS = [
     supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
   }
 ];
+/**
+ * Available chord types for chord practice
+ */
+export const AVAILABLE_CHORD_TYPES = [
+  { id: 'major', label: 'Major' },
+  { id: 'minor', label: 'Minor' },
+  { id: 'diminished', label: 'Diminished' },
+  { id: 'augmented', label: 'Augmented' },
+  { id: '7th', label: '7th' },
+  { id: 'minor7th', label: 'Minor 7th' },
+  { id: 'major7th', label: 'Major 7th' },
+  { id: 'diminished7th', label: 'Diminished 7th' }
+];
+
+/**
+ * Available chord inversions for chord practice
+ */
+export const AVAILABLE_CHORD_INVERSIONS = [
+  { id: 'root', label: 'Root Position' },
+  { id: 'first', label: 'First Inversion' },
+  { id: 'second', label: 'Second Inversion' },
+  { id: 'third', label: 'Third Inversion' }
+];
+
+/**
+ * Available chord voicings for chord practice
+ */
+export const AVAILABLE_CHORD_VOICINGS = [
+  { id: 'closed', label: 'Closed Voicing' },
+  { id: 'open', label: 'Open Voicing' },
+  { id: 'spread', label: 'Spread Voicing' },
+  { id: 'drop2', label: 'Drop 2' },
+  { id: 'drop3', label: 'Drop 3' }
+];
+
+/**
+ * Available chord rhythms for chord practice
+ */
+export const AVAILABLE_CHORD_RHYTHMS = [
+  { id: 'straight', label: 'Straight' },
+  { id: 'swing', label: 'Swing' },
+  { id: 'bossa-nova', label: 'Bossa Nova' },
+  { id: 'jazz-waltz', label: 'Jazz Waltz' },
+  { id: 'latin', label: 'Latin' },
+  { id: 'ballad', label: 'Ballad' }
+];
 
 /**
  * Scale degree to note mapping for major keys

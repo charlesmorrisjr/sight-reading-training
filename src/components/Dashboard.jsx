@@ -33,6 +33,8 @@ const Dashboard = ({ settings, onSettingsChange }) => {
   const handleCategoryClick = (categoryId) => {
     if (categoryId === 'intervals') {
       navigate('/intervals');
+    } else if (categoryId === 'chords') {
+      navigate('/chords');
     } else {
       console.log(`Category clicked: ${categoryId}`);
     }
