@@ -43,7 +43,7 @@ const Keys = ({ settings, onSettingsChange }) => {
   // Keep keys separate for organized display
 
   const handleBackClick = () => {
-    navigate('/intervals');
+    navigate(-1); // Go back to previous page in history
   };
 
   const handleKeyClick = (key) => {
@@ -52,6 +52,9 @@ const Keys = ({ settings, onSettingsChange }) => {
       ...settings,
       key: key
     });
+    
+    // Automatically navigate back to the previous page
+    navigate(-1);
   };
 
   const renderKeyButton = ({ key, label }) => {
