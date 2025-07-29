@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMusic, FaPlay } from 'react-icons/fa';
 import { useIntervals } from '../contexts/useIntervals';
 import { AVAILABLE_INTERVALS } from '../utils/musicGenerator';
-import TimeSignatures from './TimeSignatures';
 
+
+// eslint-disable-next-line no-unused-vars
 const Intervals = ({ settings, onSettingsChange }) => {
   const navigate = useNavigate();
   const { selectedIntervals, toggleInterval } = useIntervals();
@@ -17,13 +18,7 @@ const Intervals = ({ settings, onSettingsChange }) => {
   };
 
 
-  const handleTimeSignatureChange = (newTimeSignature) => {
-    // Update the time signature setting in the shared settings
-    onSettingsChange({
-      ...settings,
-      timeSignature: newTimeSignature
-    });
-  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
@@ -85,6 +80,19 @@ const Intervals = ({ settings, onSettingsChange }) => {
               </button>
             </div>
 
+            {/* Time Signature Selection Button */}
+            <div className="mb-6">
+              <button
+                className="btn btn-lg h-24 py-6 px-4 w-full transition-all duration-300 transform hover:scale-105 btn-outline btn-secondary hover:btn-secondary"
+                onClick={() => navigate('/time-signatures')}
+              >
+                <div className="flex flex-col items-center">
+                  <span className="text-sm font-medium text-gray-600 mb-1">Selected Time Signature</span>
+                  <span className="text-lg font-bold">{settings.timeSignature}</span>
+                </div>
+              </button>
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {displayIntervals.map(({ value, label }) => {
                 const isSelected = selectedIntervals.includes(value);
@@ -110,16 +118,7 @@ const Intervals = ({ settings, onSettingsChange }) => {
         </div>
 
 
-        {/* Time Signatures Selection */}
-        <div className="card bg-white shadow-lg mb-8 animate-slide-up">
-          <div className="card-body p-8">
-            <TimeSignatures
-              selectedTimeSignature={settings.timeSignature}
-              onTimeSignatureChange={handleTimeSignatureChange}
-              showLabels={true}
-            />
-          </div>
-        </div>
+
 
         {/* Practice Button */}
         <div className="text-center animate-scale-in">
