@@ -10,6 +10,7 @@ import Keys from './components/Keys';
 import MeasuresPage from './components/MeasuresPage';
 import ChordsPractice from './components/ChordsPractice';
 import MelodicPractice from './components/MelodicPractice';
+import NoteDuration from './components/NoteDuration';
 import TimeSignatures from './components/TimeSignatures';
 import Login from './components/Login';
 import Signup from './components/Signup';
@@ -354,6 +355,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MelodicPractice 
+                    settings={settings} 
+                    onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/note-durations" 
+              element={
+                <ProtectedRoute>
+                  <NoteDuration 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
                   />
