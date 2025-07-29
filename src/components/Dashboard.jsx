@@ -250,16 +250,9 @@ const Dashboard = ({ settings, onSettingsChange }) => {
             <div className="hero-content text-center py-12">
               <div className="max-w-md mx-auto">
                 <h1 className="text-4xl font-bold mb-4">Welcome Back!</h1>
-                <p className="text-blue-100 mb-6">
+                <p className="text-blue-100">
                   Ready to improve your sight reading skills? Let's continue your musical journey.
                 </p>
-                <button 
-                  className="btn btn-white btn-lg"
-                  onClick={() => handleNavClick('practice')}
-                >
-                  <FaPlay className="mr-2" />
-                  Start Practicing
-                </button>
               </div>
             </div>
           </div>
@@ -382,8 +375,8 @@ const Dashboard = ({ settings, onSettingsChange }) => {
                       <img src={clefNotesIcon} alt="Music icon" />
                     </div>
                     <div>
-                      <div className="font-semibold text-base">Clef Challenges</div>
-                      <div className="text-sm text-gray-500">Bass vs Treble</div>
+                      <div className="font-semibold text-base">Free Practice</div>
+                      <div className="text-sm text-gray-500">Practice Anything</div>
                     </div>
                   </div>
                 </button>
