@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMusic, FaPlay } from 'react-icons/fa';
 import { useIntervals } from '../contexts/useIntervals';
 import { AVAILABLE_INTERVALS } from '../utils/musicGenerator';
+import Settings from './Settings';
 
 
 // eslint-disable-next-line no-unused-vars
@@ -92,37 +93,7 @@ const Intervals = ({ settings, onSettingsChange }) => {
         </div>
 
         {/* Settings Selection Card */}
-        <div className="card bg-white shadow-lg mb-8 animate-slide-up">
-          <div className="card-body p-8">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Settings</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Key Selection Button */}
-              <button
-                className="btn btn-lg h-24 py-6 px-4 transition-all duration-300 transform hover:scale-105 btn-outline btn-secondary hover:btn-secondary"
-                onClick={() => navigate('/keys')}
-              >
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-medium text-gray-600 mb-1">Selected Key</span>
-                  <span className="text-lg font-bold">{settings.key}</span>
-                </div>
-              </button>
-
-              {/* Time Signature Selection Button */}
-              <button
-                className="btn btn-lg h-24 py-6 px-4 transition-all duration-300 transform hover:scale-105 btn-outline btn-secondary hover:btn-secondary"
-                onClick={() => navigate('/time-signatures')}
-              >
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-medium text-gray-600 mb-1">Selected Time Signature</span>
-                  <span className="text-lg font-bold">{settings.timeSignature}</span>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
+        <Settings settings={settings} />
 
         {/* Practice Button */}
         <div className="text-center animate-scale-in">
