@@ -7,7 +7,7 @@ import MusicDisplay from './components/MusicDisplay';
 import Dashboard from './components/Dashboard';
 import Intervals from './components/Intervals';
 import Keys from './components/Keys';
-import TimeSignaturesPage from './components/TimeSignaturesPage';
+import TimeSignatures from './components/TimeSignatures';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
@@ -309,7 +309,7 @@ function App() {
               path="/time-signatures" 
               element={
                 <ProtectedRoute>
-                  <TimeSignaturesPage 
+                  <TimeSignatures 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
                   />
