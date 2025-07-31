@@ -44,17 +44,17 @@ const Dashboard = ({ settings, onSettingsChange }) => {
     }
   };
 
-  const handleDrillPlay = () => {
-    console.log('Playing suggested drill');
-  };
+  // const handleDrillPlay = () => {
+  //   console.log('Playing suggested drill');
+  // };
 
-  const handleAddCustomDrill = () => {
-    console.log('Adding custom drill');
-  };
+  // const handleAddCustomDrill = () => {
+  //   console.log('Adding custom drill');
+  // };
 
-  const handleCustomDrillClick = (drillId) => {
-    console.log(`Custom drill clicked: ${drillId}`);
-  };
+  // const handleCustomDrillClick = (drillId) => {
+  //   console.log(`Custom drill clicked: ${drillId}`);
+  // };
 
   const handleNavClick = (navItem) => {
     if (navItem === 'practice') {
@@ -386,8 +386,8 @@ const Dashboard = ({ settings, onSettingsChange }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* My Exercises */}
+          {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            My Exercises
             <div className="card bg-white shadow-lg">
               <div className="card-body">
                 <h2 className="card-title text-xl mb-4 flex items-center">
@@ -438,7 +438,7 @@ const Dashboard = ({ settings, onSettingsChange }) => {
               </div>
             </div>
 
-            {/* Suggested Drill */}
+            Suggested Drill
             <div className="card bg-white text-gray-900 shadow-lg">
               <div className="card-body flex flex-col h-full">
                 <div>
@@ -465,7 +465,7 @@ const Dashboard = ({ settings, onSettingsChange }) => {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </main>
     </div>
