@@ -20,7 +20,6 @@ import { AuthProvider } from './contexts/AuthProvider';
 import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
 import { generateRandomABC } from './utils/musicGenerator';
-import CursorControl from './components/CursorControl';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -53,7 +52,6 @@ const PracticeView = ({ settings, onSettingsChange }) => {
   const audioContextRef = useRef(null);
   const synthRef = useRef(null);
   const visualObjectRef = useRef(null);
-  const cursorControlRef = useRef(new CursorControl());
 
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
@@ -157,8 +155,6 @@ const PracticeView = ({ settings, onSettingsChange }) => {
     svgContainer.appendChild(cursorLine);
     console.log('Cursor line added to SVG');
     
-    // No need to track system state - cursor height is calculated per event
-    
     // Create TimingCallbacks for precise synchronization
     const timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
       qpm: 120, // Quarter notes per minute - should match settings
@@ -245,10 +241,6 @@ const PracticeView = ({ settings, onSettingsChange }) => {
         }
         existingCursor.remove();
       }
-      // Reset cursor control when stopping
-      if (cursorControlRef.current) {
-        cursorControlRef.current.reset();
-      }
       setIsPlaying(false);
       return;
     }
@@ -268,30 +260,15 @@ const PracticeView = ({ settings, onSettingsChange }) => {
 
       setIsPlaying(true);
       
-      console.log('Starting synth with cursor control:', cursorControlRef.current);
-      console.log('Cursor control methods:', {
-        onEvent: cursorControlRef.current.onEvent,
-        onBeat: cursorControlRef.current.onBeat,
-        onLineEnd: cursorControlRef.current.onLineEnd
-      });
-      
       // Start playback normally 
       synthRef.current.start(undefined, {
         end: () => {
           console.log('Playback ended');
           setIsPlaying(false);
-          if (cursorControlRef.current) {
-            cursorControlRef.current.reset();
-          }
         }
       });
       
-      // Manually implement cursor tracking since abcjs CreateSynth doesn't support it directly
-      if (cursorControlRef.current && cursorControlRef.current.onStart) {
-        cursorControlRef.current.onStart();
-      }
-      
-      // Start simple visual cursor
+      // Start visual cursor
       startVisualCursor();
 
     } catch (error) {
@@ -307,10 +284,6 @@ const PracticeView = ({ settings, onSettingsChange }) => {
           existingCursor.timingCallbacks.stop();
         }
         existingCursor.remove();
-      }
-      // Reset cursor control on error
-      if (cursorControlRef.current) {
-        cursorControlRef.current.reset();
       }
     }
   }, [isPlaying, initializeSynth, startVisualCursor]);
@@ -385,7 +358,6 @@ const PracticeView = ({ settings, onSettingsChange }) => {
             abcNotation={abcNotation} 
             settings={effectiveSettings}
             onVisualsReady={handleVisualsReady}
-            cursorControl={cursorControlRef.current}
           />
         </div>
 
