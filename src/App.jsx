@@ -164,8 +164,18 @@ const PracticeView = ({ settings, onSettingsChange }) => {
       eventCallback: (event) => {
         console.log('Event callback:', event);
         
-        if (!event || !svgContainer.contains(cursorLine)) {
-          return; // Animation stopped or cursor removed
+        if (!event) {
+          // Music has ended - stop playback and reset button
+          console.log('Music ended - stopping playback');
+          setIsPlaying(false);
+          if (synthRef.current) {
+            synthRef.current.stop();
+          }
+          // Remove cursor
+          if (cursorLine && cursorLine.parentNode) {
+            cursorLine.remove();
+          }
+          return;
         }
         
         // Use abcjs-provided positioning data for precise cursor placement
