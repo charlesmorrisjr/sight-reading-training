@@ -124,6 +124,10 @@ const PracticeView = ({ settings, onSettingsChange }) => {
   const startVisualCursor = useCallback(() => {
     console.log('Starting abcjs TimingCallbacks-based cursor...');
     
+    // Cursor padding constants
+    const CURSOR_TOP_PADDING = 5;
+    const CURSOR_BOTTOM_PADDING = 25;
+    
     if (!visualObjectRef.current) {
       console.log('No visual object available for cursor');
       return;
@@ -144,8 +148,8 @@ const PracticeView = ({ settings, onSettingsChange }) => {
     // Create the cursor line
     const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     cursorLine.setAttribute('class', 'playback-cursor');
-    cursorLine.setAttribute('stroke', '#fbbf24'); // Yellow
-    cursorLine.setAttribute('stroke-width', '3');
+    cursorLine.setAttribute('stroke', '#3b82f6'); // Blue
+    cursorLine.setAttribute('stroke-width', '1');
     cursorLine.setAttribute('opacity', '0.8');
     cursorLine.style.pointerEvents = 'none';
     
@@ -153,9 +157,7 @@ const PracticeView = ({ settings, onSettingsChange }) => {
     svgContainer.appendChild(cursorLine);
     console.log('Cursor line added to SVG');
     
-    // Track current piano system for height management
-    let currentSystemY = { treble: 0, bass: 0 };
-    let isFirstEvent = true;
+    // No need to track system state - cursor height is calculated per event
     
     // Create TimingCallbacks for precise synchronization
     const timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
@@ -170,57 +172,22 @@ const PracticeView = ({ settings, onSettingsChange }) => {
           return; // Animation stopped or cursor removed
         }
         
-        // Get cursor position from event
-        let cursorX = event.left || 0;
+        // Use abcjs-provided positioning data for precise cursor placement
+        const cursorX = (event.left + 5) || 0;    // Add 5px to the left to center the cursor
+        const eventTopY = event.top || 0;
+        const eventHeight = event.height || 30;
         
-        // Handle piano system detection and height management
-        if (event.top !== undefined) {
-          // Check if we're in a new piano system by comparing Y positions
-          const eventY = event.top;
-          const isNewSystem = isFirstEvent || Math.abs(eventY - currentSystemY.treble) > 100;
-          
-          if (isNewSystem) {
-            console.log('Detected new piano system at Y position:', eventY);
-            
-            // Find all elements at similar X position to determine system bounds
-            const elementsNearX = Array.from(svgContainer.querySelectorAll('g[data-name*="note"]'))
-              .map(el => {
-                const rect = el.getBoundingClientRect();
-                const svgRect = svgContainer.getBoundingClientRect();
-                return {
-                  element: el,
-                  x: rect.left - svgRect.left,
-                  y: rect.top - svgRect.top
-                };
-              })
-              .filter(el => Math.abs(el.x - cursorX) < 100); // Within 100px horizontally
-            
-            if (elementsNearX.length > 0) {
-              const yPositions = elementsNearX.map(el => el.y);
-              currentSystemY.treble = Math.min(...yPositions);
-              currentSystemY.bass = Math.max(...yPositions);
-              
-              console.log(`Updated system Y bounds: treble=${currentSystemY.treble.toFixed(0)}, bass=${currentSystemY.bass.toFixed(0)}`);
-            } else {
-              // Fallback: use event Y position with reasonable padding
-              currentSystemY.treble = eventY - 20;
-              currentSystemY.bass = eventY + 80; // Approximate bass staff position
-            }
-            
-            isFirstEvent = false;
-          }
-        }
+        // Set cursor bounds using abcjs measurements with padding constants
+        const cursorTopY = eventTopY - CURSOR_TOP_PADDING;
+        const cursorBottomY = eventTopY + eventHeight + CURSOR_BOTTOM_PADDING;
         
-        // Update cursor position and height
-        const cursorTopY = currentSystemY.treble - 15;
-        const cursorBottomY = currentSystemY.bass + 15;
-        
-        cursorLine.setAttribute('x1', cursorX);
+        // Update cursor position and dimensions
+        cursorLine.setAttribute('x1', (cursorX));
         cursorLine.setAttribute('y1', cursorTopY);
         cursorLine.setAttribute('x2', cursorX);
         cursorLine.setAttribute('y2', cursorBottomY);
         
-        console.log(`Cursor positioned at x=${cursorX.toFixed(0)}, Y=${cursorTopY.toFixed(0)} to ${cursorBottomY.toFixed(0)}`);
+        console.log(`Cursor positioned using abcjs data: x=${cursorX.toFixed(0)}, Y=${cursorTopY.toFixed(0)} to ${cursorBottomY.toFixed(0)} (height=${eventHeight})`);
       },
       
       // Beat callback - called on each beat for additional timing info
@@ -229,8 +196,17 @@ const PracticeView = ({ settings, onSettingsChange }) => {
       },
       
       // Line end callback - called when reaching end of a music line
-      lineEndCallback: (data) => {
-        console.log('Line end reached:', data);
+      lineEndCallback: (info) => {
+        console.log('Line end reached:', info);
+        
+        // Use line-level bounds when available for more accurate cursor positioning
+        if (info && info.top !== undefined && info.bottom !== undefined && svgContainer.contains(cursorLine)) {
+          // Update cursor height to span the entire line with consistent padding
+          cursorLine.setAttribute('y1', info.top - CURSOR_TOP_PADDING);
+          cursorLine.setAttribute('y2', info.bottom + CURSOR_BOTTOM_PADDING);
+          
+          console.log(`Updated cursor height using line bounds with padding: Y=${(info.top - CURSOR_TOP_PADDING).toFixed(0)} to ${(info.bottom + CURSOR_BOTTOM_PADDING).toFixed(0)}`);
+        }
       }
     });
     
