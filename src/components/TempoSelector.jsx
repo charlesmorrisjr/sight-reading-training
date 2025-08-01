@@ -1,10 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 
 const TempoSelector = ({ tempo, onTempoChange, onClose }) => {
+  // Local state to track tempo changes within the modal
+  const [localTempo, setLocalTempo] = useState(tempo);
+
+  // Update local tempo when the modal opens with a new tempo value
+  useEffect(() => {
+    setLocalTempo(tempo);
+  }, [tempo]);
+
   const handleSliderChange = (e) => {
     const newTempo = parseInt(e.target.value);
-    onTempoChange(newTempo);
+    setLocalTempo(newTempo);
+  };
+
+  const handlePresetClick = (presetTempo) => {
+    setLocalTempo(presetTempo);
+  };
+
+  const handleClose = () => {
+    // Commit the changes when modal closes
+    onTempoChange(localTempo);
+    onClose();
   };
 
   return (
@@ -12,7 +30,7 @@ const TempoSelector = ({ tempo, onTempoChange, onClose }) => {
       {/* Modal backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
-        onClick={onClose}
+        onClick={handleClose}
       />
       
       {/* Modal content */}
@@ -21,7 +39,7 @@ const TempoSelector = ({ tempo, onTempoChange, onClose }) => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Tempo</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="btn btn-ghost btn-sm btn-circle"
           >
             <FaTimes className="text-gray-500" />
@@ -31,7 +49,7 @@ const TempoSelector = ({ tempo, onTempoChange, onClose }) => {
         {/* Tempo Display */}
         <div className="text-center mb-8">
           <div className="text-6xl font-bold text-blue-600 mb-2">
-            {tempo}
+            {localTempo}
           </div>
           <div className="text-gray-600 text-lg">BPM</div>
         </div>
@@ -42,11 +60,11 @@ const TempoSelector = ({ tempo, onTempoChange, onClose }) => {
             type="range"
             min="40"
             max="200"
-            value={tempo}
+            value={localTempo}
             onChange={handleSliderChange}
             className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
             style={{
-              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((tempo - 40) / 160) * 100}%, #e5e7eb ${((tempo - 40) / 160) * 100}%, #e5e7eb 100%)`
+              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((localTempo - 40) / 160) * 100}%, #e5e7eb ${((localTempo - 40) / 160) * 100}%, #e5e7eb 100%)`
             }}
           />
           <div className="flex justify-between text-sm text-gray-500 mt-2">
@@ -61,8 +79,8 @@ const TempoSelector = ({ tempo, onTempoChange, onClose }) => {
           {[60, 80, 100, 120, 140, 160].map(presetTempo => (
             <button
               key={presetTempo}
-              onClick={() => onTempoChange(presetTempo)}
-              className={`btn btn-sm ${tempo === presetTempo ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => handlePresetClick(presetTempo)}
+              className={`btn btn-sm ${localTempo === presetTempo ? 'btn-primary' : 'btn-outline'}`}
             >
               {presetTempo}
             </button>
