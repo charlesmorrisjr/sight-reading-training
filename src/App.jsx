@@ -4,6 +4,7 @@ import * as ABCJS from 'abcjs';
 import { FaMusic, FaPlay, FaStop } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
+import TempoSelector from './components/TempoSelector';
 import Dashboard from './components/Dashboard';
 import Intervals from './components/Intervals';
 import Keys from './components/Keys';
@@ -26,7 +27,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const PracticeView = ({ settings, onSettingsChange }) => {
+const PracticeView = ({ settings, onSettingsChange, onTempoClick }) => {
   const location = useLocation();
   
   // Get intervals from location state if available
@@ -327,8 +328,18 @@ const PracticeView = ({ settings, onSettingsChange }) => {
               </h1>
             </div>
 
-            {/* Play Button */}
+            {/* Control Buttons */}
             <div className="flex items-center space-x-4">
+              {/* Tempo Button */}
+              <button
+                onClick={onTempoClick}
+                className="btn btn-outline text-gray-700 hover:bg-gray-100"
+                title="Change Tempo"
+              >
+                <span className="text-sm font-medium">{effectiveSettings.tempo} BPM</span>
+              </button>
+
+              {/* Play Button */}
               <button 
                 className={`btn btn-lg ${isPlaying ? 'btn-error' : 'btn-primary'} ${
                   (isInitializing || !isVisualsReady) ? 'opacity-50 cursor-not-allowed' : ''
@@ -399,7 +410,7 @@ function App() {
     key: 'C',
     timeSignature: '4/4',
     measures: 8,
-    tempo: 100,
+    tempo: 120,
     intervals: [1, 2, 3, 4, 5],
     noteDurations: ['1/8', '1/4'],
     chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
@@ -417,8 +428,23 @@ function App() {
     musicScale: 1.0
   });
 
+  // Tempo modal state
+  const [tempoModalOpen, setTempoModalOpen] = useState(false);
+
   const handleSettingsChange = useCallback((newSettings) => {
     setSettings(newSettings);
+  }, []);
+
+  const handleTempoChange = useCallback((newTempo) => {
+    setSettings(prev => ({ ...prev, tempo: newTempo }));
+  }, []);
+
+  const openTempoModal = useCallback(() => {
+    setTempoModalOpen(true);
+  }, []);
+
+  const closeTempoModal = useCallback(() => {
+    setTempoModalOpen(false);
   }, []);
 
   return (
@@ -535,6 +561,7 @@ function App() {
                   <PracticeView 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
+                    onTempoClick={openTempoModal}
                   />
                 </ProtectedRoute>
               } 
@@ -542,6 +569,15 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Router>
+        
+        {/* Tempo Modal */}
+        {tempoModalOpen && (
+          <TempoSelector
+            tempo={settings.tempo}
+            onTempoChange={handleTempoChange}
+            onClose={closeTempoModal}
+          />
+        )}
         </ChordsProvider>
       </IntervalsProvider>
     </AuthProvider>
