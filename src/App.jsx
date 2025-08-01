@@ -232,7 +232,7 @@ const PracticeView = ({ settings, onSettingsChange }) => {
     timingCallbacks.start();
     
     console.log('abcjs TimingCallbacks cursor setup completed');
-  }, []);
+  }, [effectiveSettings.tempo]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -399,7 +399,7 @@ function App() {
     key: 'C',
     timeSignature: '4/4',
     measures: 8,
-    tempo: 120,
+    tempo: 100,
     intervals: [1, 2, 3, 4, 5],
     noteDurations: ['1/8', '1/4'],
     chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
