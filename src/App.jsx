@@ -20,6 +20,7 @@ import { AuthProvider } from './contexts/AuthProvider';
 import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
 import { generateRandomABC } from './utils/musicGenerator';
+import CursorControl from './components/CursorControl';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -52,6 +53,7 @@ const PracticeView = ({ settings, onSettingsChange }) => {
   const audioContextRef = useRef(null);
   const synthRef = useRef(null);
   const visualObjectRef = useRef(null);
+  const cursorControlRef = useRef(new CursorControl());
 
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
@@ -118,11 +120,158 @@ const PracticeView = ({ settings, onSettingsChange }) => {
     }
   }, []);
 
+  // abcjs TimingCallbacks-based cursor that syncs perfectly with music
+  const startVisualCursor = useCallback(() => {
+    console.log('Starting abcjs TimingCallbacks-based cursor...');
+    
+    if (!visualObjectRef.current) {
+      console.log('No visual object available for cursor');
+      return;
+    }
+    
+    const svgContainer = document.querySelector('.music-notation svg');
+    if (!svgContainer) {
+      console.log('No SVG container found');
+      return;
+    }
+    
+    // Remove any existing cursor
+    const existingCursor = svgContainer.querySelector('.playback-cursor');
+    if (existingCursor) {
+      existingCursor.remove();
+    }
+    
+    // Create the cursor line
+    const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    cursorLine.setAttribute('class', 'playback-cursor');
+    cursorLine.setAttribute('stroke', '#fbbf24'); // Yellow
+    cursorLine.setAttribute('stroke-width', '3');
+    cursorLine.setAttribute('opacity', '0.8');
+    cursorLine.style.pointerEvents = 'none';
+    
+    // Add cursor to SVG
+    svgContainer.appendChild(cursorLine);
+    console.log('Cursor line added to SVG');
+    
+    // Track current piano system for height management
+    let currentSystemY = { treble: 0, bass: 0 };
+    let isFirstEvent = true;
+    
+    // Create TimingCallbacks for precise synchronization
+    const timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
+      qpm: 120, // Quarter notes per minute - should match settings
+      beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
+      
+      // Event callback - called for each musical event (note, rest, etc.)
+      eventCallback: (event) => {
+        console.log('Event callback:', event);
+        
+        if (!event || !svgContainer.contains(cursorLine)) {
+          return; // Animation stopped or cursor removed
+        }
+        
+        // Get cursor position from event
+        let cursorX = event.left || 0;
+        
+        // Handle piano system detection and height management
+        if (event.top !== undefined) {
+          // Check if we're in a new piano system by comparing Y positions
+          const eventY = event.top;
+          const isNewSystem = isFirstEvent || Math.abs(eventY - currentSystemY.treble) > 100;
+          
+          if (isNewSystem) {
+            console.log('Detected new piano system at Y position:', eventY);
+            
+            // Find all elements at similar X position to determine system bounds
+            const elementsNearX = Array.from(svgContainer.querySelectorAll('g[data-name*="note"]'))
+              .map(el => {
+                const rect = el.getBoundingClientRect();
+                const svgRect = svgContainer.getBoundingClientRect();
+                return {
+                  element: el,
+                  x: rect.left - svgRect.left,
+                  y: rect.top - svgRect.top
+                };
+              })
+              .filter(el => Math.abs(el.x - cursorX) < 100); // Within 100px horizontally
+            
+            if (elementsNearX.length > 0) {
+              const yPositions = elementsNearX.map(el => el.y);
+              currentSystemY.treble = Math.min(...yPositions);
+              currentSystemY.bass = Math.max(...yPositions);
+              
+              console.log(`Updated system Y bounds: treble=${currentSystemY.treble.toFixed(0)}, bass=${currentSystemY.bass.toFixed(0)}`);
+            } else {
+              // Fallback: use event Y position with reasonable padding
+              currentSystemY.treble = eventY - 20;
+              currentSystemY.bass = eventY + 80; // Approximate bass staff position
+            }
+            
+            isFirstEvent = false;
+          }
+        }
+        
+        // Update cursor position and height
+        const cursorTopY = currentSystemY.treble - 15;
+        const cursorBottomY = currentSystemY.bass + 15;
+        
+        cursorLine.setAttribute('x1', cursorX);
+        cursorLine.setAttribute('y1', cursorTopY);
+        cursorLine.setAttribute('x2', cursorX);
+        cursorLine.setAttribute('y2', cursorBottomY);
+        
+        console.log(`Cursor positioned at x=${cursorX.toFixed(0)}, Y=${cursorTopY.toFixed(0)} to ${cursorBottomY.toFixed(0)}`);
+      },
+      
+      // Beat callback - called on each beat for additional timing info
+      beatCallback: (beatNumber, totalBeats, totalTime) => {
+        console.log(`Beat ${beatNumber}/${totalBeats} at ${totalTime.toFixed(0)}ms`);
+      },
+      
+      // Line end callback - called when reaching end of a music line
+      lineEndCallback: (data) => {
+        console.log('Line end reached:', data);
+      }
+    });
+    
+    // Store timing callbacks reference for cleanup
+    cursorLine.timingCallbacks = timingCallbacks;
+    
+    // Create a way to stop the animation externally
+    cursorLine.stopAnimation = () => {
+      console.log('External stop called on TimingCallbacks cursor');
+      if (timingCallbacks) {
+        timingCallbacks.stop();
+      }
+    };
+    
+    // Start the timing callbacks
+    console.log('Starting TimingCallbacks...');
+    timingCallbacks.start();
+    
+    console.log('abcjs TimingCallbacks cursor setup completed');
+  }, []);
+
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
     if (isPlaying) {
       if (synthRef.current) {
         synthRef.current.stop();
+      }
+      // Stop and remove any existing cursor
+      const existingCursor = document.querySelector('.playback-cursor');
+      if (existingCursor) {
+        if (existingCursor.stopAnimation) {
+          existingCursor.stopAnimation();
+        }
+        if (existingCursor.timingCallbacks) {
+          existingCursor.timingCallbacks.stop();
+        }
+        existingCursor.remove();
+      }
+      // Reset cursor control when stopping
+      if (cursorControlRef.current) {
+        cursorControlRef.current.reset();
       }
       setIsPlaying(false);
       return;
@@ -143,17 +292,52 @@ const PracticeView = ({ settings, onSettingsChange }) => {
 
       setIsPlaying(true);
       
+      console.log('Starting synth with cursor control:', cursorControlRef.current);
+      console.log('Cursor control methods:', {
+        onEvent: cursorControlRef.current.onEvent,
+        onBeat: cursorControlRef.current.onBeat,
+        onLineEnd: cursorControlRef.current.onLineEnd
+      });
+      
+      // Start playback normally 
       synthRef.current.start(undefined, {
         end: () => {
+          console.log('Playback ended');
           setIsPlaying(false);
+          if (cursorControlRef.current) {
+            cursorControlRef.current.reset();
+          }
         }
       });
+      
+      // Manually implement cursor tracking since abcjs CreateSynth doesn't support it directly
+      if (cursorControlRef.current && cursorControlRef.current.onStart) {
+        cursorControlRef.current.onStart();
+      }
+      
+      // Start simple visual cursor
+      startVisualCursor();
 
     } catch (error) {
       console.error('Error playing music:', error);
       setIsPlaying(false);
+      // Stop and remove any existing cursor on error
+      const existingCursor = document.querySelector('.playback-cursor');
+      if (existingCursor) {
+        if (existingCursor.stopAnimation) {
+          existingCursor.stopAnimation();
+        }
+        if (existingCursor.timingCallbacks) {
+          existingCursor.timingCallbacks.stop();
+        }
+        existingCursor.remove();
+      }
+      // Reset cursor control on error
+      if (cursorControlRef.current) {
+        cursorControlRef.current.reset();
+      }
     }
-  }, [isPlaying, initializeSynth]);
+  }, [isPlaying, initializeSynth, startVisualCursor]);
 
   React.useEffect(() => {
     handleGenerateNew();
@@ -225,6 +409,7 @@ const PracticeView = ({ settings, onSettingsChange }) => {
             abcNotation={abcNotation} 
             settings={effectiveSettings}
             onVisualsReady={handleVisualsReady}
+            cursorControl={cursorControlRef.current}
           />
         </div>
 

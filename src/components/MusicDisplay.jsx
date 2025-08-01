@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as ABCJS from 'abcjs';
 import './MusicDisplay.css';
 
-const MusicDisplay = ({ abcNotation, settings, onVisualsReady }) => {
+const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl }) => {
   const containerRef = useRef(null);
   const renderRef = useRef(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -67,11 +67,16 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady }) => {
         onVisualsReady(visualObjs[0]);
       }
 
+      // Reset cursor control when new music is rendered
+      if (cursorControl) {
+        cursorControl.reset();
+      }
+
     } catch (error) {
       console.error('Error rendering ABC notation:', error);
       renderRef.current.innerHTML = '<p class="error-message">Error rendering music notation</p>';
     }
-  }, [abcNotation, settings, windowWidth, onVisualsReady]);
+  }, [abcNotation, settings, windowWidth, onVisualsReady, cursorControl]);
 
   // Handle window resize to update responsive behavior
   useEffect(() => {

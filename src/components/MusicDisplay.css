@@ -127,6 +127,45 @@
   outline-offset: 2px;
 }
 
+/* Music notation cursor/highlight styles */
+.note-highlight {
+  fill: #fbbf24 !important; /* Yellow highlight */
+  stroke: #f59e0b !important;
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
+  transition: all 0.1s ease-in-out;
+}
+
+/* Alternative blue highlight theme (can be toggled) */
+.note-highlight.blue-theme {
+  fill: #60a5fa !important;
+  stroke: #3b82f6 !important;
+  filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.6));
+}
+
+/* Smooth transitions for highlights */
+.music-notation .abcjs-note, 
+.music-notation .abcjs-chord {
+  transition: fill 0.1s ease-in-out, stroke 0.1s ease-in-out, filter 0.1s ease-in-out;
+}
+
+/* Cursor animation keyframes */
+@keyframes noteHighlight {
+  0% { 
+    filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.4));
+  }
+  50% { 
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.8));
+  }
+  100% { 
+    filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.4));
+  }
+}
+
+.note-highlight.animated {
+  animation: noteHighlight 0.5s ease-in-out;
+}
+
 /* Dark mode support (disabled for now, will be added later) */
 /* @media (prefers-color-scheme: dark) {
   .music-display {

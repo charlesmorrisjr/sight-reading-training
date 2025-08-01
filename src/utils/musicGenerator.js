@@ -21,6 +21,7 @@
 export function generateRandomABC(options) {
   const {
     measures = 8,
+    tempo = 120,
     key = 'C',
     timeSignature = '4/4',
     intervals = [1, 2, 3, 4, 5],
@@ -38,7 +39,7 @@ export function generateRandomABC(options) {
   const totalBeatsPerMeasure = beatsPerMeasure * (8 / beatUnit); // Convert to eighth note units
 
   // Basic ABC header
-  let abc = `X:1\nT:\nM:${timeSignature}\nL:1/8\nQ:100\nK:${key}\n`;
+  let abc = `X:1\nT:\nM:${timeSignature}\nL:1/8\nQ:${tempo}\nK:${key}\n`;
   abc += "V:1 clef=treble\nV:2 clef=bass\n";
   
   // Available notes based on chromatic scale
