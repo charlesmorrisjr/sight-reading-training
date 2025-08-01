@@ -19,6 +19,7 @@
  * @returns {string} ABC notation string
  */
 export function generateRandomABC(options) {
+  // Default if not provided in settings
   const {
     measures = 8,
     tempo = 120,

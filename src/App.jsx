@@ -157,7 +157,7 @@ const PracticeView = ({ settings, onSettingsChange }) => {
     
     // Create TimingCallbacks for precise synchronization
     const timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
-      qpm: 120, // Quarter notes per minute - should match settings
+      qpm: effectiveSettings.tempo, // Quarter notes per minute - matches settings
       beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
       
       // Event callback - called for each musical event (note, rest, etc.)
@@ -399,6 +399,7 @@ function App() {
     key: 'C',
     timeSignature: '4/4',
     measures: 8,
+    tempo: 120,
     intervals: [1, 2, 3, 4, 5],
     noteDurations: ['1/8', '1/4'],
     chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
