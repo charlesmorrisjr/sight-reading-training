@@ -387,6 +387,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             abcNotation={abcNotation} 
             settings={effectiveSettings}
             onVisualsReady={handleVisualsReady}
+            pressedMidiNotes={pressedMidiNotes}
           />
         </div>
 

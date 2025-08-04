@@ -1,11 +1,73 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as ABCJS from 'abcjs';
 import './MusicDisplay.css';
 
-const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl }) => {
+const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl, pressedMidiNotes = new Set() }) => {
   const containerRef = useRef(null);
   const renderRef = useRef(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Helper function to convert MIDI note to pitch position class
+  const midiNoteToPitchClass = (midiNote) => {
+    // Parse MIDI note (e.g., "C4", "D#5")
+    const noteMatch = midiNote.match(/^([A-G])([#b]?)(\d+)$/);
+    if (!noteMatch) return null;
+    
+    const [, noteLetter, accidental, octaveStr] = noteMatch;
+    const octave = parseInt(octaveStr);
+    
+    // Convert to chromatic pitch number (C4 = 0, C#4 = 1, etc.)
+    const noteValues = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
+    let pitch = noteValues[noteLetter];
+    
+    // Apply accidentals
+    if (accidental === '#') pitch += 1;
+    if (accidental === 'b') pitch -= 1;
+    
+    // Add octave offset (C4 = 0, so octave 4 = 0 * 12)
+    pitch += (octave - 4) * 12;
+    
+    return `abcjs-p${pitch}`;
+  };
+
+  // Function to highlight notes using CSS classes
+  const highlightMidiNotes = useCallback(() => {
+    if (!renderRef.current) return;
+    
+    const svgContainer = renderRef.current.querySelector('svg');
+    if (!svgContainer) return;
+    
+    // Remove existing highlight classes
+    const previousHighlights = svgContainer.querySelectorAll('.midi-highlighted');
+    previousHighlights.forEach(element => {
+      element.classList.remove('midi-highlighted');
+      element.style.fill = '';
+      element.style.stroke = '';
+    });
+    
+    if (pressedMidiNotes.size === 0) return;
+    
+    console.log('Highlighting MIDI notes:', Array.from(pressedMidiNotes));
+    
+    // Find and highlight matching notes using CSS classes
+    Array.from(pressedMidiNotes).forEach(midiNote => {
+      const pitchClass = midiNoteToPitchClass(midiNote);
+      if (!pitchClass) return;
+      
+      console.log(`Looking for notes with class: ${pitchClass}`);
+      
+      // Find all note elements with matching pitch class
+      const matchingNotes = svgContainer.querySelectorAll(`.abcjs-note.${pitchClass}`);
+      console.log(`Found ${matchingNotes.length} matching notes for ${midiNote}`);
+      
+      matchingNotes.forEach(noteElement => {
+        noteElement.classList.add('midi-highlighted');
+        noteElement.style.fill = 'rgba(255, 0, 0, 0.7)';
+        noteElement.style.stroke = 'red';
+        noteElement.style.strokeWidth = '2';
+      });
+    });
+  }, [pressedMidiNotes]);
 
   useEffect(() => {
     if (!abcNotation || !renderRef.current) return;
@@ -43,6 +105,7 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl }) 
         // Only use responsive on smaller screens
         ...(useResponsive && { responsive: 'resize' }),
         scale: settings?.musicScale || 1.0,
+        add_classes: true, // Enable CSS classes for note identification
         paddingleft: 20,
         paddingright: 20,
         paddingtop: 20,
@@ -72,11 +135,26 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl }) 
         cursorControl.reset();
       }
 
+      // Re-apply highlights to new notation
+      setTimeout(() => {
+        highlightMidiNotes();
+      }, 100);
+
     } catch (error) {
       console.error('Error rendering ABC notation:', error);
       renderRef.current.innerHTML = '<p class="error-message">Error rendering music notation</p>';
     }
-  }, [abcNotation, settings, windowWidth, onVisualsReady, cursorControl]);
+  }, [abcNotation, settings, windowWidth, onVisualsReady, cursorControl, highlightMidiNotes]);
+
+  // Update highlights when MIDI notes change
+  useEffect(() => {
+    // Small delay to ensure DOM is updated after rendering
+    const timer = setTimeout(() => {
+      highlightMidiNotes();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [pressedMidiNotes, highlightMidiNotes]);
 
   // Handle window resize to update responsive behavior
   useEffect(() => {
