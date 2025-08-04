@@ -18,9 +18,9 @@ function onEnabled(onNoteEvent) {
 
   // Find input device with "MIDI OUT" in the name
   const targetInput = WebMidi.inputs.find(input => 
-    input.name.includes("MIDI OUT")
+    input.name.includes("USB MIDI")
   );
-  
+
   if (targetInput) {
     console.log(`Listening to: ${targetInput.name}`);
     
