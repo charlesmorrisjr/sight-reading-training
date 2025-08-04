@@ -1,14 +1,14 @@
 import { WebMidi } from 'webmidi';
 
 // Initialize WebMIDI and set up note listening
-export function initializeMIDI() {
+export function initializeMIDI(onNoteEvent = null) {
   WebMidi
     .enable()
-    .then(onEnabled)
+    .then(() => onEnabled(onNoteEvent))
     .catch(err => alert(err));
 }
 
-function onEnabled() {
+function onEnabled(onNoteEvent) {
   console.log("WebMidi enabled!");
   
   // List all available input devices
@@ -26,7 +26,28 @@ function onEnabled() {
     
     // Listen for note on events
     targetInput.addListener("noteon", e => {
-      console.log(e.note.identifier);
+      console.log(`Note ON: ${e.note.identifier}`);
+      if (onNoteEvent) {
+        onNoteEvent({
+          type: 'noteon',
+          note: e.note.identifier,
+          velocity: e.velocity,
+          channel: e.message.channel
+        });
+      }
+    });
+    
+    // Listen for note off events
+    targetInput.addListener("noteoff", e => {
+      console.log(`Note OFF: ${e.note.identifier}`);
+      if (onNoteEvent) {
+        onNoteEvent({
+          type: 'noteoff',
+          note: e.note.identifier,
+          velocity: e.velocity,
+          channel: e.message.channel
+        });
+      }
     });
   } else {
     console.log("No MIDI input device with 'MIDI OUT' in name found");

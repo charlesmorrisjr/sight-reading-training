@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const PracticeView = ({ settings, onSettingsChange, onTempoClick }) => {
+const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set() }) => {
   const location = useLocation();
   
   // Get intervals from location state if available
@@ -371,6 +371,13 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick }) => {
         </div>
       </header>
 
+      {/* MIDI Debug Display - for testing */}
+      <div className="bg-yellow-100 border border-yellow-300 px-4 py-2 text-center">
+        <span className="text-sm font-medium text-yellow-800">
+          MIDI Notes: {pressedMidiNotes.size > 0 ? Array.from(pressedMidiNotes).join(', ') : 'None pressed'}
+        </span>
+      </div>
+
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         
@@ -432,6 +439,9 @@ function App() {
   // Tempo modal state
   const [tempoModalOpen, setTempoModalOpen] = useState(false);
 
+  // MIDI state - track currently pressed notes
+  const [pressedMidiNotes, setPressedMidiNotes] = useState(new Set());
+
   const handleSettingsChange = useCallback((newSettings) => {
     setSettings(newSettings);
   }, []);
@@ -448,10 +458,24 @@ function App() {
     setTempoModalOpen(false);
   }, []);
 
+  // MIDI event handler
+  const handleMidiEvent = useCallback((midiEvent) => {
+    console.log('MIDI Event received in App:', midiEvent);
+    setPressedMidiNotes(prevNotes => {
+      const newNotes = new Set(prevNotes);
+      if (midiEvent.type === 'noteon') {
+        newNotes.add(midiEvent.note);
+      } else if (midiEvent.type === 'noteoff') {
+        newNotes.delete(midiEvent.note);
+      }
+      return newNotes;
+    });
+  }, []);
+
   // Initialize MIDI when app starts
   React.useEffect(() => {
-    initializeMIDI();
-  }, []);
+    initializeMIDI(handleMidiEvent);
+  }, [handleMidiEvent]);
 
   return (
     <AuthProvider>
@@ -568,6 +592,7 @@ function App() {
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
                     onTempoClick={openTempoModal}
+                    pressedMidiNotes={pressedMidiNotes}
                   />
                 </ProtectedRoute>
               } 
