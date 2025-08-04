@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/webmidi@latest/dist/iife/webmidi.iife.js">
+    
+  </script>
+  <title>Document</title>
+</head>
+<body>
+  <script>
+
+    WebMidi.enable(function (err) {
+      if (err) {
+        console.log("WebMidi could not be enabled.", err);
+      } else {
+        console.log("WebMidi enabled!");
+        console.log("Inputs:", WebMidi.inputs);
+        console.log("Outputs:", WebMidi.outputs);
+
+        WebMidi.inputs.forEach(input => console.log(input.manufacturer, input.name));
+
+        const myInput = WebMidi.getInputByName("USB func for MIDI MIDI OUT 1");
+        console.log(myInput);
+        myInput.addListener("noteon", e => {
+          console.log(e.note.identifier);
+        })
+
+      }
+    });
+
+    </script>
+  <h1>WebMidi Test</h1>
+  <p>Check the console for WebMidi status and available inputs/outputs.</p>
+</body>
+</html>

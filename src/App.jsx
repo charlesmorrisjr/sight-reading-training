@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import midiManager from './utils/midiManager';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
 import { FaMusic, FaPlay, FaStop } from 'react-icons/fa';
@@ -311,53 +310,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick }) => {
       }
     };
   }, []);
-
-  // MIDI Manager Test - Step 1: Initialize and test MIDI
-  React.useEffect(() => {
-    console.log('🎹 === MIDI MANAGER TEST - STEP 1 ===');
-    console.log('🎹 Initializing MIDI Manager...');
-    
-    const initMidi = async () => {
-      try {
-        await midiManager.enable();
-        console.log('🎹 MIDI Manager enabled successfully!');
-        
-        // Get and display status
-        const status = midiManager.getStatus();
-        console.log('🎹 MIDI Status:', status);
-        
-        // Get available inputs
-        const inputs = midiManager.getAvailableInputs();
-        console.log('🎹 Available MIDI inputs:', inputs);
-        
-        if (inputs.length > 0) {
-          console.log('🎹 SUCCESS: Found MIDI devices! You can proceed to testing.');
-          console.log('🎹 Connect your MIDI keyboard and check the console for device info.');
-        } else {
-          console.log('🎹 No MIDI devices found. Make sure your MIDI keyboard is:');
-          console.log('🎹 1. Connected via USB or MIDI interface');
-          console.log('🎹 2. Powered on');
-          console.log('🎹 3. Drivers installed (if needed)');
-          console.log('🎹 Then refresh the page to try again.');
-        }
-        
-      } catch (error) {
-        console.error('🎹 Failed to initialize MIDI Manager:', error);
-        console.log('🎹 Possible reasons:');
-        console.log('🎹 1. Browser does not support Web MIDI API');
-        console.log('🎹 2. User denied MIDI access permission');
-        console.log('🎹 3. No MIDI devices connected');
-      }
-    };
-    
-    initMidi();
-    
-    // Cleanup on unmount
-    return () => {
-      console.log('🎹 Cleaning up MIDI Manager...');
-      midiManager.disable();
-    };
-  }, []); // Empty dependency array - run once on mount
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
