@@ -7,8 +7,8 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl, pr
   const renderRef = useRef(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  // Helper function to convert MIDI note to pitch position class
-  const midiNoteToPitchClass = (midiNote) => {
+  // Helper function to convert MIDI note to pitch position class using scale degrees
+  const midiNoteToPitchClass = useCallback((midiNote) => {
     // Parse MIDI note (e.g., "C4", "D#5")
     const noteMatch = midiNote.match(/^([A-G])([#b]?)(\d+)$/);
     if (!noteMatch) return null;
@@ -16,19 +16,61 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl, pr
     const [, noteLetter, accidental, octaveStr] = noteMatch;
     const octave = parseInt(octaveStr);
     
-    // Convert to chromatic pitch number (C4 = 0, C#4 = 1, etc.)
-    const noteValues = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
-    let pitch = noteValues[noteLetter];
+    // Get current key from settings (default to C if not provided)
+    const currentKey = settings?.key || 'C';
     
-    // Apply accidentals
-    if (accidental === '#') pitch += 1;
-    if (accidental === 'b') pitch -= 1;
+    // Major key scale degree mappings - maps note names to scale degrees (0-6)
+    const keyScaleDegrees = {
+      'C': { 'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6 },
+      'G': { 'G': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6 },
+      'D': { 'D': 0, 'E': 1, 'F': 2, 'G': 3, 'A': 4, 'B': 5, 'C': 6 },
+      'A': { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6 },
+      'E': { 'E': 0, 'F': 1, 'G': 2, 'A': 3, 'B': 4, 'C': 5, 'D': 6 },
+      'B': { 'B': 0, 'C': 1, 'D': 2, 'E': 3, 'F': 4, 'G': 5, 'A': 6 },
+      'F': { 'F': 0, 'G': 1, 'A': 2, 'B': 3, 'C': 4, 'D': 5, 'E': 6 }
+    };
     
-    // Add octave offset (C4 = 0, so octave 4 = 0 * 12)
-    pitch += (octave - 4) * 12;
+    // Key signature accidentals - which notes are sharp/flat in each key
+    const keyAccidentals = {
+      'C': {},
+      'G': { 'F': '#' },
+      'D': { 'F': '#', 'C': '#' },
+      'A': { 'F': '#', 'C': '#', 'G': '#' },
+      'E': { 'F': '#', 'C': '#', 'G': '#', 'D': '#' },
+      'B': { 'F': '#', 'C': '#', 'G': '#', 'D': '#', 'A': '#' },
+      'F': { 'B': 'b' }
+    };
+    
+    // Get scale degree for the note letter in the current key
+    const scaleMapping = keyScaleDegrees[currentKey];
+    if (!scaleMapping) {
+      console.warn(`Unknown key: ${currentKey}, falling back to C major`);
+      return `abcjs-p${(octave - 4) * 7}`;
+    }
+    
+    let scaleDegree = scaleMapping[noteLetter];
+    if (scaleDegree === undefined) {
+      console.warn(`Note ${noteLetter} not found in key ${currentKey}`);
+      return null;
+    }
+    
+    // Handle accidentals - check if the played note matches the key signature
+    const keyAccidental = keyAccidentals[currentKey][noteLetter] || '';
+    
+    // If the MIDI note has an accidental that doesn't match the key signature,
+    // it's a chromatic alteration. For now, we'll try to find the closest match.
+    if (accidental !== keyAccidental) {
+      // This is a chromatic note outside the key signature
+      // For simplicity, we'll still use the scale degree but log it
+      console.log(`Chromatic note: ${midiNote} in key ${currentKey}`);
+    }
+    
+    // Calculate final pitch class: scale degree + octave offset
+    // Use base-7 system (7 scale degrees per octave) instead of base-12 chromatic
+    const pitch = scaleDegree + (octave - 4) * 7;
     
     return `abcjs-p${pitch}`;
-  };
+  }, [settings]);
 
   // Function to highlight notes using CSS classes
   const highlightMidiNotes = useCallback(() => {
@@ -67,7 +109,7 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl, pr
         noteElement.style.strokeWidth = '2';
       });
     });
-  }, [pressedMidiNotes]);
+  }, [pressedMidiNotes, midiNoteToPitchClass]);
 
   useEffect(() => {
     if (!abcNotation || !renderRef.current) return;
