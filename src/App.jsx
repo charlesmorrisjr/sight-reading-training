@@ -21,6 +21,7 @@ import { AuthProvider } from './contexts/AuthProvider';
 import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
 import { generateRandomABC } from './utils/musicGenerator';
+import { initializeMIDI } from './utils/midiManager';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -445,6 +446,11 @@ function App() {
 
   const closeTempoModal = useCallback(() => {
     setTempoModalOpen(false);
+  }, []);
+
+  // Initialize MIDI when app starts
+  React.useEffect(() => {
+    initializeMIDI();
   }, []);
 
   return (
