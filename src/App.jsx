@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
-import { FaMusic, FaPlay, FaStop } from 'react-icons/fa';
+import { FaMusic, FaPlay, FaStop, FaKeyboard } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import TempoSelector from './components/TempoSelector';
@@ -49,6 +49,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
   // Audio/synth state
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPracticing, setIsPracticing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isVisualsReady, setIsVisualsReady] = useState(false);
   const audioContextRef = useRef(null);
@@ -169,7 +170,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         if (!event) {
           // Music has ended - stop playback and reset button
           console.log('Music ended - stopping playback');
+          
           setIsPlaying(false);
+          setIsPracticing(false);
+
           if (synthRef.current) {
             synthRef.current.stop();
           }
@@ -300,6 +304,70 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
   }, [isPlaying, initializeSynth, startVisualCursor]);
 
+  // Handle practice button click - identical to play for now
+  const handlePracticeClick = useCallback(async () => {
+    if (isPracticing) {
+      if (synthRef.current) {
+        synthRef.current.stop();
+      }
+      // Stop and remove any existing cursor
+      const existingCursor = document.querySelector('.playback-cursor');
+      if (existingCursor) {
+        if (existingCursor.stopAnimation) {
+          existingCursor.stopAnimation();
+        }
+        if (existingCursor.timingCallbacks) {
+          existingCursor.timingCallbacks.stop();
+        }
+        existingCursor.remove();
+      }
+      setIsPracticing(false);
+      return;
+    }
+
+    if (!visualObjectRef.current) {
+      console.error('No music notation loaded');
+      return;
+    }
+
+    try {
+      if (!synthRef.current) {
+        const initialized = await initializeSynth();
+        if (!initialized) {
+          return;
+        }
+      }
+
+      setIsPracticing(true);
+      
+      // Start playback normally 
+      synthRef.current.start(undefined, {
+        end: () => {
+          console.log('Practice ended');
+          setIsPracticing(false);
+        }
+      });
+      
+      // Start visual cursor
+      startVisualCursor();
+
+    } catch (error) {
+      console.error('Error during practice:', error);
+      setIsPracticing(false);
+      // Stop and remove any existing cursor on error
+      const existingCursor = document.querySelector('.playback-cursor');
+      if (existingCursor) {
+        if (existingCursor.stopAnimation) {
+          existingCursor.stopAnimation();
+        }
+        if (existingCursor.timingCallbacks) {
+          existingCursor.timingCallbacks.stop();
+        }
+        existingCursor.remove();
+      }
+    }
+  }, [isPracticing, initializeSynth, startVisualCursor]);
+
   React.useEffect(() => {
     handleGenerateNew();
   }, [handleGenerateNew]);
@@ -343,10 +411,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               {/* Play Button */}
               <button 
                 className={`btn btn-lg ${isPlaying ? 'btn-error' : 'btn-primary'} ${
-                  (isInitializing || !isVisualsReady) ? 'opacity-50 cursor-not-allowed' : ''
+                  (isInitializing || !isVisualsReady || isPracticing) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 onClick={handlePlayClick}
-                disabled={isInitializing || !isVisualsReady}
+                disabled={isInitializing || !isVisualsReady || isPracticing}
                 title={isPlaying ? 'Stop' : 'Play'}
               >
                 {isInitializing ? (
@@ -358,6 +426,27 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 )}
                 <span className="hidden sm:inline">
                   {isInitializing ? 'Loading...' : isPlaying ? 'Stop' : 'Play'}
+                </span>
+              </button>
+
+              {/* Practice Button */}
+              <button 
+                className={`btn btn-lg ${isPracticing ? 'btn-error' : 'btn-warning'} ${
+                  (isInitializing || !isVisualsReady || isPlaying) ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                onClick={handlePracticeClick}
+                disabled={isInitializing || !isVisualsReady || isPlaying}
+                title={isPracticing ? 'Stop Practice' : 'Practice'}
+              >
+                {isInitializing ? (
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : isPracticing ? (
+                  <FaStop className="w-5 h-5" />
+                ) : (
+                  <FaKeyboard className="w-5 h-5" />
+                )}
+                <span className="hidden sm:inline">
+                  {isInitializing ? 'Loading...' : isPracticing ? 'Stop' : 'Practice'}
                 </span>
               </button>
 
