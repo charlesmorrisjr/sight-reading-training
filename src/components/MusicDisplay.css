@@ -21,26 +21,24 @@
   height: auto;
   border-radius: 8px;
 }
-
-/* Improve staff line visibility */
+/* Add thickness to staff lines, notes, clefs, and time signatures to improve visibility
 .music-notation .abcjs-staff {
   stroke: #1f2937;
   stroke-width: 1.2;
 }
 
-/* Improve note visibility */
 .music-notation .abcjs-note {
   fill: #1f2937;
   stroke: #1f2937;
 }
 
-/* Improve clef and time signature visibility */
 .music-notation .abcjs-clef,
 .music-notation .abcjs-key-signature,
 .music-notation .abcjs-time-signature {
   fill: #1f2937;
   stroke: #1f2937;
 }
+*/
 
 .music-placeholder {
   text-align: center;
