@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set() }) => {
+const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring }) => {
   const location = useLocation();
   
   // Get intervals from location state if available
@@ -79,6 +79,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     setIsGenerating(true);
     setIsVisualsReady(false);
     
+    // Reset scoring when generating new exercise
+    if (onResetScoring) {
+      onResetScoring();
+      console.log('🎯 New exercise generated - scoring reset');
+    }
+    
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
       const newAbc = generateRandomABC(effectiveSettings);
@@ -88,7 +94,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     } finally {
       setIsGenerating(false);
     }
-  }, [effectiveSettings]);
+  }, [effectiveSettings, onResetScoring]);
 
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback((visualObj) => {
@@ -429,6 +435,47 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     };
   }, []);
 
+  // Scoring logic - compare user input with current music notes during practice
+  const previousPressedNotesRef = useRef(new Set());
+  React.useEffect(() => {
+    // Only perform scoring during practice mode
+    if (!isPracticing || !onCorrectNote || !onWrongNote) {
+      return;
+    }
+
+    // Get newly pressed notes (notes that weren't pressed before)
+    const newlyPressedNotes = new Set(
+      [...pressedMidiNotes].filter(note => !previousPressedNotesRef.current.has(note))
+    );
+
+    // Get current expected notes from the music
+    const expectedNotes = currentNotesRef.current;
+
+    // Check each newly pressed note
+    newlyPressedNotes.forEach(pressedNote => {
+      if (expectedNotes.has(pressedNote)) {
+        // Correct note pressed
+        onCorrectNote();
+        console.log(`✅ Correct note: ${pressedNote}`);
+      } else {
+        // Wrong note pressed
+        onWrongNote();
+        console.log(`❌ Wrong note: ${pressedNote} (expected: ${Array.from(expectedNotes).join(', ')})`);
+      }
+    });
+
+    // Update previous pressed notes for next comparison
+    previousPressedNotesRef.current = new Set(pressedMidiNotes);
+  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote]);
+
+  // Reset scoring when practice mode starts
+  React.useEffect(() => {
+    if (isPracticing && onResetScoring) {
+      onResetScoring();
+      console.log('🎯 Practice started - scoring reset');
+    }
+  }, [isPracticing, onResetScoring]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
       {/* Header */}
@@ -513,7 +560,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       <div className="bg-yellow-100 border border-yellow-300 px-4 py-2 text-center">
         <span className="text-sm font-medium text-yellow-800">
           MIDI Notes: {pressedMidiNotes.size > 0 ? Array.from(pressedMidiNotes).join(', ') : 'None pressed'} | 
-          {beatInfo || 'No beat info'}
+          {beatInfo || 'No beat info'} | 
+          <span className="text-green-700">✓ Correct: {correctNotesCount}</span> | 
+          <span className="text-red-700">✗ Wrong: {wrongNotesCount}</span>
         </span>
       </div>
 
@@ -582,6 +631,10 @@ function App() {
   // MIDI state - track currently pressed notes
   const [pressedMidiNotes, setPressedMidiNotes] = useState(new Set());
 
+  // Scoring state - track correct and wrong notes during practice
+  const [correctNotesCount, setCorrectNotesCount] = useState(0);
+  const [wrongNotesCount, setWrongNotesCount] = useState(0);
+
   const handleSettingsChange = useCallback((newSettings) => {
     setSettings(newSettings);
   }, []);
@@ -598,9 +651,24 @@ function App() {
     setTempoModalOpen(false);
   }, []);
 
+  // Scoring functions
+  const incrementCorrectNotes = useCallback(() => {
+    setCorrectNotesCount(prev => prev + 1);
+  }, []);
+
+  const incrementWrongNotes = useCallback(() => {
+    setWrongNotesCount(prev => prev + 1);
+  }, []);
+
+  const resetScoring = useCallback(() => {
+    setCorrectNotesCount(0);
+    setWrongNotesCount(0);
+  }, []);
+
   // MIDI event handler
   const handleMidiEvent = useCallback((midiEvent) => {
-    console.log('MIDI Event received in App:', midiEvent);
+    // Debugging MIDI events
+    // console.log('MIDI Event received in App:', midiEvent);
     setPressedMidiNotes(prevNotes => {
       const newNotes = new Set(prevNotes);
       if (midiEvent.type === 'noteon') {
@@ -733,6 +801,11 @@ function App() {
                     onSettingsChange={handleSettingsChange}
                     onTempoClick={openTempoModal}
                     pressedMidiNotes={pressedMidiNotes}
+                    correctNotesCount={correctNotesCount}
+                    wrongNotesCount={wrongNotesCount}
+                    onCorrectNote={incrementCorrectNotes}
+                    onWrongNote={incrementWrongNotes}
+                    onResetScoring={resetScoring}
                   />
                 </ProtectedRoute>
               } 

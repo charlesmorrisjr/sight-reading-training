@@ -26,7 +26,8 @@ function onEnabled(onNoteEvent) {
     
     // Listen for note on events
     targetInput.addListener("noteon", e => {
-      console.log(`Note ON: ${e.note.identifier}`);
+      // Debugging note on events
+      // console.log(`Note ON: ${e.note.identifier}`);
       if (onNoteEvent) {
         onNoteEvent({
           type: 'noteon',
@@ -39,7 +40,8 @@ function onEnabled(onNoteEvent) {
     
     // Listen for note off events
     targetInput.addListener("noteoff", e => {
-      console.log(`Note OFF: ${e.note.identifier}`);
+      // Debugging note off events
+      // console.log(`Note OFF: ${e.note.identifier}`);
       if (onNoteEvent) {
         onNoteEvent({
           type: 'noteoff',
