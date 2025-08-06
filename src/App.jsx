@@ -61,6 +61,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   
   // Current notes tracking for debugging display - use ref to avoid stale closure
   const currentNotesRef = useRef(new Set());
+  
+  // Refs to track current playing state without causing re-renders
+  const isPlayingRef = useRef(false);
+  const isPracticingRef = useRef(false);
 
   // Convert MIDI pitch number to note name (e.g., 60 -> "C4")
   const midiPitchToNoteName = useCallback((midiNumber) => {
@@ -90,11 +94,18 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   const handleVisualsReady = useCallback((visualObj) => {
     visualObjectRef.current = visualObj;
     setIsVisualsReady(true);
-    if (synthRef.current) {
+    
+    // Use refs to get current values without causing re-renders
+    // Fixes problem with visual cursor disappearing when notes were highlighted
+    if (synthRef.current && !isPlayingRef.current && !isPracticingRef.current) {
       synthRef.current.stop();
       synthRef.current = null;
     }
-    setIsPlaying(false);
+    
+    // Only reset playing state if we're not currently in practice mode
+    if (!isPracticingRef.current) {
+      setIsPlaying(false);
+    }
   }, []);
 
   // Initialize audio context and synth
@@ -399,6 +410,16 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   React.useEffect(() => {
     handleGenerateNew();
   }, [handleGenerateNew]);
+
+  // Keep refs synchronized with state to avoid stale closure issues
+  // Fixes problem with visual cursor disappearing when notes were highlighted
+  React.useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  React.useEffect(() => {
+    isPracticingRef.current = isPracticing;
+  }, [isPracticing]);
 
   React.useEffect(() => {
     return () => {

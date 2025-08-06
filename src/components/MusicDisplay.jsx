@@ -177,16 +177,11 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl, pr
         cursorControl.reset();
       }
 
-      // Re-apply highlights to new notation
-      setTimeout(() => {
-        highlightMidiNotes();
-      }, 100);
-
     } catch (error) {
       console.error('Error rendering ABC notation:', error);
       renderRef.current.innerHTML = '<p class="error-message">Error rendering music notation</p>';
     }
-  }, [abcNotation, settings, windowWidth, onVisualsReady, cursorControl, highlightMidiNotes]);
+  }, [abcNotation, settings, windowWidth, onVisualsReady, cursorControl]);
 
   // Update highlights when MIDI notes change
   useEffect(() => {
