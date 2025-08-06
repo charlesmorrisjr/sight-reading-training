@@ -56,6 +56,20 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   const synthRef = useRef(null);
   const visualObjectRef = useRef(null);
 
+  // Beat tracking state for debugging display
+  const [beatInfo, setBeatInfo] = useState('');
+  
+  // Current notes tracking for debugging display - use ref to avoid stale closure
+  const currentNotesRef = useRef(new Set());
+
+  // Convert MIDI pitch number to note name (e.g., 60 -> "C4")
+  const midiPitchToNoteName = useCallback((midiNumber) => {
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const octave = Math.floor(midiNumber / 12) - 1;
+    const noteIndex = midiNumber % 12;
+    return noteNames[noteIndex] + octave;
+  }, []);
+
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
     setIsGenerating(true);
@@ -165,14 +179,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       
       // Event callback - called for each musical event (note, rest, etc.)
       eventCallback: (event) => {
-        console.log('Event callback:', event);
-        
         if (!event) {
           // Music has ended - stop playback and reset button
-          console.log('Music ended - stopping playback');
-          
           setIsPlaying(false);
           setIsPracticing(false);
+          setBeatInfo(''); // Clear beat info when music ends
+          currentNotesRef.current = new Set(); // Clear current notes when music ends
 
           if (synthRef.current) {
             synthRef.current.stop();
@@ -182,6 +194,19 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             cursorLine.remove();
           }
           return;
+        }
+        
+        // Extract note information using the correct abcjs API
+        if (event.midiPitches && Array.isArray(event.midiPitches)) {
+          const notes = new Set();
+          event.midiPitches.forEach(midiNote => {
+            const noteName = midiPitchToNoteName(midiNote.pitch);
+            notes.add(noteName);
+          });
+          
+          if (notes.size > 0) {
+            currentNotesRef.current = notes;
+          }
         }
         
         // Use abcjs-provided positioning data for precise cursor placement
@@ -199,12 +224,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         cursorLine.setAttribute('x2', cursorX);
         cursorLine.setAttribute('y2', cursorBottomY);
         
-        console.log(`Cursor positioned using abcjs data: x=${cursorX.toFixed(0)}, Y=${cursorTopY.toFixed(0)} to ${cursorBottomY.toFixed(0)} (height=${eventHeight})`);
+        // Debug
+        // console.log(`Cursor positioned using abcjs data: x=${cursorX.toFixed(0)}, Y=${cursorTopY.toFixed(0)} to ${cursorBottomY.toFixed(0)} (height=${eventHeight})`);
       },
       
       // Beat callback - called on each beat for additional timing info
-      beatCallback: (beatNumber, totalBeats, totalTime) => {
-        console.log(`Beat ${beatNumber}/${totalBeats} at ${totalTime.toFixed(0)}ms`);
+      beatCallback: (beatNumber, totalBeats) => {
+        const notesText = currentNotesRef.current.size > 0 ? Array.from(currentNotesRef.current).join(', ') : 'None';
+        setBeatInfo(`Beat ${beatNumber}/${totalBeats} | Notes: ${notesText}`);
       },
       
       // Line end callback - called when reaching end of a music line
@@ -217,7 +244,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           cursorLine.setAttribute('y1', info.top - CURSOR_TOP_PADDING);
           cursorLine.setAttribute('y2', info.bottom + CURSOR_BOTTOM_PADDING);
           
-          console.log(`Updated cursor height using line bounds with padding: Y=${(info.top - CURSOR_TOP_PADDING).toFixed(0)} to ${(info.bottom + CURSOR_BOTTOM_PADDING).toFixed(0)}`);
+          // Debug
+          // console.log(`Updated cursor height using line bounds with padding: Y=${(info.top - CURSOR_TOP_PADDING).toFixed(0)} to ${(info.bottom + CURSOR_BOTTOM_PADDING).toFixed(0)}`);
         }
       }
     });
@@ -238,7 +266,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     timingCallbacks.start();
     
     console.log('abcjs TimingCallbacks cursor setup completed');
-  }, [effectiveSettings.tempo]);
+  }, [effectiveSettings.tempo, midiPitchToNoteName]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -463,7 +491,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       {/* MIDI Debug Display - for testing */}
       <div className="bg-yellow-100 border border-yellow-300 px-4 py-2 text-center">
         <span className="text-sm font-medium text-yellow-800">
-          MIDI Notes: {pressedMidiNotes.size > 0 ? Array.from(pressedMidiNotes).join(', ') : 'None pressed'}
+          MIDI Notes: {pressedMidiNotes.size > 0 ? Array.from(pressedMidiNotes).join(', ') : 'None pressed'} | 
+          {beatInfo || 'No beat info'}
         </span>
       </div>
 
