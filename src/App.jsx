@@ -5,6 +5,7 @@ import { FaMusic, FaPlay, FaStop, FaKeyboard } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import TempoSelector from './components/TempoSelector';
+import ScoreModal from './components/ScoreModal';
 import Dashboard from './components/Dashboard';
 import Intervals from './components/Intervals';
 import Keys from './components/Keys';
@@ -28,7 +29,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring }) => {
+const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd }) => {
   const location = useLocation();
   
   // Get intervals from location state if available
@@ -200,6 +201,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         if (!event) {
           // Music has ended - stop playback and reset button
           setIsPlaying(false);
+          
+          // Call onPracticeEnd if we were in practice mode
+          if (isPracticingRef.current && onPracticeEnd) {
+            onPracticeEnd();
+          }
+          
           setIsPracticing(false);
           setBeatInfo(''); // Clear beat info when music ends
           currentNotesRef.current = new Set(); // Clear current notes when music ends
@@ -284,7 +291,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     timingCallbacks.start();
     
     console.log('abcjs TimingCallbacks cursor setup completed');
-  }, [effectiveSettings.tempo, midiPitchToNoteName]);
+  }, [effectiveSettings.tempo, midiPitchToNoteName, onPracticeEnd]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -367,6 +374,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         }
         existingCursor.remove();
       }
+      
       setIsPracticing(false);
       return;
     }
@@ -391,6 +399,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         end: () => {
           console.log('Practice ended');
           setIsPracticing(false);
+          // Call onPracticeEnd when music finishes during practice
+          if (onPracticeEnd) {
+            onPracticeEnd();
+          }
         }
       });
       
@@ -412,7 +424,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         existingCursor.remove();
       }
     }
-  }, [isPracticing, initializeSynth, startVisualCursor]);
+  }, [isPracticing, initializeSynth, startVisualCursor, onPracticeEnd]);
 
   React.useEffect(() => {
     handleGenerateNew();
@@ -456,11 +468,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     newlyPressedNotes.forEach(pressedNote => {
       if (expectedNotes.has(pressedNote)) {
         // Correct note pressed
-        onCorrectNote();
+        onCorrectNote(pressedNote);
         console.log(`✅ Correct note: ${pressedNote}`);
       } else {
         // Wrong note pressed
-        onWrongNote();
+        onWrongNote(pressedNote);
         console.log(`❌ Wrong note: ${pressedNote} (expected: ${Array.from(expectedNotes).join(', ')})`);
       }
     });
@@ -635,6 +647,25 @@ function App() {
   // Scoring state - track correct and wrong notes during practice
   const [correctNotesCount, setCorrectNotesCount] = useState(0);
   const [wrongNotesCount, setWrongNotesCount] = useState(0);
+  
+  // Refs to track current scoring values without causing re-renders
+  const correctNotesCountRef = useRef(0);
+  const wrongNotesCountRef = useRef(0);
+  
+  // Score modal state
+  const [scoreModalOpen, setScoreModalOpen] = useState(false);
+  
+  // Arrays to track individual notes played correctly and incorrectly
+  const [correctNotes, setCorrectNotes] = useState([]);
+  const [wrongNotes, setWrongNotes] = useState([]);
+  
+  // Captured scores to avoid race condition with resets
+  const [capturedScores, setCapturedScores] = useState({
+    correctCount: 0,
+    wrongCount: 0,
+    correctNotes: [],
+    wrongNotes: []
+  });
 
   const handleSettingsChange = useCallback((newSettings) => {
     setSettings(newSettings);
@@ -652,18 +683,60 @@ function App() {
     setTempoModalOpen(false);
   }, []);
 
-  // Scoring functions
-  const incrementCorrectNotes = useCallback(() => {
-    setCorrectNotesCount(prev => prev + 1);
+  // Score modal functions
+  const openScoreModal = useCallback(() => {
+    setScoreModalOpen(true);
   }, []);
 
-  const incrementWrongNotes = useCallback(() => {
-    setWrongNotesCount(prev => prev + 1);
+  const closeScoreModal = useCallback(() => {
+    setScoreModalOpen(false);
+  }, []);
+
+  // Handle practice end - always show score modal
+  const handlePracticeEnd = useCallback(() => {
+    // Use refs to get the current values to avoid race condition
+    const capturedCorrectCount = correctNotesCountRef.current;
+    const capturedWrongCount = wrongNotesCountRef.current;
+    const capturedCorrectNotes = [...correctNotes];
+    const capturedWrongNotes = [...wrongNotes];
+    
+    // Store captured scores for modal to use
+    setCapturedScores({
+      correctCount: capturedCorrectCount,
+      wrongCount: capturedWrongCount,
+      correctNotes: capturedCorrectNotes,
+      wrongNotes: capturedWrongNotes
+    });
+    
+    openScoreModal();
+  }, [correctNotes, wrongNotes, openScoreModal]);
+
+  // Scoring functions
+  const incrementCorrectNotes = useCallback((note) => {
+    setCorrectNotesCount(prev => {
+      const newValue = prev + 1;
+      correctNotesCountRef.current = newValue;
+      return newValue;
+    });
+    setCorrectNotes(prev => [...prev, note]);
+  }, []);
+
+  const incrementWrongNotes = useCallback((note) => {
+    setWrongNotesCount(prev => {
+      const newValue = prev + 1;
+      wrongNotesCountRef.current = newValue;
+      return newValue;
+    });
+    setWrongNotes(prev => [...prev, note]);
   }, []);
 
   const resetScoring = useCallback(() => {
     setCorrectNotesCount(0);
     setWrongNotesCount(0);
+    setCorrectNotes([]);
+    setWrongNotes([]);
+    correctNotesCountRef.current = 0;
+    wrongNotesCountRef.current = 0;
   }, []);
 
   // MIDI event handler
@@ -807,6 +880,7 @@ function App() {
                     onCorrectNote={incrementCorrectNotes}
                     onWrongNote={incrementWrongNotes}
                     onResetScoring={resetScoring}
+                    onPracticeEnd={handlePracticeEnd}
                   />
                 </ProtectedRoute>
               } 
@@ -821,6 +895,18 @@ function App() {
             tempo={settings.tempo}
             onTempoChange={handleTempoChange}
             onClose={closeTempoModal}
+          />
+        )}
+
+        {/* Score Modal */}
+        {scoreModalOpen && (
+          <ScoreModal
+            isOpen={scoreModalOpen}
+            onClose={closeScoreModal}
+            correctCount={capturedScores.correctCount}
+            wrongCount={capturedScores.wrongCount}
+            correctNotes={capturedScores.correctNotes}
+            wrongNotes={capturedScores.wrongNotes}
           />
         )}
         </ChordsProvider>
