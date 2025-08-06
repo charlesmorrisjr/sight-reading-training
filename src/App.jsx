@@ -181,8 +181,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     cursorLine.setAttribute('class', 'playback-cursor');
     cursorLine.setAttribute('stroke', '#3b82f6'); // Blue
-    cursorLine.setAttribute('stroke-width', '1');
-    cursorLine.setAttribute('opacity', '0.8');
+    cursorLine.setAttribute('stroke-width', '12');
+    cursorLine.setAttribute('stroke-linecap', 'round');
+    cursorLine.setAttribute('opacity', '0.3');
     cursorLine.style.pointerEvents = 'none';
     
     // Add cursor to SVG
