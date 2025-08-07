@@ -5,6 +5,7 @@ import { FaMusic, FaPlay, FaStop, FaKeyboard } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
 import TempoSelector from './components/TempoSelector';
+import MetronomeButton from './components/MetronomeButton';
 import ScoreModal from './components/ScoreModal';
 import Dashboard from './components/Dashboard';
 import Intervals from './components/Intervals';
@@ -29,7 +30,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd }) => {
+const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle }) => {
   const location = useLocation();
   
   // Get intervals from location state if available
@@ -499,6 +500,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 <span className="text-sm font-medium">{effectiveSettings.tempo} BPM</span>
               </button>
 
+              {/* Metronome Button */}
+              <MetronomeButton
+                tempo={effectiveSettings.tempo}
+                isActive={isMetronomeActive}
+                onToggle={onMetronomeToggle}
+                disabled={isInitializing || !isVisualsReady || isPlaying || isPracticing}
+              />
+
               {/* Play Button */}
               <button 
                 className={`btn btn-lg ${isPlaying ? 'btn-error' : 'btn-primary'} ${
@@ -623,6 +632,9 @@ function App() {
   // Tempo modal state
   const [tempoModalOpen, setTempoModalOpen] = useState(false);
 
+  // Metronome state
+  const [isMetronomeActive, setIsMetronomeActive] = useState(false);
+
   // MIDI state - track currently pressed notes
   const [pressedMidiNotes, setPressedMidiNotes] = useState(new Set());
 
@@ -663,6 +675,10 @@ function App() {
 
   const closeTempoModal = useCallback(() => {
     setTempoModalOpen(false);
+  }, []);
+
+  const handleMetronomeToggle = useCallback(() => {
+    setIsMetronomeActive(prev => !prev);
   }, []);
 
   // Score modal functions
@@ -863,6 +879,8 @@ function App() {
                     onWrongNote={incrementWrongNotes}
                     onResetScoring={resetScoring}
                     onPracticeEnd={handlePracticeEnd}
+                    isMetronomeActive={isMetronomeActive}
+                    onMetronomeToggle={handleMetronomeToggle}
                   />
                 </ProtectedRoute>
               } 
