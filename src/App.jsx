@@ -154,8 +154,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   }, []);
 
   // abcjs TimingCallbacks-based cursor that syncs perfectly with music
-  const startVisualCursor = useCallback(() => {
-    console.log('Starting abcjs TimingCallbacks-based cursor...');
+  const startVisualCursor = useCallback((isPracticeMode = false) => {
+    console.log(`Starting ${isPracticeMode ? 'practice mode' : 'abcjs TimingCallbacks-based'} cursor...`);
     
     // Cursor padding constants
     const CURSOR_TOP_PADDING = 5;
@@ -181,7 +181,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     // Create the cursor line
     const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     cursorLine.setAttribute('class', 'playback-cursor');
-    cursorLine.setAttribute('stroke', '#3b82f6'); // Blue
+    cursorLine.setAttribute('stroke', isPracticeMode ? '#f59e0b' : '#3b82f6'); // Orange for practice, blue for play
     cursorLine.setAttribute('stroke-width', '12');
     cursorLine.setAttribute('stroke-linecap', 'round');
     cursorLine.setAttribute('opacity', '0.3');
@@ -200,18 +200,22 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       eventCallback: (event) => {
         if (!event) {
           // Music has ended - stop playback and reset button
-          setIsPlaying(false);
+          if (!isPracticeMode) {
+            setIsPlaying(false);
+          }
           
           // Call onPracticeEnd if we were in practice mode
           if (isPracticingRef.current && onPracticeEnd) {
             onPracticeEnd();
           }
           
-          setIsPracticing(false);
+          if (isPracticeMode) {
+            setIsPracticing(false);
+          }
           setBeatInfo(''); // Clear beat info when music ends
           currentNotesRef.current = new Set(); // Clear current notes when music ends
 
-          if (synthRef.current) {
+          if (!isPracticeMode && synthRef.current) {
             synthRef.current.stop();
           }
           // Remove cursor
@@ -290,8 +294,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     console.log('Starting TimingCallbacks...');
     timingCallbacks.start();
     
-    console.log('abcjs TimingCallbacks cursor setup completed');
-  }, [effectiveSettings.tempo, midiPitchToNoteName, onPracticeEnd]);
+    console.log(`${isPracticeMode ? 'Practice mode' : 'abcjs TimingCallbacks'} cursor setup completed`);
+  }, [effectiveSettings.tempo, midiPitchToNoteName, onPracticeEnd]);;
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -357,12 +361,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
   }, [isPlaying, initializeSynth, startVisualCursor]);
 
-  // Handle practice button click - identical to play for now
+  // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
     if (isPracticing) {
-      if (synthRef.current) {
-        synthRef.current.stop();
-      }
       // Stop and remove any existing cursor
       const existingCursor = document.querySelector('.playback-cursor');
       if (existingCursor) {
@@ -385,29 +386,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
 
     try {
-      if (!synthRef.current) {
-        const initialized = await initializeSynth();
-        if (!initialized) {
-          return;
-        }
-      }
-
       setIsPracticing(true);
       
-      // Start playback normally 
-      synthRef.current.start(undefined, {
-        end: () => {
-          console.log('Practice ended');
-          setIsPracticing(false);
-          // Call onPracticeEnd when music finishes during practice
-          if (onPracticeEnd) {
-            onPracticeEnd();
-          }
-        }
-      });
-      
-      // Start visual cursor
-      startVisualCursor();
+      // Start visual cursor without audio playback
+      startVisualCursor(true); // Pass true to indicate practice mode (no audio)
 
     } catch (error) {
       console.error('Error during practice:', error);
@@ -424,7 +406,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         existingCursor.remove();
       }
     }
-  }, [isPracticing, initializeSynth, startVisualCursor, onPracticeEnd]);
+  }, [isPracticing, startVisualCursor]);;;
 
   React.useEffect(() => {
     handleGenerateNew();
