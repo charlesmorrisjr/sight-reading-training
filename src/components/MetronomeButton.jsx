@@ -5,7 +5,9 @@ const MetronomeButton = ({
   tempo = 120, 
   isActive = false, 
   onToggle, 
-  disabled = false 
+  disabled = false,
+  useExternalTiming = false,
+  onExternalBeatTrigger
 }) => {
   // Audio context and timing refs
   const audioContextRef = useRef(null);
@@ -18,6 +20,20 @@ const MetronomeButton = ({
   // Calculate interval in milliseconds from BPM
   const getBeatInterval = useCallback((bpm) => {
     return (60 / bpm) * 1000; // Convert BPM to milliseconds per beat
+  }, []);
+
+  // Initialize audio context
+  const initializeAudio = useCallback(async () => {
+    try {
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Handle browser autoplay policies
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+    } catch (error) {
+      console.error('Error initializing metronome audio:', error);
+    }
   }, []);
 
   // Create metronome click sound using Web Audio API
@@ -49,19 +65,24 @@ const MetronomeButton = ({
     setTimeout(() => setIsBeating(false), 100);
   }, []);
 
-  // Initialize audio context
-  const initializeAudio = useCallback(async () => {
-    try {
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // Handle browser autoplay policies
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-    } catch (error) {
-      console.error('Error initializing metronome audio:', error);
+  // External beat trigger function - exposed to parent
+  const triggerBeat = useCallback(async () => {
+    if (!isActive) return;
+    
+    if (!audioContextRef.current) {
+      await initializeAudio();
     }
-  }, []);
+    
+    createClickSound();
+  }, [isActive, createClickSound, initializeAudio]);
+
+  // Expose triggerBeat function to parent via callback
+  useEffect(() => {
+    if (onExternalBeatTrigger) {
+      onExternalBeatTrigger(triggerBeat);
+    }
+  }, [triggerBeat, onExternalBeatTrigger]);
+
 
   // Start metronome with precise timing
   const startMetronome = useCallback(async () => {
@@ -111,20 +132,34 @@ const MetronomeButton = ({
     
     if (isActive) {
       stopMetronome();
-    } else {
+    } else if (!useExternalTiming) {
+      // Only start internal timing if not using external timing
       await startMetronome();
+    } else {
+      // For external timing, just initialize audio context
+      if (!audioContextRef.current) {
+        await initializeAudio();
+      }
     }
     
     onToggle();
-  }, [isActive, onToggle, startMetronome, stopMetronome]);
+  }, [isActive, onToggle, startMetronome, stopMetronome, useExternalTiming, initializeAudio]);
 
-  // Update metronome when tempo changes
+  // Stop internal timing when switching to external timing
   useEffect(() => {
-    if (isActive) {
+    if (isActive && useExternalTiming) {
+      // Switch from internal to external timing - stop internal metronome
+      stopMetronome();
+    }
+  }, [useExternalTiming, isActive, stopMetronome]);
+
+  // Update metronome when tempo changes (only for internal timing)
+  useEffect(() => {
+    if (isActive && !useExternalTiming) {
       stopMetronome();
       startMetronome();
     }
-  }, [tempo, isActive, startMetronome, stopMetronome]);
+  }, [tempo, isActive, startMetronome, stopMetronome, useExternalTiming]);
 
   // Cleanup on unmount
   useEffect(() => {

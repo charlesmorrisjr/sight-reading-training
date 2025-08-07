@@ -67,6 +67,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Refs to track current playing state without causing re-renders
   const isPlayingRef = useRef(false);
   const isPracticingRef = useRef(false);
+  
+  // Ref to store metronome trigger function
+  const metronomeTriggerRef = useRef(null);
+  
+  // Handle metronome external beat trigger
+  const handleMetronomeTrigger = useCallback((triggerFunction) => {
+    metronomeTriggerRef.current = triggerFunction;
+  }, []);
 
   // Convert MIDI pitch number to note name (e.g., 60 -> "C4")
   const midiPitchToNoteName = useCallback((midiNumber) => {
@@ -262,6 +270,17 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       beatCallback: (beatNumber, totalBeats) => {
         const notesText = currentNotesRef.current.size > 0 ? Array.from(currentNotesRef.current).join(', ') : 'None';
         setBeatInfo(`Beat ${beatNumber}/${totalBeats} | Notes: ${notesText}`);
+        
+        // Only trigger metronome on whole beat counts: 1, 2, 3, 4... (exclude 0)
+        // Since beatSubdivisions=4, beatNumber increments: 0.0, 0.25, 0.5, 0.75, 1.0, 1.25...
+        // We want metronome clicks only on beats 1, 2, 3, 4... (not on beat 0)
+        const roundedBeat = Math.round(beatNumber);
+        const isWholeBeat = Math.abs(beatNumber - roundedBeat) < 0.1 && roundedBeat >= 1;
+        
+        // Trigger metronome beat if active, external trigger available, and on whole beat >= 1
+        if (isMetronomeActive && metronomeTriggerRef.current && isWholeBeat) {
+          metronomeTriggerRef.current();
+        }
       },
       
       // Line end callback - called when reaching end of a music line
@@ -296,7 +315,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     timingCallbacks.start();
     
     console.log(`${isPracticeMode ? 'Practice mode' : 'abcjs TimingCallbacks'} cursor setup completed`);
-  }, [effectiveSettings.tempo, midiPitchToNoteName, onPracticeEnd]);;
+  }, [effectiveSettings.tempo, midiPitchToNoteName, onPracticeEnd, isMetronomeActive]);;
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -506,6 +525,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 isActive={isMetronomeActive}
                 onToggle={onMetronomeToggle}
                 disabled={isInitializing || !isVisualsReady || isPlaying || isPracticing}
+                useExternalTiming={isPlaying || isPracticing}
+                onExternalBeatTrigger={handleMetronomeTrigger}
               />
 
               {/* Play Button */}
