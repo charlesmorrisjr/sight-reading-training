@@ -76,9 +76,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Ref to store metronome trigger function
   const metronomeTriggerRef = useRef(null);
   
-  // Fallback timing system for practice mode
-  const practiceStartTimeRef = useRef(null);
-  const practiceTimerRef = useRef(null);
+
   
   // Handle metronome external beat trigger
   const handleMetronomeTrigger = useCallback((triggerFunction) => {
@@ -310,40 +308,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             });
           }
         
-        // Extract note information and find matching note IDs from metadata
-        if (event.midiPitches && Array.isArray(event.midiPitches)) {
-          const notes = new Set();
-          const noteIds = new Set();
-          
-          event.midiPitches.forEach(midiNote => {
-            const noteName = midiPitchToNoteName(midiNote.pitch);
-            notes.add(noteName);
-            console.log('🎵 Processing MIDI note:', { pitch: midiNote.pitch, noteName });
-            
-            // Find corresponding note IDs from metadata based on timing and pitch
-            noteMetadata.forEach(noteData => {
-              // Check if this note matches by MIDI pitch and is at the current timing position
-              if (noteData.midiPitch === midiNote.pitch || 
-                  (noteData.expectedNote === noteName)) {
-                // For simplicity, we'll match notes that are currently active
-                // More sophisticated timing matching could be added here
-                noteIds.add(noteData.id);
-                console.log('🎯 Matched note to metadata:', { noteId: noteData.id, noteData });
-              }
-            });
-          });
-          
-          if (notes.size > 0) {
-            currentNotesRef.current = notes;
-            currentNoteIdsRef.current = noteIds;
-            console.log('🏠 Updated current notes:', { 
-              notes: Array.from(notes), 
-              noteIds: Array.from(noteIds) 
-            });
-          }
-        } else {
-          console.log('⚠️ No midiPitches in event or not an array');
-        }
+        // Note: Current notes are now managed by beatCallback for more reliable detection
+        // This eventCallback focuses on cursor positioning only
         
         // Use abcjs-provided positioning data for precise cursor placement
         const cursorX = (event.left + 5) || 0;    // Add 5px to the left to center the cursor
@@ -368,7 +334,40 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         beatCallback: (beatNumber, totalBeats) => {
           console.log('🥁 BeatCallback fired:', { beatNumber, totalBeats, isPracticeMode });
           
-          const notesText = currentNotesRef.current.size > 0 ? Array.from(currentNotesRef.current).join(', ') : 'None';
+          // Calculate current active notes based on beat position
+          // ABCJS uses beatSubdivisions=4, so divide by 4 to get actual beat timing
+          const beatSubdivisions = 4;
+          const currentBeat = (beatNumber - 1) / beatSubdivisions;
+          const activeNotes = new Set();
+          const activeNoteIds = new Set();
+          
+          console.log('🔍 Timing debug (corrected):', {
+            beatNumber,
+            currentBeat: currentBeat.toFixed(2),
+            totalBeats,
+            beatSubdivisions
+          });
+          
+          // Find notes that should be active at the current beat
+          noteMetadata.forEach(noteData => {
+            const noteEndTime = noteData.startTime + noteData.duration;
+            if (currentBeat >= noteData.startTime && currentBeat < noteEndTime) {
+              activeNotes.add(noteData.expectedNote);
+              activeNoteIds.add(noteData.id);
+            }
+          });
+          
+          // Update current notes refs
+          currentNotesRef.current = activeNotes;
+          currentNoteIdsRef.current = activeNoteIds;
+          
+          console.log('🎵 Beat-based note detection:', {
+            currentBeat: currentBeat.toFixed(2),
+            activeNotes: Array.from(activeNotes),
+            activeNoteIds: Array.from(activeNoteIds)
+          });
+          
+          const notesText = activeNotes.size > 0 ? Array.from(activeNotes).join(', ') : 'None';
           setBeatInfo(`Beat ${beatNumber}/${totalBeats} | Notes: ${notesText}`);
           
           // Only trigger metronome on whole beat counts: 1, 2, 3, 4... (exclude 0)
@@ -424,7 +423,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
     
     console.log(`${isPracticeMode ? 'Practice mode' : 'abcjs TimingCallbacks'} cursor setup completed`);
-  }, [effectiveSettings.tempo, midiPitchToNoteName, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap]);
+  }, [effectiveSettings.tempo, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -490,52 +489,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
   }, [isPlaying, initializeSynth, startVisualCursor]);
 
-  // Fallback note detection using time-based calculation
-  const updateCurrentNotesFromTime = useCallback(() => {
-    if (!practiceStartTimeRef.current || !noteMetadata.length) {
-      return;
-    }
-    
-    const currentTime = Date.now();
-    const elapsedSeconds = (currentTime - practiceStartTimeRef.current) / 1000;
-    
-    // Convert elapsed time to beats (tempo is quarter notes per minute)
-    const beatsPerSecond = effectiveSettings.tempo / 60;
-    const currentBeat = elapsedSeconds * beatsPerSecond * 2; // *2 because we use eighth note units
-    
-    // Find notes that should be active at the current time
-    const activeNotes = new Set();
-    const activeNoteIds = new Set();
-    
-    noteMetadata.forEach(note => {
-      const noteEndTime = note.startTime + note.duration;
-      if (currentBeat >= note.startTime && currentBeat < noteEndTime) {
-        activeNotes.add(note.expectedNote);
-        activeNoteIds.add(note.id);
-      }
-    });
-    
-    if (activeNotes.size > 0 || activeNoteIds.size > 0) {
-      console.log('🕰️ Fallback time-based note detection:', {
-        currentBeat: currentBeat.toFixed(2),
-        activeNotes: Array.from(activeNotes),
-        activeNoteIds: Array.from(activeNoteIds)
-      });
-      
-      currentNotesRef.current = activeNotes;
-      currentNoteIdsRef.current = activeNoteIds;
-    }
-  }, [noteMetadata, effectiveSettings.tempo]);
+
   
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
     if (isPracticing) {
-      // Stop fallback timer
-      if (practiceTimerRef.current) {
-        clearInterval(practiceTimerRef.current);
-        practiceTimerRef.current = null;
-      }
-      practiceStartTimeRef.current = null;
+
       
       // Stop and remove any existing cursor
       const existingCursor = document.querySelector('.playback-cursor');
@@ -561,10 +520,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     try {
       setIsPracticing(true);
       
-      // Start fallback timing system
-      practiceStartTimeRef.current = Date.now();
-      practiceTimerRef.current = setInterval(updateCurrentNotesFromTime, 100); // Update every 100ms
-      console.log('🕰️ Started fallback timing system for practice mode');
+
       
       // Start visual cursor without audio playback
       startVisualCursor(true); // Pass true to indicate practice mode (no audio)
@@ -584,7 +540,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         existingCursor.remove();
       }
     }
-  }, [isPracticing, startVisualCursor, updateCurrentNotesFromTime]);
+  }, [isPracticing, startVisualCursor]);
 
   React.useEffect(() => {
     handleGenerateNew();
@@ -605,10 +561,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
-      // Cleanup fallback timer
-      if (practiceTimerRef.current) {
-        clearInterval(practiceTimerRef.current);
-      }
+  
     };
   }, []);
 
