@@ -594,6 +594,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     if (noteIdsChanged) {
       scoringLockedRef.current = false;
       previousActiveNoteIdsRef.current = new Set(currentActiveNoteIds);
+      previousPressedNotesRef.current = new Set(); // Reset: all held notes now "new" for this position
     }
     
     // Skip scoring if locked (already scored at this cursor position)
