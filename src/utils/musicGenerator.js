@@ -16,9 +16,73 @@
  * @param {string[]} options.rightHandPatterns - Selected right hand pattern IDs
  * @param {string[]} options.rightHandIntervals - Selected right hand interval types ('2nd', '3rd', etc.)
  * @param {string[]} options.rightHand4NoteChords - Selected right hand 4-note chord types ('major', '7th')
- * @returns {string} ABC notation string
+ * @returns {Object} Object containing ABC notation string and note metadata
+ *   - abcNotation: {string} ABC notation string
+ *   - noteMetadata: {Array} Array of note objects with timing and pitch information
  */
 export function generateRandomABC(options) {
+  // Note metadata array to track all notes for practice mode
+  const noteMetadata = [];
+  let globalNoteIdCounter = 0;
+  
+  /**
+   * Generate a unique note ID
+   */
+  function generateNoteId() {
+    return `note_${globalNoteIdCounter++}`;
+  }
+  
+  /**
+   * Convert note name to MIDI pitch number
+   * @param {string} noteName - ABC notation note name
+   * @returns {number} MIDI pitch number
+   */
+  function noteNameToMidiPitch(noteName) {
+    // Base MIDI note mapping (C4 = 60)
+    const noteMap = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
+    
+    // Extract base note (remove commas, apostrophes, and case)
+    const baseNote = noteName.charAt(0).toUpperCase();
+    let octave = 4; // Default octave
+    
+    // Handle octave indicators
+    const commas = (noteName.match(/,/g) || []).length;
+    const apostrophes = (noteName.match(/'/g) || []).length;
+    const isLowercase = noteName.charAt(0) === noteName.charAt(0).toLowerCase();
+    
+    if (commas > 0) {
+      octave = 4 - commas; // Each comma lowers by one octave
+    } else if (isLowercase) {
+      octave = 5 + apostrophes; // Lowercase starts at octave 5
+    } else {
+      octave = 4; // Uppercase is octave 4
+    }
+    
+    const baseMidi = noteMap[baseNote] || 0;
+    return baseMidi + (octave * 12);
+  }
+  
+  /**
+   * Convert ABC notation to standard note notation (e.g., "C4", "F#3")
+   * @param {string} abcNote - ABC notation note
+   * @returns {string} Standard note notation
+   */
+  function convertAbcToStandardNotation(abcNote) {
+    const baseNote = abcNote.charAt(0).toUpperCase();
+    let octave = 4;
+    
+    const commas = (abcNote.match(/,/g) || []).length;
+    const apostrophes = (abcNote.match(/'/g) || []).length;
+    const isLowercase = abcNote.charAt(0) === abcNote.charAt(0).toLowerCase();
+    
+    if (commas > 0) {
+      octave = 4 - commas;
+    } else if (isLowercase) {
+      octave = 5 + apostrophes;
+    }
+    
+    return `${baseNote}${octave}`;
+  }
   // Default if not provided in settings
   const {
     measures = 8,
@@ -65,7 +129,7 @@ export function generateRandomABC(options) {
   /**
    * Helper to generate a single measure for a clef
    */
-  function generateMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null, maxOctavesLower = null, chordNotes = null) {
+  function generateMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null, maxOctavesLower = null, chordNotes = null, measureIndex = 0, voiceIndex = 0) {
     let lastNoteIndex = startIndex;
     let octaveLower = false;
     let measure = '';
@@ -141,8 +205,24 @@ export function generateRandomABC(options) {
 
       const selectedDuration = validDurations[Math.floor(Math.random() * validDurations.length)];
       
+      // Generate note ID and create metadata
+      const noteId = generateNoteId();
+      const fullNoteName = nextNote + selectedDuration.abcNotation;
+      
+      // Add note metadata for practice tracking
+      noteMetadata.push({
+        id: noteId,
+        expectedNote: convertAbcToStandardNotation(nextNote),
+        midiPitch: noteNameToMidiPitch(nextNote),
+        startTime: beatsUsed,
+        duration: selectedDuration.beats,
+        measureIndex,
+        voiceIndex,
+        abcNotation: fullNoteName
+      });
+      
       // Add note with duration to measure
-      measure += nextNote + selectedDuration.abcNotation;
+      measure += fullNoteName;
       beatsUsed += selectedDuration.beats;
 
       // Add space after certain note types for readability
@@ -179,7 +259,7 @@ export function generateRandomABC(options) {
       trebleMeasures.push(generateRightHand4NoteChords(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, selectedChordType));
     } else {
       // Default to single notes for all other patterns (including single-notes)
-      trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord));
+      trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord, i, 0));
     }
     
     // Bass: generate pattern based on selected left hand patterns
@@ -212,9 +292,13 @@ export function generateRandomABC(options) {
   }
 
   // Log the ABC notation to the console for debugging
-  console.log(abc);
+  console.log('Generated ABC:', abc);
+  console.log('Note metadata:', noteMetadata);
 
-  return abc;
+  return {
+    abcNotation: abc,
+    noteMetadata: noteMetadata
+  };
 }
 
 /**

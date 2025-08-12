@@ -43,8 +43,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       : settings;
   }, [settings, intervalsFromState]);
   
-  // Current ABC notation
+  // Current ABC notation and note metadata
   const [abcNotation, setAbcNotation] = useState('');
+  const [noteMetadata, setNoteMetadata] = useState([]);
 
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -64,12 +65,20 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Current notes tracking for debugging display - use ref to avoid stale closure
   const currentNotesRef = useRef(new Set());
   
+  // Note tracking system - map of note ID to note status
+  const [noteTrackingMap, setNoteTrackingMap] = useState(new Map());
+  const currentNoteIdsRef = useRef(new Set());
+  
   // Refs to track current playing state without causing re-renders
   const isPlayingRef = useRef(false);
   const isPracticingRef = useRef(false);
   
   // Ref to store metronome trigger function
   const metronomeTriggerRef = useRef(null);
+  
+  // Fallback timing system for practice mode
+  const practiceStartTimeRef = useRef(null);
+  const practiceTimerRef = useRef(null);
   
   // Handle metronome external beat trigger
   const handleMetronomeTrigger = useCallback((triggerFunction) => {
@@ -97,8 +106,22 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
-      const newAbc = generateRandomABC(effectiveSettings);
-      setAbcNotation(newAbc);
+      const result = generateRandomABC(effectiveSettings);
+      setAbcNotation(result.abcNotation);
+      setNoteMetadata(result.noteMetadata);
+      
+      // Initialize note tracking map with 'unplayed' status
+      const initialTrackingMap = new Map();
+      result.noteMetadata.forEach(note => {
+        initialTrackingMap.set(note.id, {
+          ...note,
+          status: 'unplayed' // unplayed | correct | incorrect
+        });
+      });
+      setNoteTrackingMap(initialTrackingMap);
+      
+      console.log('📝 Generated music with metadata:', result.noteMetadata);
+      console.log('🗺️ Initialized note tracking map:', initialTrackingMap);
     } catch (error) {
       console.error('Error generating ABC notation:', error);
     } finally {
@@ -201,21 +224,63 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     console.log('Cursor line added to SVG');
     
     // Create TimingCallbacks for precise synchronization
-    const timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
-      qpm: effectiveSettings.tempo, // Quarter notes per minute - matches settings
-      beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
-      
-      // Event callback - called for each musical event (note, rest, etc.)
-      eventCallback: (event) => {
+    console.log('🚀 Creating TimingCallbacks with config:', {
+      qpm: effectiveSettings.tempo,
+      beatSubdivisions: 4,
+      isPracticeMode,
+      visualObject: !!visualObjectRef.current,
+      noteMetadataCount: noteMetadata.length
+    });
+    
+    let timingCallbacks;
+    try {
+      timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
+        qpm: effectiveSettings.tempo, // Quarter notes per minute - matches settings
+        beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
+        
+        // Event callback - called for each musical event (note, rest, etc.)
+        eventCallback: (event) => {
+          // Add immediate logging to verify callback fires
+          console.log('⚡ EventCallback fired!', { 
+            hasEvent: !!event, 
+            eventType: typeof event,
+            isPracticeMode 
+          });
         if (!event) {
           // Music has ended - stop playback and reset button
           if (!isPracticeMode) {
             setIsPlaying(false);
           }
           
-          // Call onPracticeEnd if we were in practice mode
+          // Call onPracticeEnd if we were in practice mode with note tracking statistics
           if (isPracticingRef.current && onPracticeEnd) {
-            onPracticeEnd();
+            // Calculate final scores from note tracking map
+            let correctCount = 0;
+            let wrongCount = 0;
+            let unplayedCount = 0;
+            const correctNotesList = [];
+            const wrongNotesList = [];
+            
+            noteTrackingMap.forEach((note) => {
+              if (note.status === 'correct') {
+                correctCount++;
+                correctNotesList.push(note.expectedNote || note.abcNotation);
+              } else if (note.status === 'incorrect') {
+                wrongCount++;
+                wrongNotesList.push(note.expectedNote || note.abcNotation);
+              } else {
+                unplayedCount++;
+              }
+            });
+            
+            onPracticeEnd({
+              correctCount,
+              wrongCount,
+              unplayedCount,
+              totalNotes: noteTrackingMap.size,
+              correctNotes: correctNotesList,
+              wrongNotes: wrongNotesList
+            });
           }
           
           if (isPracticeMode) {
@@ -234,17 +299,50 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           return;
         }
         
-        // Extract note information using the correct abcjs API
+          // Enhanced debugging and note tracking
+          if (event) {
+            console.log('🎵 Processing event with data:', {
+              event: event,
+              eventKeys: Object.keys(event),
+              hasMidiPitches: !!(event.midiPitches && Array.isArray(event.midiPitches)),
+              midiPitchesLength: event.midiPitches ? event.midiPitches.length : 0,
+              midiPitches: event.midiPitches
+            });
+          }
+        
+        // Extract note information and find matching note IDs from metadata
         if (event.midiPitches && Array.isArray(event.midiPitches)) {
           const notes = new Set();
+          const noteIds = new Set();
+          
           event.midiPitches.forEach(midiNote => {
             const noteName = midiPitchToNoteName(midiNote.pitch);
             notes.add(noteName);
+            console.log('🎵 Processing MIDI note:', { pitch: midiNote.pitch, noteName });
+            
+            // Find corresponding note IDs from metadata based on timing and pitch
+            noteMetadata.forEach(noteData => {
+              // Check if this note matches by MIDI pitch and is at the current timing position
+              if (noteData.midiPitch === midiNote.pitch || 
+                  (noteData.expectedNote === noteName)) {
+                // For simplicity, we'll match notes that are currently active
+                // More sophisticated timing matching could be added here
+                noteIds.add(noteData.id);
+                console.log('🎯 Matched note to metadata:', { noteId: noteData.id, noteData });
+              }
+            });
           });
           
           if (notes.size > 0) {
             currentNotesRef.current = notes;
+            currentNoteIdsRef.current = noteIds;
+            console.log('🏠 Updated current notes:', { 
+              notes: Array.from(notes), 
+              noteIds: Array.from(noteIds) 
+            });
           }
+        } else {
+          console.log('⚠️ No midiPitches in event or not an array');
         }
         
         // Use abcjs-provided positioning data for precise cursor placement
@@ -266,22 +364,24 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         // console.log(`Cursor positioned using abcjs data: x=${cursorX.toFixed(0)}, Y=${cursorTopY.toFixed(0)} to ${cursorBottomY.toFixed(0)} (height=${eventHeight})`);
       },
       
-      // Beat callback - called on each beat for additional timing info
-      beatCallback: (beatNumber, totalBeats) => {
-        const notesText = currentNotesRef.current.size > 0 ? Array.from(currentNotesRef.current).join(', ') : 'None';
-        setBeatInfo(`Beat ${beatNumber}/${totalBeats} | Notes: ${notesText}`);
-        
-        // Only trigger metronome on whole beat counts: 1, 2, 3, 4... (exclude 0)
-        // Since beatSubdivisions=4, beatNumber increments: 0.0, 0.25, 0.5, 0.75, 1.0, 1.25...
-        // We want metronome clicks only on beats 1, 2, 3, 4... (not on beat 0)
-        const roundedBeat = Math.round(beatNumber);
-        const isWholeBeat = Math.abs(beatNumber - roundedBeat) < 0.1 && roundedBeat >= 1;
-        
-        // Trigger metronome beat if active, external trigger available, and on whole beat >= 1
-        if (isMetronomeActive && metronomeTriggerRef.current && isWholeBeat) {
-          metronomeTriggerRef.current();
-        }
-      },
+        // Beat callback - called on each beat for additional timing info
+        beatCallback: (beatNumber, totalBeats) => {
+          console.log('🥁 BeatCallback fired:', { beatNumber, totalBeats, isPracticeMode });
+          
+          const notesText = currentNotesRef.current.size > 0 ? Array.from(currentNotesRef.current).join(', ') : 'None';
+          setBeatInfo(`Beat ${beatNumber}/${totalBeats} | Notes: ${notesText}`);
+          
+          // Only trigger metronome on whole beat counts: 1, 2, 3, 4... (exclude 0)
+          // Since beatSubdivisions=4, beatNumber increments: 0.0, 0.25, 0.5, 0.75, 1.0, 1.25...
+          // We want metronome clicks only on beats 1, 2, 3, 4... (not on beat 0)
+          const roundedBeat = Math.round(beatNumber);
+          const isWholeBeat = Math.abs(beatNumber - roundedBeat) < 0.1 && roundedBeat >= 1;
+          
+          // Trigger metronome beat if active, external trigger available, and on whole beat >= 1
+          if (isMetronomeActive && metronomeTriggerRef.current && isWholeBeat) {
+            metronomeTriggerRef.current();
+          }
+        },
       
       // Line end callback - called when reaching end of a music line
       lineEndCallback: (info) => {
@@ -297,7 +397,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           // console.log(`Updated cursor height using line bounds with padding: Y=${(info.top - CURSOR_TOP_PADDING).toFixed(0)} to ${(info.bottom + CURSOR_BOTTOM_PADDING).toFixed(0)}`);
         }
       }
-    });
+      });
+    } catch (error) {
+      console.error('❌ Error creating TimingCallbacks:', error);
+      return; // Exit if TimingCallbacks creation fails
+    }
     
     // Store timing callbacks reference for cleanup
     cursorLine.timingCallbacks = timingCallbacks;
@@ -310,12 +414,17 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       }
     };
     
-    // Start the timing callbacks
-    console.log('Starting TimingCallbacks...');
-    timingCallbacks.start();
+    // Start the timing callbacks with error handling
+    console.log('🚀 Starting TimingCallbacks...');
+    try {
+      timingCallbacks.start();
+      console.log('✅ TimingCallbacks started successfully');
+    } catch (error) {
+      console.error('❌ Error starting TimingCallbacks:', error);
+    }
     
     console.log(`${isPracticeMode ? 'Practice mode' : 'abcjs TimingCallbacks'} cursor setup completed`);
-  }, [effectiveSettings.tempo, midiPitchToNoteName, onPracticeEnd, isMetronomeActive]);;
+  }, [effectiveSettings.tempo, midiPitchToNoteName, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -381,9 +490,53 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
   }, [isPlaying, initializeSynth, startVisualCursor]);
 
+  // Fallback note detection using time-based calculation
+  const updateCurrentNotesFromTime = useCallback(() => {
+    if (!practiceStartTimeRef.current || !noteMetadata.length) {
+      return;
+    }
+    
+    const currentTime = Date.now();
+    const elapsedSeconds = (currentTime - practiceStartTimeRef.current) / 1000;
+    
+    // Convert elapsed time to beats (tempo is quarter notes per minute)
+    const beatsPerSecond = effectiveSettings.tempo / 60;
+    const currentBeat = elapsedSeconds * beatsPerSecond * 2; // *2 because we use eighth note units
+    
+    // Find notes that should be active at the current time
+    const activeNotes = new Set();
+    const activeNoteIds = new Set();
+    
+    noteMetadata.forEach(note => {
+      const noteEndTime = note.startTime + note.duration;
+      if (currentBeat >= note.startTime && currentBeat < noteEndTime) {
+        activeNotes.add(note.expectedNote);
+        activeNoteIds.add(note.id);
+      }
+    });
+    
+    if (activeNotes.size > 0 || activeNoteIds.size > 0) {
+      console.log('🕰️ Fallback time-based note detection:', {
+        currentBeat: currentBeat.toFixed(2),
+        activeNotes: Array.from(activeNotes),
+        activeNoteIds: Array.from(activeNoteIds)
+      });
+      
+      currentNotesRef.current = activeNotes;
+      currentNoteIdsRef.current = activeNoteIds;
+    }
+  }, [noteMetadata, effectiveSettings.tempo]);
+  
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
     if (isPracticing) {
+      // Stop fallback timer
+      if (practiceTimerRef.current) {
+        clearInterval(practiceTimerRef.current);
+        practiceTimerRef.current = null;
+      }
+      practiceStartTimeRef.current = null;
+      
       // Stop and remove any existing cursor
       const existingCursor = document.querySelector('.playback-cursor');
       if (existingCursor) {
@@ -408,6 +561,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     try {
       setIsPracticing(true);
       
+      // Start fallback timing system
+      practiceStartTimeRef.current = Date.now();
+      practiceTimerRef.current = setInterval(updateCurrentNotesFromTime, 100); // Update every 100ms
+      console.log('🕰️ Started fallback timing system for practice mode');
+      
       // Start visual cursor without audio playback
       startVisualCursor(true); // Pass true to indicate practice mode (no audio)
 
@@ -426,7 +584,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         existingCursor.remove();
       }
     }
-  }, [isPracticing, startVisualCursor]);;;
+  }, [isPracticing, startVisualCursor, updateCurrentNotesFromTime]);
 
   React.useEffect(() => {
     handleGenerateNew();
@@ -447,10 +605,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
+      // Cleanup fallback timer
+      if (practiceTimerRef.current) {
+        clearInterval(practiceTimerRef.current);
+      }
     };
   }, []);
 
-  // Scoring logic - compare user input with current music notes during practice
+  // Enhanced scoring logic using note tracking system to prevent duplicate counting
   const previousPressedNotesRef = useRef(new Set());
   React.useEffect(() => {
     // Only perform scoring during practice mode
@@ -465,15 +627,49 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
     // Get current expected notes from the music
     const expectedNotes = currentNotesRef.current;
+    const currentActiveNoteIds = currentNoteIdsRef.current;
+    
+    console.log('🎹 MIDI Scoring Logic:', {
+      newlyPressedNotes: Array.from(newlyPressedNotes),
+      expectedNotes: Array.from(expectedNotes),
+      currentActiveNoteIds: Array.from(currentActiveNoteIds),
+      noteTrackingMapSize: noteTrackingMap.size
+    });
 
     // Check each newly pressed note
     newlyPressedNotes.forEach(pressedNote => {
-      if (expectedNotes.has(pressedNote)) {
-        // Correct note pressed
-        onCorrectNote(pressedNote);
-        console.log(`✅ Correct note: ${pressedNote}`);
-      } else {
-        // Wrong note pressed
+      let noteProcessed = false;
+      
+      // Check if this note matches any unplayed notes in our tracking system
+      for (const noteId of currentActiveNoteIds) {
+        const trackedNote = noteTrackingMap.get(noteId);
+        
+        if (trackedNote && trackedNote.status === 'unplayed') {
+          // Check if the pressed note matches this tracked note
+          if (trackedNote.expectedNote === pressedNote || 
+              (trackedNote.midiPitch && midiPitchToNoteName(trackedNote.midiPitch) === pressedNote)) {
+            
+            // Mark note as correct and update tracking
+            setNoteTrackingMap(prevMap => {
+              const newMap = new Map(prevMap);
+              newMap.set(noteId, { ...trackedNote, status: 'correct' });
+              return newMap;
+            });
+            
+            onCorrectNote(pressedNote);
+            console.log(`✅ Correct note: ${pressedNote} (ID: ${noteId})`);
+            noteProcessed = true;
+            break; // Only count once per note press
+          }
+        }
+      }
+      
+      // If note wasn't processed as correct, check if it's a wrong note
+      if (!noteProcessed && expectedNotes.has(pressedNote)) {
+        // Note is expected but already played - don't count again
+        console.log(`🔄 Note ${pressedNote} already played correctly`);
+      } else if (!noteProcessed) {
+        // Completely wrong note
         onWrongNote(pressedNote);
         console.log(`❌ Wrong note: ${pressedNote} (expected: ${Array.from(expectedNotes).join(', ')})`);
       }
@@ -481,13 +677,22 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote]);
+  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap, midiPitchToNoteName]);
 
-  // Reset scoring when practice mode starts
+  // Reset note tracking when practice mode starts
   React.useEffect(() => {
     if (isPracticing && onResetScoring) {
+      // Reset note tracking map to 'unplayed' status
+      setNoteTrackingMap(prevMap => {
+        const newMap = new Map();
+        prevMap.forEach((note, id) => {
+          newMap.set(id, { ...note, status: 'unplayed' });
+        });
+        return newMap;
+      });
+      
       onResetScoring();
-      console.log('🎯 Practice started - scoring reset');
+      console.log('🎯 Practice started - scoring and note tracking reset');
     }
   }, [isPracticing, onResetScoring]);
 
@@ -712,20 +917,34 @@ function App() {
   }, []);
 
   // Handle practice end - always show score modal
-  const handlePracticeEnd = useCallback(() => {
-    // Use refs to get the current values to avoid race condition
-    const capturedCorrectCount = correctNotesCountRef.current;
-    const capturedWrongCount = wrongNotesCountRef.current;
-    const capturedCorrectNotes = [...correctNotes];
-    const capturedWrongNotes = [...wrongNotes];
-    
-    // Store captured scores for modal to use
-    setCapturedScores({
-      correctCount: capturedCorrectCount,
-      wrongCount: capturedWrongCount,
-      correctNotes: capturedCorrectNotes,
-      wrongNotes: capturedWrongNotes
-    });
+  const handlePracticeEnd = useCallback((practiceStats) => {
+    // Handle the new note tracking statistics format
+    if (practiceStats && typeof practiceStats === 'object') {
+      // Use the accurate note tracking statistics
+      setCapturedScores({
+        correctCount: practiceStats.correctCount,
+        wrongCount: practiceStats.wrongCount,
+        correctNotes: practiceStats.correctNotes || [],
+        wrongNotes: practiceStats.wrongNotes || [],
+        totalNotes: practiceStats.totalNotes,
+        unplayedCount: practiceStats.unplayedCount
+      });
+      
+      console.log('🎯 Practice ended with note tracking stats:', practiceStats);
+    } else {
+      // Fallback to old method using refs (for compatibility)
+      const capturedCorrectCount = correctNotesCountRef.current;
+      const capturedWrongCount = wrongNotesCountRef.current;
+      const capturedCorrectNotes = [...correctNotes];
+      const capturedWrongNotes = [...wrongNotes];
+      
+      setCapturedScores({
+        correctCount: capturedCorrectCount,
+        wrongCount: capturedWrongCount,
+        correctNotes: capturedCorrectNotes,
+        wrongNotes: capturedWrongNotes
+      });
+    }
     
     openScoreModal();
   }, [correctNotes, wrongNotes, openScoreModal]);
