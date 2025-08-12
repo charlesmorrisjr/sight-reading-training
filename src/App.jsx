@@ -239,11 +239,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         // Event callback - called for each musical event (note, rest, etc.)
         eventCallback: (event) => {
           // Add immediate logging to verify callback fires
-          console.log('⚡ EventCallback fired!', { 
-            hasEvent: !!event, 
-            eventType: typeof event,
-            isPracticeMode 
-          });
+          // console.log('⚡ EventCallback fired!', { hasEvent: !!event, eventType: typeof event, isPracticeMode });
         if (!event) {
           // Music has ended - stop playback and reset button
           if (!isPracticeMode) {
@@ -297,16 +293,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           return;
         }
         
-          // Enhanced debugging and note tracking
-          if (event) {
-            console.log('🎵 Processing event with data:', {
-              event: event,
-              eventKeys: Object.keys(event),
-              hasMidiPitches: !!(event.midiPitches && Array.isArray(event.midiPitches)),
-              midiPitchesLength: event.midiPitches ? event.midiPitches.length : 0,
-              midiPitches: event.midiPitches
-            });
-          }
+          // Enhanced debugging and note tracking (commented out)
+          // if (event) {
+          //   console.log('🎵 Processing event with data:', { event: event, eventKeys: Object.keys(event), hasMidiPitches: !!(event.midiPitches && Array.isArray(event.midiPitches)), midiPitchesLength: event.midiPitches ? event.midiPitches.length : 0, midiPitches: event.midiPitches });
+          // }
         
         // Note: Current notes are now managed by beatCallback for more reliable detection
         // This eventCallback focuses on cursor positioning only
@@ -326,34 +316,38 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         cursorLine.setAttribute('x2', cursorX);
         cursorLine.setAttribute('y2', cursorBottomY);
         
-        // Debug
-        // console.log(`Cursor positioned using abcjs data: x=${cursorX.toFixed(0)}, Y=${cursorTopY.toFixed(0)} to ${cursorBottomY.toFixed(0)} (height=${eventHeight})`);
-      },
-      
-        // Beat callback - called on each beat for additional timing info
-        beatCallback: (beatNumber, totalBeats) => {
-          console.log('🥁 BeatCallback fired:', { beatNumber, totalBeats, isPracticeMode });
+        // 🎯 Calculate current active notes based on event timing
+        if (isPracticeMode && event.milliseconds !== undefined) {
+          // Convert milliseconds to beats (60 BPM = 1000ms per beat)
+          const currentTimeInBeats = (event.milliseconds / 1000) * (effectiveSettings.tempo / 60);
           
-          // Calculate current active notes based on beat position
-          // ABCJS uses beatSubdivisions=4, so divide by 4 to get actual beat timing
-          const beatSubdivisions = 4;
-          const currentBeat = (beatNumber - 1) / beatSubdivisions;
+          console.log(`⏱️ Event timing: ${event.milliseconds}ms = ${currentTimeInBeats.toFixed(2)} beats`);
+          
           const activeNotes = new Set();
           const activeNoteIds = new Set();
           
-          console.log('🔍 Timing debug (corrected):', {
-            beatNumber,
-            currentBeat: currentBeat.toFixed(2),
-            totalBeats,
-            beatSubdivisions
-          });
-          
-          // Find notes that should be active at the current beat
+          // Find notes that should be active at the current time
           noteMetadata.forEach(noteData => {
-            const noteEndTime = noteData.startTime + noteData.duration;
-            if (currentBeat >= noteData.startTime && currentBeat < noteEndTime) {
+            // Convert measure-relative timing to absolute timing
+            const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
+            const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
+            const absoluteEndTime = absoluteStartTime + noteData.duration;
+            
+            // Convert from eighth-note units to quarter-note beats
+            const absoluteStartBeat = absoluteStartTime / 2;
+            const absoluteEndBeat = absoluteEndTime / 2;
+            
+            if (currentTimeInBeats >= absoluteStartBeat && currentTimeInBeats < absoluteEndBeat) {
               activeNotes.add(noteData.expectedNote);
               activeNoteIds.add(noteData.id);
+              
+              console.log('✅ Note matched (event timing):', { 
+                note: noteData.expectedNote, 
+                noteId: noteData.id,
+                absoluteStartBeat: absoluteStartBeat.toFixed(2),
+                absoluteEndBeat: absoluteEndBeat.toFixed(2),
+                currentTimeInBeats: currentTimeInBeats.toFixed(2) 
+              });
             }
           });
           
@@ -361,14 +355,15 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           currentNotesRef.current = activeNotes;
           currentNoteIdsRef.current = activeNoteIds;
           
-          console.log('🎵 Beat-based note detection:', {
-            currentBeat: currentBeat.toFixed(2),
-            activeNotes: Array.from(activeNotes),
-            activeNoteIds: Array.from(activeNoteIds)
-          });
-          
-          const notesText = activeNotes.size > 0 ? Array.from(activeNotes).join(', ') : 'None';
-          setBeatInfo(`Beat ${beatNumber}/${totalBeats} | Notes: ${notesText}`);
+          const activeNotesAtCursor = Array.from(activeNotes);
+          console.log(`🎯 Cursor at position ${cursorX.toFixed(0)}, expected notes: [${activeNotesAtCursor.join(', ')}]`);
+        }
+      },
+      
+        // Beat callback - called on each beat for additional timing info
+        beatCallback: (beatNumber, totalBeats) => {
+          // Beat info for debugging display
+          setBeatInfo(`Beat ${beatNumber}/${totalBeats}`);
           
           // Only trigger metronome on whole beat counts: 1, 2, 3, 4... (exclude 0)
           // Since beatSubdivisions=4, beatNumber increments: 0.0, 0.25, 0.5, 0.75, 1.0, 1.25...
@@ -384,7 +379,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       
       // Line end callback - called when reaching end of a music line
       lineEndCallback: (info) => {
-        console.log('Line end reached:', info);
+        // console.log('Line end reached:', info);
         
         // Use line-level bounds when available for more accurate cursor positioning
         if (info && info.top !== undefined && info.bottom !== undefined && svgContainer.contains(cursorLine)) {
