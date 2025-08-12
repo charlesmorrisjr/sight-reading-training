@@ -578,18 +578,39 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     const expectedNotes = currentNotesRef.current;
     const currentActiveNoteIds = currentNoteIdsRef.current;
     
+    // Enhanced debugging to track matching process
+    const trackingMapDetails = Array.from(noteTrackingMap.entries()).map(([id, note]) => ({
+      id,
+      expectedNote: note.expectedNote,
+      status: note.status,
+      isActive: currentActiveNoteIds.has(id)
+    }));
+    
     console.log('🎹 MIDI Scoring Logic:', {
       newlyPressedNotes: Array.from(newlyPressedNotes),
       expectedNotes: Array.from(expectedNotes),
       currentActiveNoteIds: Array.from(currentActiveNoteIds),
-      noteTrackingMapSize: noteTrackingMap.size
+      noteTrackingMapSize: noteTrackingMap.size,
+      activeUnplayedNotes: trackingMapDetails.filter(note => note.isActive && note.status === 'unplayed'),
+      totalCorrectCount: correctNotesCount,
+      totalWrongCount: wrongNotesCount
     });
+
+    // Track processed notes in this scoring cycle to prevent duplicates
+    const processedNotesInThisCycle = new Set();
 
     // Check each newly pressed note
     newlyPressedNotes.forEach(pressedNote => {
+      // Skip if we already processed this note in this cycle
+      if (processedNotesInThisCycle.has(pressedNote)) {
+        console.log(`🔄 Note ${pressedNote} already processed in this cycle`);
+        return;
+      }
+
       let noteProcessed = false;
       
-      // Check if this note matches any unplayed notes in our tracking system
+      // Find the first unplayed note that matches (priority-based matching)
+      // This prevents one key press from matching multiple note IDs
       for (const noteId of currentActiveNoteIds) {
         const trackedNote = noteTrackingMap.get(noteId);
         
@@ -608,7 +629,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             onCorrectNote(pressedNote);
             console.log(`✅ Correct note: ${pressedNote} (ID: ${noteId})`);
             noteProcessed = true;
-            break; // Only count once per note press
+            processedNotesInThisCycle.add(pressedNote); // Mark as processed
+            break; // Only match the first unplayed note - prevents duplicates
           }
         }
       }
@@ -618,15 +640,16 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         // Note is expected but already played - don't count again
         console.log(`🔄 Note ${pressedNote} already played correctly`);
       } else if (!noteProcessed) {
-        // Completely wrong note
+        // Completely wrong note - only count if not already processed
         onWrongNote(pressedNote);
         console.log(`❌ Wrong note: ${pressedNote} (expected: ${Array.from(expectedNotes).join(', ')})`);
+        processedNotesInThisCycle.add(pressedNote); // Mark as processed
       }
     });
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap, midiPitchToNoteName]);
+  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap, midiPitchToNoteName, correctNotesCount, wrongNotesCount]);
 
   // Reset note tracking when practice mode starts
   React.useEffect(() => {
@@ -867,33 +890,30 @@ function App() {
 
   // Handle practice end - always show score modal
   const handlePracticeEnd = useCallback((practiceStats) => {
-    // Handle the new note tracking statistics format
-    if (practiceStats && typeof practiceStats === 'object') {
-      // Use the accurate note tracking statistics
-      setCapturedScores({
-        correctCount: practiceStats.correctCount,
-        wrongCount: practiceStats.wrongCount,
-        correctNotes: practiceStats.correctNotes || [],
-        wrongNotes: practiceStats.wrongNotes || [],
-        totalNotes: practiceStats.totalNotes,
-        unplayedCount: practiceStats.unplayedCount
-      });
-      
-      console.log('🎯 Practice ended with note tracking stats:', practiceStats);
-    } else {
-      // Fallback to old method using refs (for compatibility)
-      const capturedCorrectCount = correctNotesCountRef.current;
-      const capturedWrongCount = wrongNotesCountRef.current;
-      const capturedCorrectNotes = [...correctNotes];
-      const capturedWrongNotes = [...wrongNotes];
-      
-      setCapturedScores({
-        correctCount: capturedCorrectCount,
-        wrongCount: capturedWrongCount,
-        correctNotes: capturedCorrectNotes,
-        wrongNotes: capturedWrongNotes
-      });
-    }
+    // Always use the accurate counters from MIDI Debug Display
+    // These are the same counters shown in the debug display and are guaranteed to be correct
+    const capturedCorrectCount = correctNotesCountRef.current;
+    const capturedWrongCount = wrongNotesCountRef.current;
+    const capturedCorrectNotes = [...correctNotes];
+    const capturedWrongNotes = [...wrongNotes];
+    
+    setCapturedScores({
+      correctCount: capturedCorrectCount,
+      wrongCount: capturedWrongCount,
+      correctNotes: capturedCorrectNotes,
+      wrongNotes: capturedWrongNotes,
+      // Include additional stats if provided by note tracking system
+      totalNotes: practiceStats?.totalNotes,
+      unplayedCount: practiceStats?.unplayedCount
+    });
+    
+    console.log('🎯 Practice ended with accurate scores:', {
+      correctCount: capturedCorrectCount,
+      wrongCount: capturedWrongCount,
+      correctNotes: capturedCorrectNotes,
+      wrongNotes: capturedWrongNotes,
+      noteTrackingStats: practiceStats // Log the tracking stats for comparison
+    });
     
     openScoreModal();
   }, [correctNotes, wrongNotes, openScoreModal]);
