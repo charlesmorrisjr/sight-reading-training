@@ -316,38 +316,39 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         cursorLine.setAttribute('x2', cursorX);
         cursorLine.setAttribute('y2', cursorBottomY);
         
-        // 🎯 Calculate current active notes based on event timing
-        if (isPracticeMode && event.milliseconds !== undefined) {
-          // Convert milliseconds to beats (60 BPM = 1000ms per beat)
-          const currentTimeInBeats = (event.milliseconds / 1000) * (effectiveSettings.tempo / 60);
+        // 🎯 Calculate current active notes using ABCJS event timing
+        // This approach uses event.milliseconds for precise timing that works across all BPM values
+        // and eliminates timing lag between beat calculation and cursor display
+        if (isPracticeMode && event && event.milliseconds !== undefined) {
+          // Validate tempo to prevent division by zero or invalid values
+          let tempo = effectiveSettings.tempo || 120;
+          if (tempo <= 0 || tempo > 300) {
+            console.warn(`Invalid tempo: ${tempo}, using default 120 BPM`);
+            tempo = 120;
+          }
           
-          console.log(`⏱️ Event timing: ${event.milliseconds}ms = ${currentTimeInBeats.toFixed(2)} beats`);
+          // Convert ABCJS milliseconds to musical beats
+          // This formula works for any BPM: (ms / 1000 seconds) * (beats per minute / 60 seconds) = beats
+          const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
           
           const activeNotes = new Set();
           const activeNoteIds = new Set();
           
           // Find notes that should be active at the current time
+          // Note metadata uses eighth-note units, so we convert to quarter-note beats for comparison
           noteMetadata.forEach(noteData => {
-            // Convert measure-relative timing to absolute timing
+            // Convert measure-relative timing to absolute timing in eighth-note units
             const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
             const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
             const absoluteEndTime = absoluteStartTime + noteData.duration;
             
-            // Convert from eighth-note units to quarter-note beats
+            // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
             const absoluteStartBeat = absoluteStartTime / 2;
             const absoluteEndBeat = absoluteEndTime / 2;
             
             if (currentTimeInBeats >= absoluteStartBeat && currentTimeInBeats < absoluteEndBeat) {
               activeNotes.add(noteData.expectedNote);
               activeNoteIds.add(noteData.id);
-              
-              console.log('✅ Note matched (event timing):', { 
-                note: noteData.expectedNote, 
-                noteId: noteData.id,
-                absoluteStartBeat: absoluteStartBeat.toFixed(2),
-                absoluteEndBeat: absoluteEndBeat.toFixed(2),
-                currentTimeInBeats: currentTimeInBeats.toFixed(2) 
-              });
             }
           });
           
