@@ -20,53 +20,48 @@
  *   - abcNotation: {string} ABC notation string
  *   - noteMetadata: {Array} Array of note objects with timing and pitch information
  */
-export function generateRandomABC(options) {
-  // Note metadata array to track all notes for practice mode
+/**
+ * Parse ABC notation to extract note metadata for all voices
+ * @param {string} abcString - Complete ABC notation string
+ * @param {string} timeSignature - Time signature (e.g., '4/4')
+ * @returns {Array} Array of note metadata objects
+ */
+function parseAbcForNoteMetadata(abcString, timeSignature) {
+  console.log('🔍 Parsing ABC for metadata...');
+  console.log('ABC String:', abcString);
+  
   const noteMetadata = [];
   let globalNoteIdCounter = 0;
-  
-  /**
-   * Generate a unique note ID
-   */
+
+  try {
+
+  // Helper functions
   function generateNoteId() {
     return `note_${globalNoteIdCounter++}`;
   }
-  
-  /**
-   * Convert note name to MIDI pitch number
-   * @param {string} noteName - ABC notation note name
-   * @returns {number} MIDI pitch number
-   */
+
   function noteNameToMidiPitch(noteName) {
-    // Base MIDI note mapping (C4 = 60)
     const noteMap = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
     
-    // Extract base note (remove commas, apostrophes, and case)
     const baseNote = noteName.charAt(0).toUpperCase();
     let octave = 4; // Default octave
     
-    // Handle octave indicators
     const commas = (noteName.match(/,/g) || []).length;
     const apostrophes = (noteName.match(/'/g) || []).length;
     const isLowercase = noteName.charAt(0) === noteName.charAt(0).toLowerCase();
     
     if (commas > 0) {
-      octave = 4 - commas; // Each comma lowers by one octave
+      octave = 4 - commas;
     } else if (isLowercase) {
-      octave = 5 + apostrophes; // Lowercase starts at octave 5
+      octave = 5 + apostrophes;
     } else {
-      octave = 4; // Uppercase is octave 4
+      octave = 4;
     }
     
     const baseMidi = noteMap[baseNote] || 0;
     return baseMidi + (octave * 12);
   }
-  
-  /**
-   * Convert ABC notation to standard note notation (e.g., "C4", "F#3")
-   * @param {string} abcNote - ABC notation note
-   * @returns {string} Standard note notation
-   */
+
   function convertAbcToStandardNotation(abcNote) {
     const baseNote = abcNote.charAt(0).toUpperCase();
     let octave = 4;
@@ -83,6 +78,189 @@ export function generateRandomABC(options) {
     
     return `${baseNote}${octave}`;
   }
+
+  // Parse time signature for beat calculations
+  const [beatsPerMeasure, beatUnit] = timeSignature.split('/').map(Number);
+  const _totalBeatsPerMeasure = beatsPerMeasure * (8 / beatUnit); // Not currently used but may be needed for validation
+
+  // Split ABC into lines and process
+  const lines = abcString.split('\n');
+  console.log('📄 Lines to process:', lines);
+  
+  let currentVoice = 0; // 0 = treble, 1 = bass
+  let globalMeasureIndex = 0; // Global measure counter across both voices
+  let currentMeasureIndexForLine = 0; // Measure index for the current musical line being processed
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    console.log('🔍 Processing line:', trimmedLine);
+    
+    // Detect voice changes - don't reset measure index
+    if (trimmedLine === 'V:1') {
+      currentVoice = 0; // treble
+      console.log('🎵 Switched to treble clef (voice 0)');
+      continue;
+    }
+    if (trimmedLine === 'V:2') {
+      currentVoice = 1; // bass
+      console.log('🎶 Switched to bass clef (voice 1)');
+      continue;
+    }
+
+    // Skip header lines and empty lines
+    if (trimmedLine.startsWith('X:') || trimmedLine.startsWith('T:') || 
+        trimmedLine.startsWith('M:') || trimmedLine.startsWith('L:') || 
+        trimmedLine.startsWith('Q:') || trimmedLine.startsWith('K:') ||
+        trimmedLine.startsWith('V:') || trimmedLine === '') {
+      console.log('⏭️ Skipping header/empty line:', trimmedLine);
+      continue;
+    }
+
+    // Process music notation line
+    if (trimmedLine.includes('|')) {
+      console.log('🎼 Processing music line:', trimmedLine);
+      const measures = trimmedLine.split('|').filter(m => m.trim() !== '');
+      console.log('📏 Found measures:', measures);
+      
+      // For treble clef (voice 0), this is a new set of measures
+      // Set the current measure index for this line
+      if (currentVoice === 0) {
+        currentMeasureIndexForLine = globalMeasureIndex;
+        console.log(`🌍 Treble clef - using measure index starting at: ${currentMeasureIndexForLine}`);
+      } else {
+        // For bass clef (voice 1), use the same measure index as the treble clef from the previous line
+        console.log(`🌍 Bass clef - using same measure index as treble: ${currentMeasureIndexForLine}`);
+      }
+      
+      for (let i = 0; i < measures.length; i++) {
+        const measure = measures[i];
+        const cleanMeasure = measure.replace(/\](?![0-9])/g, ''); // Only remove ] not followed by digits
+        const measureIndexForThisNote = currentMeasureIndexForLine + i;
+        console.log(`🎯 Parsing measure ${measureIndexForThisNote} (voice ${currentVoice}):`, cleanMeasure);
+        
+        // Parse notes and chords in this measure
+        parseNotesInMeasure(cleanMeasure, currentVoice, measureIndexForThisNote, 0);
+      }
+      
+      // Advance global measure index only after processing the first voice (treble)
+      // This ensures the next treble line starts with the correct measure index
+      if (currentVoice === 0) {
+        globalMeasureIndex += measures.length;
+        console.log(`🌍 Advanced global measure index to: ${globalMeasureIndex}`);
+      }
+    }
+  }
+
+  function parseNotesInMeasure(measureText, voiceIndex, measureIndex, startingBeats) {
+    console.log(`🔎 Parsing notes in measure: "${measureText}" (measureIndex: ${measureIndex})`);
+    let position = 0;
+    let beatsUsed = startingBeats;
+
+    while (position < measureText.length) {
+      const char = measureText[position];
+      
+      // Handle chord notation [A,C,E,]
+      if (char === '[') {
+        console.log('🎵 Found chord at position', position);
+        const chordEnd = measureText.indexOf(']', position);
+        if (chordEnd === -1) break;
+        
+        const chordContent = measureText.substring(position + 1, chordEnd);
+        const durationMatch = measureText.substring(chordEnd + 1).match(/^(\d+)/);
+        const duration = durationMatch ? parseInt(durationMatch[1]) : 1;
+        
+        console.log('🎵 Chord content:', chordContent, 'Duration:', duration);
+        
+        // Extract individual notes from chord using regex to preserve octave indicators
+        // Pattern: [A-G] followed by optional accidentals (#,b) and octave markers (',)
+        const notePattern = /[A-G][',#b]*/g;
+        const chordNotes = chordContent.match(notePattern) || [];
+        console.log('🎵 Individual chord notes:', chordNotes);
+        
+        chordNotes.forEach(chordNote => {
+          const cleanNote = chordNote.trim();
+          if (cleanNote && cleanNote !== ',') {
+            const noteId = generateNoteId();
+            const metadata = {
+              id: noteId,
+              expectedNote: convertAbcToStandardNotation(cleanNote),
+              midiPitch: noteNameToMidiPitch(cleanNote),
+              startTime: beatsUsed,
+              duration: duration,
+              measureIndex: measureIndex,
+              voiceIndex: voiceIndex,
+              abcNotation: cleanNote + (duration > 1 ? duration.toString() : '')
+            };
+            console.log('🎵 Adding chord note metadata:', metadata);
+            noteMetadata.push(metadata);
+          }
+        });
+        
+        beatsUsed += duration;
+        position = chordEnd + 1;
+        
+        // Skip duration digits
+        while (position < measureText.length && /\d/.test(measureText[position])) {
+          position++;
+        }
+      }
+      // Handle individual notes
+      else if (/[A-Ga-g]/.test(char)) {
+        console.log('🎼 Found individual note at position', position);
+        let noteEnd = position + 1;
+        
+        // Include accidentals and octave markers
+        while (noteEnd < measureText.length && /[',#b]/.test(measureText[noteEnd])) {
+          noteEnd++;
+        }
+        
+        // Get duration
+        let duration = 1; // Default to eighth note
+        const durationMatch = measureText.substring(noteEnd).match(/^(\d+)/);
+        if (durationMatch) {
+          duration = parseInt(durationMatch[1]);
+          noteEnd += durationMatch[1].length;
+        }
+        
+        const noteName = measureText.substring(position, noteEnd - (durationMatch ? durationMatch[1].length : 0));
+        console.log('🎼 Individual note:', noteName, 'Duration:', duration);
+        
+        if (noteName) {
+          const noteId = generateNoteId();
+          const metadata = {
+            id: noteId,
+            expectedNote: convertAbcToStandardNotation(noteName),
+            midiPitch: noteNameToMidiPitch(noteName),
+            startTime: beatsUsed,
+            duration: duration,
+            measureIndex: measureIndex,
+            voiceIndex: voiceIndex,
+            abcNotation: noteName + (duration > 1 ? duration.toString() : '')
+          };
+          console.log('🎼 Adding individual note metadata:', metadata);
+          noteMetadata.push(metadata);
+        }
+        
+        beatsUsed += duration;
+        position = noteEnd;
+      }
+      else {
+        position++;
+      }
+    }
+  }
+
+  console.log('✅ Parser complete. Total metadata entries:', noteMetadata.length);
+  return noteMetadata;
+  
+  } catch (error) {
+    console.error('❌ Error parsing ABC notation:', error);
+    console.error('ABC String that caused error:', abcString);
+    return []; // Return empty array on error
+  }
+}
+
+export function generateRandomABC(options) {
   // Default if not provided in settings
   const {
     measures = 8,
@@ -103,7 +281,7 @@ export function generateRandomABC(options) {
   const [beatsPerMeasure, beatUnit] = timeSignature.split('/').map(Number);
   const totalBeatsPerMeasure = beatsPerMeasure * (8 / beatUnit); // Convert to eighth note units
 
-  // Basic ABC header
+  // Basic ABC header - FIX: Use single backslash for proper newlines
   let abc = `X:1\nT:\nM:${timeSignature}\nL:1/8\nQ:${tempo}\nK:${key}\n`;
   abc += "V:1 clef=treble\nV:2 clef=bass\n";
   
@@ -127,13 +305,13 @@ export function generateRandomABC(options) {
   }));
 
   /**
-   * Helper to generate a single measure for a clef
+   * Helper to generate a single measure for treble clef (simplified - no metadata creation)
    */
-  function generateMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null, maxOctavesLower = null, chordNotes = null, measureIndex = 0, voiceIndex = 0) {
+  function generateTrebleMeasure(startIndex, lowestIndex, octaveOffset = 0, highestIndex = null, maxOctavesLower = null, chordNotes = null) {
     let lastNoteIndex = startIndex;
     let octaveLower = false;
     let measure = '';
-    let beatsUsed = 0; // Start with zero beats
+    let beatsUsed = 0;
 
     // Get harmonic note indices if chord is provided
     const harmonicIndices = chordNotes ? getHarmonicNoteIndices(chordNotes, key) : null;
@@ -145,13 +323,10 @@ export function generateRandomABC(options) {
       
       // 70% chance to use harmonic note, 30% chance to use interval-based movement
       if (harmonicIndices && Math.random() < 0.7) {
-        // Select from harmonic indices
         const harmonicIndex = harmonicIndices[Math.floor(Math.random() * harmonicIndices.length)];
         candidateIndex = harmonicIndex;
       } else {
-        // Use interval-based movement
         interval = intervals[Math.floor(Math.random() * intervals.length)] - 1;
-        // Randomly change interval to negative so notes can go downward
         interval = Math.random() < 0.5 ? -interval : interval;
         candidateIndex = lastNoteIndex + interval;
       }
@@ -191,13 +366,9 @@ export function generateRandomABC(options) {
       const validDurations = availableDurations.filter(d => d.beats <= remainingBeats);
       
       if (validDurations.length === 0) {
-        // If no valid durations fit, try to use the shortest available duration
-        // that can fit in the remaining space, even if it means extending the measure slightly
         const shortestDuration = availableDurations.reduce((shortest, current) => 
           current.beats < shortest.beats ? current : shortest
         );
-        
-        // Use the shortest available duration
         measure += nextNote + shortestDuration.abcNotation;
         beatsUsed += shortestDuration.beats;
         break;
@@ -205,24 +376,8 @@ export function generateRandomABC(options) {
 
       const selectedDuration = validDurations[Math.floor(Math.random() * validDurations.length)];
       
-      // Generate note ID and create metadata
-      const noteId = generateNoteId();
-      const fullNoteName = nextNote + selectedDuration.abcNotation;
-      
-      // Add note metadata for practice tracking
-      noteMetadata.push({
-        id: noteId,
-        expectedNote: convertAbcToStandardNotation(nextNote),
-        midiPitch: noteNameToMidiPitch(nextNote),
-        startTime: beatsUsed,
-        duration: selectedDuration.beats,
-        measureIndex,
-        voiceIndex,
-        abcNotation: fullNoteName
-      });
-      
-      // Add note with duration to measure
-      measure += fullNoteName;
+      // Add note with duration to measure (no metadata creation here)
+      measure += nextNote + selectedDuration.abcNotation;
       beatsUsed += selectedDuration.beats;
 
       // Add space after certain note types for readability
@@ -259,7 +414,7 @@ export function generateRandomABC(options) {
       trebleMeasures.push(generateRightHand4NoteChords(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, selectedChordType));
     } else {
       // Default to single notes for all other patterns (including single-notes)
-      trebleMeasures.push(generateMeasure(0, -3, 0, null, null, currentChord, i, 0));
+      trebleMeasures.push(generateTrebleMeasure(0, -3, 0, null, null, currentChord));
     }
     
     // Bass: generate pattern based on selected left hand patterns
@@ -280,7 +435,7 @@ export function generateRandomABC(options) {
     }
   }
 
-  // Build ABC with both voices interleaved
+  // Build ABC with both voices interleaved - FIX: Use single backslash for proper newlines
   for (let i = 0; i < measures; i++) {
     if (i === measures - 1) {
       trebleMeasures[i] = trebleMeasures[i].replace('|', '|]');
@@ -290,6 +445,9 @@ export function generateRandomABC(options) {
     abc += `V:1\n${trebleMeasures[i]}\n`;
     abc += `V:2\n${bassMeasures[i]}\n`;
   }
+
+  // Parse the complete ABC notation to create metadata for both voices
+  const noteMetadata = parseAbcForNoteMetadata(abc, timeSignature);
 
   // Log the ABC notation to the console for debugging
   console.log('Generated ABC:', abc);
