@@ -27,8 +27,6 @@
  * @returns {Array} Array of note metadata objects
  */
 function parseAbcForNoteMetadata(abcString, timeSignature) {
-  console.log('🔍 Parsing ABC for metadata...');
-  console.log('ABC String:', abcString);
   
   const noteMetadata = [];
   let globalNoteIdCounter = 0;
@@ -85,7 +83,6 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
 
   // Split ABC into lines and process
   const lines = abcString.split('\n');
-  console.log('📄 Lines to process:', lines);
   
   let currentVoice = 0; // 0 = treble, 1 = bass
   let globalMeasureIndex = 0; // Global measure counter across both voices
@@ -93,17 +90,14 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-    console.log('🔍 Processing line:', trimmedLine);
     
     // Detect voice changes - don't reset measure index
     if (trimmedLine === 'V:1') {
       currentVoice = 0; // treble
-      console.log('🎵 Switched to treble clef (voice 0)');
       continue;
     }
     if (trimmedLine === 'V:2') {
       currentVoice = 1; // bass
-      console.log('🎶 Switched to bass clef (voice 1)');
       continue;
     }
 
@@ -112,31 +106,25 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
         trimmedLine.startsWith('M:') || trimmedLine.startsWith('L:') || 
         trimmedLine.startsWith('Q:') || trimmedLine.startsWith('K:') ||
         trimmedLine.startsWith('V:') || trimmedLine === '') {
-      console.log('⏭️ Skipping header/empty line:', trimmedLine);
       continue;
     }
 
     // Process music notation line
     if (trimmedLine.includes('|')) {
-      console.log('🎼 Processing music line:', trimmedLine);
       const measures = trimmedLine.split('|').filter(m => m.trim() !== '');
-      console.log('📏 Found measures:', measures);
       
       // For treble clef (voice 0), this is a new set of measures
       // Set the current measure index for this line
       if (currentVoice === 0) {
         currentMeasureIndexForLine = globalMeasureIndex;
-        console.log(`🌍 Treble clef - using measure index starting at: ${currentMeasureIndexForLine}`);
       } else {
         // For bass clef (voice 1), use the same measure index as the treble clef from the previous line
-        console.log(`🌍 Bass clef - using same measure index as treble: ${currentMeasureIndexForLine}`);
       }
       
       for (let i = 0; i < measures.length; i++) {
         const measure = measures[i];
         const cleanMeasure = measure.replace(/\](?![0-9])/g, ''); // Only remove ] not followed by digits
         const measureIndexForThisNote = currentMeasureIndexForLine + i;
-        console.log(`🎯 Parsing measure ${measureIndexForThisNote} (voice ${currentVoice}):`, cleanMeasure);
         
         // Parse notes and chords in this measure
         parseNotesInMeasure(cleanMeasure, currentVoice, measureIndexForThisNote, 0);
@@ -146,13 +134,11 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
       // This ensures the next treble line starts with the correct measure index
       if (currentVoice === 0) {
         globalMeasureIndex += measures.length;
-        console.log(`🌍 Advanced global measure index to: ${globalMeasureIndex}`);
       }
     }
   }
 
   function parseNotesInMeasure(measureText, voiceIndex, measureIndex, startingBeats) {
-    console.log(`🔎 Parsing notes in measure: "${measureText}" (measureIndex: ${measureIndex})`);
     let position = 0;
     let beatsUsed = startingBeats;
 
@@ -161,7 +147,6 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
       
       // Handle chord notation [A,C,E,]
       if (char === '[') {
-        console.log('🎵 Found chord at position', position);
         const chordEnd = measureText.indexOf(']', position);
         if (chordEnd === -1) break;
         
@@ -169,13 +154,10 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
         const durationMatch = measureText.substring(chordEnd + 1).match(/^(\d+)/);
         const duration = durationMatch ? parseInt(durationMatch[1]) : 1;
         
-        console.log('🎵 Chord content:', chordContent, 'Duration:', duration);
-        
         // Extract individual notes from chord using regex to preserve octave indicators
         // Pattern: [A-G] followed by optional accidentals (#,b) and octave markers (',)
         const notePattern = /[A-G][',#b]*/g;
         const chordNotes = chordContent.match(notePattern) || [];
-        console.log('🎵 Individual chord notes:', chordNotes);
         
         chordNotes.forEach(chordNote => {
           const cleanNote = chordNote.trim();
@@ -191,7 +173,6 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
               voiceIndex: voiceIndex,
               abcNotation: cleanNote + (duration > 1 ? duration.toString() : '')
             };
-            console.log('🎵 Adding chord note metadata:', metadata);
             noteMetadata.push(metadata);
           }
         });
@@ -206,7 +187,6 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
       }
       // Handle individual notes
       else if (/[A-Ga-g]/.test(char)) {
-        console.log('🎼 Found individual note at position', position);
         let noteEnd = position + 1;
         
         // Include accidentals and octave markers
@@ -223,7 +203,6 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
         }
         
         const noteName = measureText.substring(position, noteEnd - (durationMatch ? durationMatch[1].length : 0));
-        console.log('🎼 Individual note:', noteName, 'Duration:', duration);
         
         if (noteName) {
           const noteId = generateNoteId();
@@ -237,7 +216,6 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
             voiceIndex: voiceIndex,
             abcNotation: noteName + (duration > 1 ? duration.toString() : '')
           };
-          console.log('🎼 Adding individual note metadata:', metadata);
           noteMetadata.push(metadata);
         }
         
