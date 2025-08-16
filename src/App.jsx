@@ -62,6 +62,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Beat tracking state for debugging display
   const [beatInfo, setBeatInfo] = useState('');
   
+  // Countdown state
+  const [isCountingDown, setIsCountingDown] = useState(false);
+  const [countdownBeats, setCountdownBeats] = useState(0);
+  
   // Current notes tracking for debugging display - use ref to avoid stale closure
   const currentNotesRef = useRef(new Set());
   
@@ -225,6 +229,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     console.log('🚀 Creating TimingCallbacks with config:', {
       qpm: effectiveSettings.tempo,
       beatSubdivisions: 4,
+      extraMeasuresAtBeginning: isPracticeMode ? 2 : 0,
       isPracticeMode,
       visualObject: !!visualObjectRef.current,
       noteMetadataCount: noteMetadata.length
@@ -235,6 +240,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
         qpm: effectiveSettings.tempo, // Quarter notes per minute - matches settings
         beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
+        extraMeasuresAtBeginning: isPracticeMode ? 2 : 0, // Add 2 countdown measures for practice mode
         
         // Event callback - called for each musical event (note, rest, etc.)
         eventCallback: (event) => {
@@ -279,6 +285,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           
           if (isPracticeMode) {
             setIsPracticing(false);
+            setIsCountingDown(false);
+            setCountdownBeats(0);
           }
           setBeatInfo(''); // Clear beat info when music ends
           currentNotesRef.current = new Set(); // Clear current notes when music ends
@@ -298,8 +306,22 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           //   console.log('🎵 Processing event with data:', { event: event, eventKeys: Object.keys(event), hasMidiPitches: !!(event.midiPitches && Array.isArray(event.midiPitches)), midiPitchesLength: event.midiPitches ? event.midiPitches.length : 0, midiPitches: event.midiPitches });
           // }
         
-        // Note: Current notes are now managed by beatCallback for more reliable detection
-        // This eventCallback focuses on cursor positioning only
+        // For practice mode, hide cursor during countdown (first 8 beats)
+        if (isPracticeMode && event.milliseconds !== undefined) {
+          const tempo = effectiveSettings.tempo || 120;
+          const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
+          const countdownBeats = 8; // 2 measures of 4/4 time
+          
+          if (currentTimeInBeats < countdownBeats) {
+            // During countdown - hide cursor by positioning it off-screen
+            cursorLine.setAttribute('x1', -100);
+            cursorLine.setAttribute('y1', -100);
+            cursorLine.setAttribute('x2', -100);
+            cursorLine.setAttribute('y2', -100);
+            console.log(`🔒 Hiding cursor during countdown: ${currentTimeInBeats.toFixed(2)}/${countdownBeats}`);
+            return; // Skip normal cursor positioning
+          }
+        }
         
         // Use abcjs-provided positioning data for precise cursor placement
         const cursorX = (event.left + 5) || 0;    // Add 5px to the left to center the cursor
@@ -331,49 +353,85 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           // This formula works for any BPM: (ms / 1000 seconds) * (beats per minute / 60 seconds) = beats
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
           
-          const activeNotes = new Set();
-          const activeNoteIds = new Set();
-          
-          // Find notes that should be active at the current time
-          // Note metadata uses eighth-note units, so we convert to quarter-note beats for comparison
-          noteMetadata.forEach(noteData => {
-            // Convert measure-relative timing to absolute timing in eighth-note units
-            const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
-            const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
-            const absoluteEndTime = absoluteStartTime + noteData.duration;
+          // Only process notes after countdown period
+          const countdownBeats = 8; // 2 measures of 4/4 time
+          if (currentTimeInBeats >= countdownBeats) {
+            const activeNotes = new Set();
+            const activeNoteIds = new Set();
             
-            // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
-            const absoluteStartBeat = absoluteStartTime / 2;
-            const absoluteEndBeat = absoluteEndTime / 2;
+            // Find notes that should be active at the current time
+            // Note metadata uses eighth-note units, so we convert to quarter-note beats for comparison
+            noteMetadata.forEach(noteData => {
+              // Convert measure-relative timing to absolute timing in eighth-note units
+              const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
+              const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
+              const absoluteEndTime = absoluteStartTime + noteData.duration;
+              
+              // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
+              const absoluteStartBeat = absoluteStartTime / 2;
+              const absoluteEndBeat = absoluteEndTime / 2;
+              
+              // Adjust for countdown offset
+              const adjustedCurrentTime = currentTimeInBeats - countdownBeats;
+              
+              if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
+                activeNotes.add(noteData.expectedNote);
+                activeNoteIds.add(noteData.id);
+              }
+            });
             
-            if (currentTimeInBeats >= absoluteStartBeat && currentTimeInBeats < absoluteEndBeat) {
-              activeNotes.add(noteData.expectedNote);
-              activeNoteIds.add(noteData.id);
-            }
-          });
-          
-          // Update current notes refs
-          currentNotesRef.current = activeNotes;
-          currentNoteIdsRef.current = activeNoteIds;
-          
-          const activeNotesAtCursor = Array.from(activeNotes);
-          console.log(`🎯 Cursor at position ${cursorX.toFixed(0)}, expected notes: [${activeNotesAtCursor.join(', ')}]`);
+            // Update current notes refs
+            currentNotesRef.current = activeNotes;
+            currentNoteIdsRef.current = activeNoteIds;
+            
+            const activeNotesAtCursor = Array.from(activeNotes);
+            console.log(`🎯 Cursor at position ${cursorX.toFixed(0)}, expected notes: [${activeNotesAtCursor.join(', ')}]`);
+          }
         }
       },
       
         // Beat callback - called on each beat for additional timing info
         beatCallback: (beatNumber, totalBeats) => {
+          // Debug logging to understand beat numbers
+          console.log(`🥁 BeatCallback: beatNumber=${beatNumber}, totalBeats=${totalBeats}, isPracticeMode=${isPracticeMode}`);
+          
+          // Handle countdown phase for practice mode
+          if (isPracticeMode) {
+            const [beatsPerMeasure] = effectiveSettings.timeSignature.split('/').map(Number);
+            const countdownTotalBeats = beatsPerMeasure * 2; // 2 measures countdown
+            
+            // Since extraMeasuresAtBeginning doesn't seem to work in this version of ABCJS,
+            // we'll create our own countdown by treating the first 8 beats as countdown
+            if (beatNumber < countdownTotalBeats) {
+              // We're in countdown phase (first 8 beats for 4/4 time)
+              const remainingBeats = countdownTotalBeats - Math.floor(beatNumber);
+              console.log(`🔢 Countdown: beatNumber=${beatNumber}, remainingBeats=${remainingBeats}`);
+              setCountdownBeats(remainingBeats);
+              setIsCountingDown(remainingBeats > 0);
+            } else {
+              // We're past countdown - in actual music
+              console.log(`🎵 Music started: beatNumber=${beatNumber}`);
+              setIsCountingDown(false);
+              setCountdownBeats(0);
+            }
+          }
+          
           // Beat info for debugging display
           setBeatInfo(`Beat ${beatNumber}/${totalBeats}`);
           
-          // Only trigger metronome on whole beat counts: 1, 2, 3, 4... (exclude 0)
-          // Since beatSubdivisions=4, beatNumber increments: 0.0, 0.25, 0.5, 0.75, 1.0, 1.25...
-          // We want metronome clicks only on beats 1, 2, 3, 4... (not on beat 0)
+          // Trigger metronome on whole beat counts (including countdown beats)
           const roundedBeat = Math.round(beatNumber);
-          const isWholeBeat = Math.abs(beatNumber - roundedBeat) < 0.1 && roundedBeat >= 1;
+          const isWholeBeat = Math.abs(beatNumber - roundedBeat) < 0.1;
           
-          // Trigger metronome beat if active, external trigger available, and on whole beat >= 1
-          if (isMetronomeActive && metronomeTriggerRef.current && isWholeBeat) {
+          console.log(`🎛️ Metronome check: roundedBeat=${roundedBeat}, isWholeBeat=${isWholeBeat}, isMetronomeActive=${isMetronomeActive}, hasTrigger=${!!metronomeTriggerRef.current}`);
+          
+          // For practice mode, trigger metronome during countdown (first 8 beats) OR if metronome is active
+          const shouldTriggerMetronome = isPracticeMode ? 
+            (beatNumber < 8 || isMetronomeActive) : // Countdown always plays, then only if metronome active
+            isMetronomeActive; // Non-practice mode only if metronome active
+          
+          if (shouldTriggerMetronome && metronomeTriggerRef.current && isWholeBeat) {
+            console.log(`🥁 Triggering metronome beat: ${roundedBeat}`);
             metronomeTriggerRef.current();
           }
         },
@@ -419,7 +477,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
     
     console.log(`${isPracticeMode ? 'Practice mode' : 'abcjs TimingCallbacks'} cursor setup completed`);
-  }, [effectiveSettings.tempo, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap]);
+  }, [effectiveSettings.tempo, effectiveSettings.timeSignature, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -489,8 +547,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
+    console.log('🎹 Practice button clicked, isPracticing:', isPracticing);
+    
     if (isPracticing) {
-
+      console.log('🛑 Stopping practice mode');
       
       // Stop and remove any existing cursor
       const existingCursor = document.querySelector('.playback-cursor');
@@ -505,6 +565,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       }
       
       setIsPracticing(false);
+      setIsCountingDown(false);
+      setCountdownBeats(0);
       return;
     }
 
@@ -514,16 +576,17 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
 
     try {
+      console.log('🚀 Starting practice mode with countdown');
       setIsPracticing(true);
       
-
-      
-      // Start visual cursor without audio playback
+      // Start visual cursor with countdown - this will trigger the countdown automatically
       startVisualCursor(true); // Pass true to indicate practice mode (no audio)
 
     } catch (error) {
       console.error('Error during practice:', error);
       setIsPracticing(false);
+      setIsCountingDown(false);
+      setCountdownBeats(0);
       // Stop and remove any existing cursor on error
       const existingCursor = document.querySelector('.playback-cursor');
       if (existingCursor) {
@@ -774,6 +837,18 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           </div>
         </div>
       </header>
+
+      {/* Countdown Display */}
+      {isCountingDown && (
+        <div className="bg-orange-100 border border-orange-300 px-4 py-8 text-center animate-pulse">
+          <div className="text-6xl font-bold text-orange-800 mb-2">
+            {countdownBeats}
+          </div>
+          <div className="text-lg font-medium text-orange-700">
+            Practice starts in {countdownBeats} beat{countdownBeats !== 1 ? 's' : ''}
+          </div>
+        </div>
+      )}
 
       {/* MIDI Debug Display - for testing */}
       <div className="bg-yellow-100 border border-yellow-300 px-4 py-2 text-center">
