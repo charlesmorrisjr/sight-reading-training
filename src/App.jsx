@@ -501,7 +501,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           
           console.log(`🔍 Metronome decision: shouldTrigger=${shouldTriggerMetronome}, countdown=${beatNumber < countdownTotalBeats}, practicing=${isPracticingRef.current}`);
           
-          if (shouldTriggerMetronome && metronomeTriggerRef.current && isWholeBeat) {
+          if (shouldTriggerMetronome && metronomeTriggerRef.current && isWholeBeat && beatNumber < totalBeats) {
             console.log(`🥁 TRIGGERING metronome beat: ${roundedBeat}`);
             metronomeTriggerRef.current();
           } else if (isWholeBeat) {
