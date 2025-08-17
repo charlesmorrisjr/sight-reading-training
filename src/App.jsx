@@ -254,7 +254,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             isPracticeMode, 
             isPracticingRef: isPracticingRef.current,
             isMetronomeActiveRef: isMetronomeActiveRef.current,
-            timestamp: new Date().toISOString().substr(17, 6)
+            timestamp: new Date().toISOString().substring(17, 23)
           });
           
         if (!event) {
@@ -665,6 +665,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         onMetronomeToggle(); // This will set isMetronomeActive to true
         isMetronomeActiveRef.current = true; // Update ref immediately for sync
       }
+      
+      // CRITICAL FIX: Always sync ref with state when starting practice
+      // This ensures metronome works on subsequent practice sessions even if manually started
+      isMetronomeActiveRef.current = isMetronomeActive;
+      console.log('🔄 Metronome ref synchronized with state:', {
+        isMetronomeActive,
+        isMetronomeActiveRef: isMetronomeActiveRef.current
+      });
       
       setIsPracticing(true);
       
@@ -1079,7 +1087,7 @@ function App() {
     console.log('🎯 handlePracticeEnd called', {
       isMetronomeActive,
       practiceStats,
-      timestamp: new Date().toISOString().substr(17, 6)
+      timestamp: new Date().toISOString().substring(17, 23)
     });
     
     // Auto-stop metronome when practice ends
