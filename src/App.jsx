@@ -80,6 +80,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Ref to store metronome trigger function
   const metronomeTriggerRef = useRef(null);
   
+  // Ref to track metronome state immediately (avoids async state update issues)
+  const isMetronomeActiveRef = useRef(false);
+  
 
   
   // Handle metronome external beat trigger
@@ -244,16 +247,32 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         
         // Event callback - called for each musical event (note, rest, etc.)
         eventCallback: (event) => {
-          // Add immediate logging to verify callback fires
-          // console.log('⚡ EventCallback fired!', { hasEvent: !!event, eventType: typeof event, isPracticeMode });
+          // Enhanced logging to track practice end sequence
+          console.log('⚡ EventCallback fired!', { 
+            hasEvent: !!event, 
+            eventType: typeof event, 
+            isPracticeMode, 
+            isPracticingRef: isPracticingRef.current,
+            isMetronomeActiveRef: isMetronomeActiveRef.current,
+            timestamp: new Date().toISOString().substr(17, 6)
+          });
+          
         if (!event) {
+          console.log('🏁 MUSIC ENDED - Starting cleanup sequence');
           // Music has ended - stop playback and reset button
           if (!isPracticeMode) {
             setIsPlaying(false);
           }
           
           // Call onPracticeEnd if we were in practice mode with note tracking statistics
+          console.log('🎯 Checking practice end condition:', {
+            isPracticingRef: isPracticingRef.current,
+            hasOnPracticeEnd: !!onPracticeEnd,
+            willCallPracticeEnd: isPracticingRef.current && onPracticeEnd
+          });
+          
           if (isPracticingRef.current && onPracticeEnd) {
+            console.log('📊 Calling onPracticeEnd...');
             // Calculate final scores from note tracking map
             let correctCount = 0;
             let wrongCount = 0;
@@ -284,9 +303,29 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           }
           
           if (isPracticeMode) {
+            console.log('🧹 Cleaning up practice mode state...', {
+              wasPracticing: isPracticingRef.current,
+              wasMetronomeActive: isMetronomeActiveRef.current
+            });
+            
             setIsPracticing(false);
             setIsCountingDown(false);
             setCountdownBeats(0);
+            
+            // CRITICAL FIX: Stop metronome immediately to prevent internal timing fallback
+            if (isMetronomeActiveRef.current) {
+              console.log('🔇 Setting isMetronomeActiveRef.current = false');
+              isMetronomeActiveRef.current = false;
+              console.log('🎯 Metronome stopped: practice ended naturally');
+              
+              // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
+              console.log('🛑 Calling onMetronomeToggle to stop MetronomeButton internal timing');
+              if (onMetronomeToggle) {
+                onMetronomeToggle();
+              }
+            } else {
+              console.log('⚠️ Metronome was already inactive');
+            }
           }
           setBeatInfo(''); // Clear beat info when music ends
           currentNotesRef.current = new Set(); // Clear current notes when music ends
@@ -294,10 +333,27 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           if (!isPracticeMode && synthRef.current) {
             synthRef.current.stop();
           }
+          // Stop TimingCallbacks to prevent infinite beatCallback execution
+          console.log('🛑 Attempting to stop TimingCallbacks...', {
+            hasTimingCallbacks: !!timingCallbacks,
+            hasCursor: !!(cursorLine && cursorLine.parentNode)
+          });
+          
+          if (timingCallbacks) {
+            console.log('⏹️ Calling timingCallbacks.stop()');
+            timingCallbacks.stop();
+            console.log('✅ TimingCallbacks stopped successfully');
+          } else {
+            console.log('⚠️ No timingCallbacks reference found');
+          }
+          
           // Remove cursor
           if (cursorLine && cursorLine.parentNode) {
+            console.log('🗑️ Removing cursor from DOM');
             cursorLine.remove();
           }
+          
+          console.log('🏁 EventCallback cleanup complete - music ended');
           return;
         }
         
@@ -392,8 +448,13 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       
         // Beat callback - called on each beat for additional timing info
         beatCallback: (beatNumber, totalBeats) => {
-          // Debug logging to understand beat numbers
-          console.log(`🥁 BeatCallback: beatNumber=${beatNumber}, totalBeats=${totalBeats}, isPracticeMode=${isPracticeMode}`);
+          // Enhanced debug logging to track metronome decisions
+          console.log(`🥁 BeatCallback: beatNumber=${beatNumber}, totalBeats=${totalBeats}, isPracticeMode=${isPracticeMode}, practicing=${isPracticingRef.current}, metronomeRef=${isMetronomeActiveRef.current}`);
+          
+          // CRITICAL: Check if beatCallback is still firing after music should have ended
+          if (beatNumber >= totalBeats) {
+            console.error(`🚨 CRITICAL: BeatCallback firing AFTER music end! Beat ${beatNumber}/${totalBeats}`);
+          }
           
           // Handle countdown phase for practice mode
           if (isPracticeMode) {
@@ -423,16 +484,21 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           const roundedBeat = Math.round(beatNumber);
           const isWholeBeat = Math.abs(beatNumber - roundedBeat) < 0.1;
           
-          console.log(`🎛️ Metronome check: roundedBeat=${roundedBeat}, isWholeBeat=${isWholeBeat}, isMetronomeActive=${isMetronomeActive}, hasTrigger=${!!metronomeTriggerRef.current}`);
+          console.log(`🎛️ Metronome check: roundedBeat=${roundedBeat}, isWholeBeat=${isWholeBeat}, isMetronomeActive=${isMetronomeActive}, isMetronomeActiveRef=${isMetronomeActiveRef.current}, hasTrigger=${!!metronomeTriggerRef.current}`);
           
           // For practice mode, trigger metronome during countdown (first 8 beats) OR if metronome is active
+          // Use ref instead of state to avoid async timing issues
           const shouldTriggerMetronome = isPracticeMode ? 
-            (beatNumber < 8 || isMetronomeActive) : // Countdown always plays, then only if metronome active
-            isMetronomeActive; // Non-practice mode only if metronome active
+            (beatNumber < 8 || isMetronomeActiveRef.current) : // Countdown always plays, then only if metronome active
+            isMetronomeActiveRef.current; // Non-practice mode only if metronome active
+          
+          console.log(`🔍 Metronome decision: shouldTrigger=${shouldTriggerMetronome}, countdown=${beatNumber < 8}, practicing=${isPracticingRef.current}`);
           
           if (shouldTriggerMetronome && metronomeTriggerRef.current && isWholeBeat) {
-            console.log(`🥁 Triggering metronome beat: ${roundedBeat}`);
+            console.log(`🥁 TRIGGERING metronome beat: ${roundedBeat}`);
             metronomeTriggerRef.current();
+          } else if (isWholeBeat) {
+            console.log(`🔇 NOT triggering metronome: shouldTrigger=${shouldTriggerMetronome}, hasTrigger=${!!metronomeTriggerRef.current}`);
           }
         },
       
@@ -477,7 +543,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
     
     console.log(`${isPracticeMode ? 'Practice mode' : 'abcjs TimingCallbacks'} cursor setup completed`);
-  }, [effectiveSettings.tempo, effectiveSettings.timeSignature, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap]);
+  }, [effectiveSettings.tempo, effectiveSettings.timeSignature, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap, onMetronomeToggle]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -564,6 +630,21 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         existingCursor.remove();
       }
       
+      // CRITICAL FIX: Stop metronome when manually stopping practice
+      if (isMetronomeActiveRef.current) {
+        console.log('🔇 Manual stop: Setting isMetronomeActiveRef.current = false');
+        isMetronomeActiveRef.current = false;
+        console.log('🎯 Metronome stopped: practice stopped manually');
+        
+        // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
+        console.log('🛑 Manual stop: Calling onMetronomeToggle to stop MetronomeButton internal timing');
+        if (onMetronomeToggle) {
+          onMetronomeToggle();
+        }
+      } else {
+        console.log('⚠️ Manual stop: Metronome was already inactive');
+      }
+      
       setIsPracticing(false);
       setIsCountingDown(false);
       setCountdownBeats(0);
@@ -577,6 +658,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
     try {
       console.log('🚀 Starting practice mode with countdown');
+      
+      // Auto-start metronome if not already active
+      if (!isMetronomeActive) {
+        console.log('🥁 Auto-starting metronome for practice mode');
+        onMetronomeToggle(); // This will set isMetronomeActive to true
+        isMetronomeActiveRef.current = true; // Update ref immediately for sync
+      }
+      
       setIsPracticing(true);
       
       // Start visual cursor with countdown - this will trigger the countdown automatically
@@ -599,7 +688,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         existingCursor.remove();
       }
     }
-  }, [isPracticing, startVisualCursor]);
+  }, [isPracticing, startVisualCursor, isMetronomeActive, onMetronomeToggle]);
 
   React.useEffect(() => {
     handleGenerateNew();
@@ -614,6 +703,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   React.useEffect(() => {
     isPracticingRef.current = isPracticing;
   }, [isPracticing]);
+  
+  // Keep metronome ref synchronized with state
+  React.useEffect(() => {
+    isMetronomeActiveRef.current = isMetronomeActive;
+  }, [isMetronomeActive]);
 
   React.useEffect(() => {
     return () => {
@@ -982,6 +1076,20 @@ function App() {
 
   // Handle practice end - always show score modal
   const handlePracticeEnd = useCallback((practiceStats) => {
+    console.log('🎯 handlePracticeEnd called', {
+      isMetronomeActive,
+      practiceStats,
+      timestamp: new Date().toISOString().substr(17, 6)
+    });
+    
+    // Auto-stop metronome when practice ends
+    if (isMetronomeActive) {
+      console.log('🔇 Setting isMetronomeActive to false in App component');
+      setIsMetronomeActive(false);
+    } else {
+      console.log('⚠️ Metronome was already inactive in App component');
+    }
+    
     // Always use the accurate counters from MIDI Debug Display
     // These are the same counters shown in the debug display and are guaranteed to be correct
     const capturedCorrectCount = correctNotesCountRef.current;
@@ -1007,8 +1115,10 @@ function App() {
       });
     }
     
+    console.log('📊 Opening score modal...');
     openScoreModal();
-  }, [correctNotes, wrongNotes, openScoreModal]);
+    console.log('✅ handlePracticeEnd complete');
+  }, [correctNotes, wrongNotes, openScoreModal, isMetronomeActive]);;;
 
   // Scoring functions
   const incrementCorrectNotes = useCallback((note) => {
