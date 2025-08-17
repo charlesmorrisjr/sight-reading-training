@@ -362,11 +362,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           //   console.log('🎵 Processing event with data:', { event: event, eventKeys: Object.keys(event), hasMidiPitches: !!(event.midiPitches && Array.isArray(event.midiPitches)), midiPitchesLength: event.midiPitches ? event.midiPitches.length : 0, midiPitches: event.midiPitches });
           // }
         
-        // For practice mode, hide cursor during countdown (first 8 beats)
+        // For practice mode, hide cursor during countdown 
         if (isPracticeMode && event.milliseconds !== undefined) {
           const tempo = effectiveSettings.tempo || 120;
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
-          const countdownBeats = 8; // 2 measures of 4/4 time
+          
+          // Calculate dynamic countdown beats based on time signature
+          const [beatsPerMeasure] = effectiveSettings.timeSignature.split('/').map(Number);
+          const countdownBeats = beatsPerMeasure * 2; // 2 measures countdown
           
           if (currentTimeInBeats < countdownBeats) {
             // During countdown - hide cursor by positioning it off-screen
@@ -410,7 +413,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
           
           // Only process notes after countdown period
-          const countdownBeats = 8; // 2 measures of 4/4 time
+          // Calculate dynamic countdown beats based on time signature
+          const [beatsPerMeasure] = effectiveSettings.timeSignature.split('/').map(Number);
+          const countdownBeats = beatsPerMeasure * 2; // 2 measures countdown
           if (currentTimeInBeats >= countdownBeats) {
             const activeNotes = new Set();
             const activeNoteIds = new Set();
@@ -486,13 +491,15 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           
           console.log(`🎛️ Metronome check: roundedBeat=${roundedBeat}, isWholeBeat=${isWholeBeat}, isMetronomeActive=${isMetronomeActive}, isMetronomeActiveRef=${isMetronomeActiveRef.current}, hasTrigger=${!!metronomeTriggerRef.current}`);
           
-          // For practice mode, trigger metronome during countdown (first 8 beats) OR if metronome is active
+          // For practice mode, trigger metronome during countdown OR if metronome is active
           // Use ref instead of state to avoid async timing issues
+          const [beatsPerMeasure] = effectiveSettings.timeSignature.split('/').map(Number);
+          const countdownTotalBeats = beatsPerMeasure * 2; // 2 measures countdown
           const shouldTriggerMetronome = isPracticeMode ? 
-            (beatNumber < 8 || isMetronomeActiveRef.current) : // Countdown always plays, then only if metronome active
+            (beatNumber < countdownTotalBeats || isMetronomeActiveRef.current) : // Countdown always plays, then only if metronome active
             isMetronomeActiveRef.current; // Non-practice mode only if metronome active
           
-          console.log(`🔍 Metronome decision: shouldTrigger=${shouldTriggerMetronome}, countdown=${beatNumber < 8}, practicing=${isPracticingRef.current}`);
+          console.log(`🔍 Metronome decision: shouldTrigger=${shouldTriggerMetronome}, countdown=${beatNumber < countdownTotalBeats}, practicing=${isPracticingRef.current}`);
           
           if (shouldTriggerMetronome && metronomeTriggerRef.current && isWholeBeat) {
             console.log(`🥁 TRIGGERING metronome beat: ${roundedBeat}`);
