@@ -249,12 +249,19 @@ const Dashboard = ({ settings, onSettingsChange }) => {
           
           {/* Welcome Section */}
           <div className="hero bg-blue-600 text-white rounded-2xl animate-fade-in">
-            <div className="hero-content text-center py-12">
+            <div className="hero-content text-center py-12 px-8">
               <div className="max-w-md mx-auto">
                 <h1 className="text-4xl font-bold mb-4">Welcome Back!</h1>
-                <p className="text-blue-100">
+                <p className="text-blue-100 mb-10">
                   Ready to improve your sight reading skills? Let's continue your musical journey.
                 </p>
+                
+                <button 
+                  className="btn btn-white btn-lg px-8 py-4 text-blue-600 hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  onClick={() => navigate('/levels')}
+                >
+                  Start Practice
+                </button>
               </div>
             </div>
           </div>

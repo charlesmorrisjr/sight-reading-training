@@ -16,6 +16,7 @@ import MelodicPractice from './components/MelodicPractice';
 import NoteDuration from './components/NoteDuration';
 import FreePractice from './components/FreePractice';
 import TimeSignatures from './components/TimeSignatures';
+import Levels from './components/Levels';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
@@ -1034,7 +1035,8 @@ function App() {
     chordRhythms: ['straight'],
     melodicPatterns: ['melodies'],
     melodicArticulations: ['legato'],
-    musicScale: 1.0
+    musicScale: 1.0,
+    selectedLevel: null
   });
 
   // Tempo modal state
@@ -1229,6 +1231,17 @@ function App() {
                   <Intervals 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
+                  />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/levels" 
+              element={
+                <ProtectedRoute>
+                  <Levels 
+                    selectedLevel={settings.selectedLevel} 
+                    onLevelChange={(level) => handleSettingsChange({ ...settings, selectedLevel: level })}
                   />
                 </ProtectedRoute>
               } 
