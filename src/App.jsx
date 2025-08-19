@@ -30,7 +30,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle }) => {
+const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults }) => {
   const location = useLocation();
   
   // Get intervals from location state if available
@@ -125,6 +125,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       });
       setNoteTrackingMap(initialTrackingMap);
       
+      // Reset post-practice highlighting when generating new exercise
+      if (onResetPostPracticeResults) {
+        onResetPostPracticeResults();
+        console.log('🎨 Post-practice highlighting reset for new exercise');
+      }
+      
       console.log('📝 Generated music with metadata:', result.noteMetadata);
       console.log('🗺️ Initialized note tracking map:', initialTrackingMap);
     } catch (error) {
@@ -132,7 +138,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     } finally {
       setIsGenerating(false);
     }
-  }, [effectiveSettings, onResetScoring]);
+  }, [effectiveSettings, onResetScoring, onResetPostPracticeResults]);
 
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback((visualObj) => {
@@ -979,6 +985,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             settings={effectiveSettings}
             onVisualsReady={handleVisualsReady}
             pressedMidiNotes={pressedMidiNotes}
+            enableRealtimeHighlighting={false}
+            noteTrackingMap={noteTrackingMap}
+            showPostPracticeResults={showPostPracticeResults}
           />
         </div>
 
@@ -1060,6 +1069,9 @@ function App() {
     wrongNotes: []
   });
 
+  // Post-practice highlighting state
+  const [showPostPracticeResults, setShowPostPracticeResults] = useState(false);
+
   const handleSettingsChange = useCallback((newSettings) => {
     setSettings(newSettings);
   }, []);
@@ -1122,6 +1134,10 @@ function App() {
       unplayedCount: practiceStats?.unplayedCount
     });
     
+    // Enable post-practice highlighting to show results
+    setShowPostPracticeResults(true);
+    console.log('🎨 Post-practice highlighting enabled - showing note results');
+    
     // Keep essential practice end logging for troubleshooting
     if (practiceStats) {
       console.log('Practice ended - Note tracking vs Accurate scores:', {
@@ -1133,7 +1149,7 @@ function App() {
     console.log('📊 Opening score modal...');
     openScoreModal();
     console.log('✅ handlePracticeEnd complete');
-  }, [correctNotes, wrongNotes, openScoreModal, isMetronomeActive]);;;
+  }, [correctNotes, wrongNotes, openScoreModal, isMetronomeActive, setShowPostPracticeResults]);
 
   // Scoring functions
   const incrementCorrectNotes = useCallback((note) => {
@@ -1152,6 +1168,10 @@ function App() {
       return newValue;
     });
     setWrongNotes(prev => [...prev, note]);
+  }, []);
+
+  const resetPostPracticeResults = useCallback(() => {
+    setShowPostPracticeResults(false);
   }, []);
 
   const resetScoring = useCallback(() => {
@@ -1307,6 +1327,8 @@ function App() {
                     onPracticeEnd={handlePracticeEnd}
                     isMetronomeActive={isMetronomeActive}
                     onMetronomeToggle={handleMetronomeToggle}
+                    showPostPracticeResults={showPostPracticeResults}
+                    onResetPostPracticeResults={resetPostPracticeResults}
                   />
                 </ProtectedRoute>
               } 

@@ -2,7 +2,16 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as ABCJS from 'abcjs';
 import './MusicDisplay.css';
 
-const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl, pressedMidiNotes = new Set() }) => {
+const MusicDisplay = ({ 
+  abcNotation, 
+  settings, 
+  onVisualsReady, 
+  cursorControl, 
+  pressedMidiNotes = new Set(),
+  enableRealtimeHighlighting = true,
+  noteTrackingMap = new Map(),
+  showPostPracticeResults = false
+}) => {
   const containerRef = useRef(null);
   const renderRef = useRef(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -111,6 +120,52 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl, pr
     });
   }, [pressedMidiNotes, midiNoteToPitchClass]);
 
+  // Function to highlight notes based on practice results (correct=green, incorrect=red)
+  const highlightNoteResults = useCallback(() => {
+    if (!renderRef.current) return;
+    
+    const svgContainer = renderRef.current.querySelector('svg');
+    if (!svgContainer) return;
+    
+    // Remove existing highlight classes
+    const previousHighlights = svgContainer.querySelectorAll('.midi-highlighted, .result-highlighted');
+    previousHighlights.forEach(element => {
+      element.classList.remove('midi-highlighted', 'result-highlighted');
+      element.style.fill = '';
+      element.style.stroke = '';
+      element.style.strokeWidth = '';
+    });
+    
+    if (noteTrackingMap.size === 0) return;
+    
+    console.log('Highlighting practice results:', noteTrackingMap.size, 'notes');
+    
+    // Highlight notes based on their status
+    noteTrackingMap.forEach((noteData, noteId) => {
+      if (noteData.status === 'unplayed') return; // Don't highlight unplayed notes
+      
+      // Find the note element by its unique identifier
+      // Note elements should have data attributes or classes that match noteId
+      const noteElement = svgContainer.querySelector(`[data-note-id="${noteId}"]`) || 
+                         svgContainer.querySelector(`.note-${noteId}`);
+      
+      if (noteElement) {
+        noteElement.classList.add('result-highlighted');
+        
+        if (noteData.status === 'correct') {
+          noteElement.style.fill = 'rgba(34, 197, 94, 0.7)'; // Green
+          noteElement.style.stroke = 'rgb(34, 197, 94)';
+        } else if (noteData.status === 'incorrect') {
+          noteElement.style.fill = 'rgba(239, 68, 68, 0.7)'; // Red
+          noteElement.style.stroke = 'rgb(239, 68, 68)';
+        }
+        noteElement.style.strokeWidth = '2';
+      } else {
+        console.warn(`Could not find note element for ID: ${noteId}`);
+      }
+    });
+  }, [noteTrackingMap]);
+
   useEffect(() => {
     if (!abcNotation || !renderRef.current) return;
 
@@ -183,15 +238,29 @@ const MusicDisplay = ({ abcNotation, settings, onVisualsReady, cursorControl, pr
     }
   }, [abcNotation, settings, windowWidth, onVisualsReady, cursorControl]);
 
-  // Update highlights when MIDI notes change
+  // Update highlights when MIDI notes change (only if real-time highlighting is enabled)
   useEffect(() => {
+    if (!enableRealtimeHighlighting) return;
+    
     // Small delay to ensure DOM is updated after rendering
     const timer = setTimeout(() => {
       highlightMidiNotes();
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [pressedMidiNotes, highlightMidiNotes]);
+  }, [pressedMidiNotes, highlightMidiNotes, enableRealtimeHighlighting]);
+
+  // Update highlights when showing post-practice results
+  useEffect(() => {
+    if (!showPostPracticeResults) return;
+    
+    // Small delay to ensure DOM is updated after rendering
+    const timer = setTimeout(() => {
+      highlightNoteResults();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [showPostPracticeResults, highlightNoteResults]);
 
   // Handle window resize to update responsive behavior
   useEffect(() => {
