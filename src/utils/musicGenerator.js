@@ -299,8 +299,8 @@ export function generateRandomABC(options) {
       let candidateIndex;
       let interval = 0;
       
-      // 70% chance to use harmonic note, 30% chance to use interval-based movement
-      if (harmonicIndices && Math.random() < 0.7) {
+      // 10% chance to use harmonic note, 90% chance to use interval-based movement
+      if (harmonicIndices && Math.random() < 0.1) {
         const harmonicIndex = harmonicIndices[Math.floor(Math.random() * harmonicIndices.length)];
         candidateIndex = harmonicIndex;
       } else {
