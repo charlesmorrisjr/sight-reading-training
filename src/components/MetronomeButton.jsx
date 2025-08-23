@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaClock } from 'react-icons/fa';
+import MetronomeIcon from '../assets/metronome-svgrepo-com.svg?react';
 
 const MetronomeButton = ({ 
   tempo = 120, 
@@ -184,10 +184,7 @@ const MetronomeButton = ({
       disabled={disabled}
       title={isActive ? 'Stop Metronome' : 'Start Metronome'}
     >
-      <FaClock className={`w-5 h-5 ${isBeating && isActive ? 'text-white scale-110' : ''} transition-all duration-100`} />
-      <span className="hidden sm:inline">
-        {isActive ? 'Stop' : 'Metronome'}
-      </span>
+      <MetronomeIcon className={`w-7 h-7 ${isBeating && isActive ? 'scale-110' : ''} transition-all duration-100`} />
     </button>
   );
 };
