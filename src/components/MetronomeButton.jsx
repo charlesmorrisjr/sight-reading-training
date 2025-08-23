@@ -175,7 +175,7 @@ const MetronomeButton = ({
     <button 
       className={`btn btn-lg ${
         isActive 
-          ? `${isBeating ? 'bg-green-500' : 'bg-white'} text-white border-green-600` 
+          ? `${isBeating ? 'bg-blue-500' : 'bg-white'} text-white border-blue-600` 
           : 'btn-outline text-gray-700 hover:bg-gray-100'
       } ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
