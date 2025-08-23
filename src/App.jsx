@@ -886,7 +886,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               {/* Tempo Button */}
               <button
                 onClick={onTempoClick}
-                className="btn btn-lg btn-outline text-gray-700 hover:bg-gray-100"
+                className={`btn btn-lg btn-outline text-gray-700 hover:bg-gray-100 ${
+                  (isPlaying || isPracticing) ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={isPlaying || isPracticing}
                 title="Change Tempo"
               >
                 <span className="text-lg font-medium">{effectiveSettings.tempo} BPM</span>
@@ -992,9 +995,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         {/* Generate Button */}
         <div className="text-center">
           <button 
-            className={`btn btn-primary btn-lg ${isGenerating ? 'loading' : ''}`}
+            className={`btn btn-primary btn-lg ${isGenerating ? 'loading' : ''} ${
+              (isGenerating || isPlaying || isPracticing) ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             onClick={handleGenerateNew}
-            disabled={isGenerating}
+            disabled={isGenerating || isPlaying || isPracticing}
           >
             {isGenerating ? (
               <>
