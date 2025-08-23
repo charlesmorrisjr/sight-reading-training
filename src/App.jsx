@@ -886,10 +886,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               {/* Tempo Button */}
               <button
                 onClick={onTempoClick}
-                className="btn btn-outline text-gray-700 hover:bg-gray-100"
+                className="btn btn-lg btn-outline text-gray-700 hover:bg-gray-100"
                 title="Change Tempo"
               >
-                <span className="text-sm font-medium">{effectiveSettings.tempo} BPM</span>
+                <span className="text-lg font-medium">{effectiveSettings.tempo} BPM</span>
               </button>
 
               {/* Metronome Button */}
