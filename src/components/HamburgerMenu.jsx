@@ -145,6 +145,12 @@ const HamburgerMenu = ({
     onSettingsChange(newSettings);
   };
 
+  const handleSwapHandPatternsToggle = () => {
+    // Toggle the boolean value
+    const newValue = !settings.swapHandPatterns;
+    handleSettingChange('swapHandPatterns', newValue);
+  };
+
   const handleScaleChange = (delta) => {
     const currentScale = settings.musicScale || 1.0;
     const newScale = Math.max(1.0, Math.min(2.0, currentScale + delta));
@@ -269,6 +275,15 @@ const HamburgerMenu = ({
             >
               Left Hand Patterns
               <span className="menu-nav-arrow">→</span>
+            </button>
+            <button 
+              className={`menu-nav-item ${settings.swapHandPatterns ? 'selected' : ''}`}
+              onClick={handleSwapHandPatternsToggle}
+            >
+              Swap Hand Patterns:
+              <span className="swap-indicator">
+                {settings.swapHandPatterns ? 'ON' : 'OFF'}
+              </span>
             </button>
           </div>
         );

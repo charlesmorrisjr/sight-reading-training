@@ -1029,6 +1029,7 @@ function App() {
     rightHandPatterns: ['single-notes'],
     rightHandIntervals: ['2nd'],
     rightHand4NoteChords: ['major'],
+    swapHandPatterns: false,
     chordTypes: ['major', 'minor'],
     chordInversions: ['root'],
     chordVoicings: ['closed'],
