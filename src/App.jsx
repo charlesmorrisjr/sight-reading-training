@@ -904,7 +904,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
               {/* Play Button */}
               <button 
-                className={`btn btn-lg ${isPlaying ? 'btn-error' : 'btn-primary'} ${
+                className={`btn btn-lg btn-outline ${isPlaying ? 'btn-error' : 'bg-white border-gray-300 hover:bg-gray-50'} ${
                   (isInitializing || !isVisualsReady || isPracticing) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 onClick={handlePlayClick}
@@ -912,15 +912,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 title={isPlaying ? 'Stop' : 'Play'}
               >
                 {isInitializing ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <div className="w-7 h-7 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 ) : isPlaying ? (
-                  <FaStop className="w-5 h-5" />
+                  <FaStop className="w-7 h-7" />
                 ) : (
-                  <FaPlay className="w-5 h-5" />
+                  <FaPlay className="w-7 h-7" />
                 )}
-                <span className="hidden sm:inline">
-                  {isInitializing ? 'Loading...' : isPlaying ? 'Stop' : 'Play'}
-                </span>
               </button>
 
               {/* Practice Button */}
