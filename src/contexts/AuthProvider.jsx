@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthContext } from './AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -42,20 +43,44 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Passwords do not match' };
       }
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const userData = {
-        id: Date.now(),
+      const { data, error } = await supabase.auth.signUp({
         email,
-        name: email.split('@')[0],
-        loginMethod: 'email'
-      };
-      
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      return { success: true };
-    } catch {
+        password,
+      });
+
+      if (error) {
+        return { 
+          success: false, 
+          error: error.message || 'Signup failed' 
+        };
+      }
+
+      if (data?.user) {
+        // Check if user needs email confirmation
+        if (!data.session && data.user && !data.user.email_confirmed_at) {
+          return {
+            success: true,
+            needsConfirmation: true,
+            message: 'Please check your email to confirm your account before signing in.'
+          };
+        }
+
+        // User is signed up and confirmed
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.email.split('@')[0],
+          loginMethod: 'email'
+        };
+        
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        return { success: true };
+      }
+
       return { success: false, error: 'Signup failed' };
+    } catch (err) {
+      return { success: false, error: err.message || 'Signup failed' };
     } finally {
       setLoading(false);
     }

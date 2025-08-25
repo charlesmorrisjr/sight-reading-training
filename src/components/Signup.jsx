@@ -11,6 +11,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const {
     register,
@@ -27,10 +28,15 @@ const Signup = () => {
 
   const onSubmit = async (data) => {
     setAuthError('');
+    setSuccessMessage('');
     const result = await signup(data.email, data.password, data.confirmPassword);
     
     if (result.success) {
-      navigate('/dashboard');
+      if (result.needsConfirmation) {
+        setSuccessMessage(result.message || 'Account created! Please check your email to confirm your account.');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       setAuthError(result.error || 'Signup failed. Please try again.');
     }
@@ -38,6 +44,7 @@ const Signup = () => {
 
   const handleGoogleLogin = async () => {
     setAuthError('');
+    setSuccessMessage('');
     const result = await loginWithGoogle();
     
     if (result.success) {
@@ -59,6 +66,12 @@ const Signup = () => {
         {authError && (
           <div className="alert alert-error bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg text-sm text-center">
             {authError}
+          </div>
+        )}
+        
+        {successMessage && (
+          <div className="alert alert-success bg-green-50 border border-green-200 text-green-800 p-3 rounded-lg text-sm text-center">
+            {successMessage}
           </div>
         )}
 
