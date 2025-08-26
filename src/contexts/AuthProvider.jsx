@@ -7,30 +7,91 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error getting session:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (session?.user) {
+        const userData = {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.email.split('@')[0],
+          loginMethod: 'email'
+        };
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+      } else {
+        // Fallback to localStorage for development
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const userData = {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.email.split('@')[0],
+            loginMethod: 'email'
+          };
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          localStorage.removeItem('user');
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email) => {
+  const login = async (email, password) => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const userData = {
-        id: Date.now(),
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        name: email.split('@')[0],
-        loginMethod: 'email'
-      };
-      
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      return { success: true };
-    } catch {
+        password,
+      });
+
+      if (error) {
+        return { 
+          success: false, 
+          error: error.message || 'Login failed' 
+        };
+      }
+
+      if (data?.user && data?.session) {
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.email.split('@')[0],
+          loginMethod: 'email'
+        };
+        
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        return { success: true };
+      }
+
       return { success: false, error: 'Login failed' };
+    } catch (err) {
+      return { success: false, error: err.message || 'Login failed' };
     } finally {
       setLoading(false);
     }
@@ -108,9 +169,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async () => {
+    await supabase.auth.signOut();
+    // The auth state listener will handle clearing user state
   };
 
   const value = {
