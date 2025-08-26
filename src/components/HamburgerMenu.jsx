@@ -18,7 +18,8 @@ import './HamburgerMenu.css';
 
 const HamburgerMenu = ({ 
   settings, 
-  onSettingsChange
+  onSettingsChange,
+  onSaveExercise
 }) => {
   const navigate = useNavigate();
   const { selectedIntervals, toggleInterval } = useIntervals();
@@ -49,6 +50,13 @@ const HamburgerMenu = ({
       setMenuHistory(newHistory);
       setCurrentMenu(newHistory[newHistory.length - 1]);
     }
+  };
+
+  const handleSaveExercise = () => {
+    if (onSaveExercise) {
+      onSaveExercise();
+    }
+    closeMenu();
   };
 
   const handleSettingChange = useCallback((field, value) => {
@@ -212,6 +220,7 @@ const HamburgerMenu = ({
     };
   }, [isOpen]);
 
+
   const renderMenuContent = () => {
     const majorKeys = AVAILABLE_KEYS.filter(key => !key.includes('m'));
     const minorKeys = AVAILABLE_KEYS.filter(key => key.includes('m'));
@@ -284,6 +293,12 @@ const HamburgerMenu = ({
               <span className="swap-indicator">
                 {settings.swapHandPatterns ? 'ON' : 'OFF'}
               </span>
+            </button>
+            <button 
+              className="menu-nav-item"
+              onClick={handleSaveExercise}
+            >
+              Save Exercise
             </button>
           </div>
         );
@@ -741,6 +756,7 @@ const HamburgerMenu = ({
           </div>
         </div>
       </div>
+
     </>
   );
 };

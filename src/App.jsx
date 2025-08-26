@@ -7,6 +7,7 @@ import MusicDisplay from './components/MusicDisplay';
 import TempoSelector from './components/TempoSelector';
 import MetronomeButton from './components/MetronomeButton';
 import ScoreModal from './components/ScoreModal';
+import SaveExerciseModal from './components/SaveExerciseModal';
 import Dashboard from './components/Dashboard';
 import Intervals from './components/Intervals';
 import Keys from './components/Keys';
@@ -31,7 +32,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults }) => {
+const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, onSaveExercise }) => {
   const location = useLocation();
   
   // Get intervals from location state if available
@@ -948,6 +949,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               <HamburgerMenu
                 settings={settings}
                 onSettingsChange={onSettingsChange}
+                onSaveExercise={onSaveExercise}
               />
             </div>
           </div>
@@ -1062,6 +1064,9 @@ function App() {
   // Score modal state
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   
+  // Save exercise modal state
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  
   // Arrays to track individual notes played correctly and incorrectly
   const [correctNotes, setCorrectNotes] = useState([]);
   const [wrongNotes, setWrongNotes] = useState([]);
@@ -1104,6 +1109,15 @@ function App() {
 
   const closeScoreModal = useCallback(() => {
     setScoreModalOpen(false);
+  }, []);
+
+  // Save modal functions
+  const openSaveModal = useCallback(() => {
+    setSaveModalOpen(true);
+  }, []);
+
+  const closeSaveModal = useCallback(() => {
+    setSaveModalOpen(false);
   }, []);
 
   // Handle practice end - always show score modal
@@ -1186,6 +1200,18 @@ function App() {
     setWrongNotes([]);
     correctNotesCountRef.current = 0;
     wrongNotesCountRef.current = 0;
+  }, []);
+
+  // Handle save exercise - open modal
+  const handleSaveExercise = useCallback(() => {
+    openSaveModal();
+  }, [openSaveModal]);
+
+  // Handle actual save with exercise name
+  const handleSaveExerciseWithName = useCallback((exerciseName) => {
+    console.log('Save exercise called with name:', exerciseName);
+    // TODO: Implement actual save functionality
+    alert(`Exercise "${exerciseName}" would be saved here!`);
   }, []);
 
   // MIDI event handler
@@ -1345,6 +1371,7 @@ function App() {
                     onMetronomeToggle={handleMetronomeToggle}
                     showPostPracticeResults={showPostPracticeResults}
                     onResetPostPracticeResults={resetPostPracticeResults}
+                    onSaveExercise={handleSaveExercise}
                   />
                 </ProtectedRoute>
               } 
@@ -1373,6 +1400,13 @@ function App() {
             wrongNotes={capturedScores.wrongNotes}
           />
         )}
+
+        {/* Save Exercise Modal */}
+        <SaveExerciseModal
+          isOpen={saveModalOpen}
+          onClose={closeSaveModal}
+          onSave={handleSaveExerciseWithName}
+        />
         </ChordsProvider>
       </IntervalsProvider>
     </AuthProvider>
