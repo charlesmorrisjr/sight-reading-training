@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaTimes, FaSave } from 'react-icons/fa';
+import { FaTimes, FaSave, FaSpinner } from 'react-icons/fa';
 
 const SaveExerciseModal = ({ 
   isOpen, 
@@ -8,9 +8,13 @@ const SaveExerciseModal = ({
   initialValue = '' 
 }) => {
   const [exerciseName, setExerciseName] = useState(initialValue);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleCancel = useCallback(() => {
     setExerciseName('');
+    setError('');
+    setIsLoading(false);
     onClose();
   }, [onClose]);
 
@@ -18,6 +22,8 @@ const SaveExerciseModal = ({
   useEffect(() => {
     if (isOpen) {
       setExerciseName(initialValue);
+      setError('');
+      setIsLoading(false);
     }
   }, [isOpen, initialValue]);
 
@@ -38,10 +44,32 @@ const SaveExerciseModal = ({
     };
   }, [isOpen, handleCancel]);
 
-  const handleSave = () => {
-    if (exerciseName.trim() && onSave) {
-      onSave(exerciseName.trim());
-      handleCancel(); // Close modal and reset
+  const handleSave = async () => {
+    if (!exerciseName.trim()) {
+      setError('Exercise name is required');
+      return;
+    }
+
+    if (!onSave) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Modify the onSave prop to return a result object
+      const result = await onSave(exerciseName.trim());
+      
+      if (result && result.success === false) {
+        setError(result.error || 'Failed to save exercise');
+        setIsLoading(false);
+      } else {
+        // Success - close modal and reset
+        handleCancel();
+      }
+    } catch (err) {
+      console.error('Error in handleSave:', err);
+      setError('An unexpected error occurred');
+      setIsLoading(false);
     }
   };
 
@@ -84,28 +112,42 @@ const SaveExerciseModal = ({
             type="text"
             placeholder="Enter exercise name..."
             value={exerciseName}
-            onChange={(e) => setExerciseName(e.target.value)}
+            onChange={(e) => {
+              setExerciseName(e.target.value);
+              if (error) setError(''); // Clear error when user types
+            }}
             onKeyPress={handleKeyPress}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              error ? 'border-red-500' : 'border-gray-300'
+            }`}
+            disabled={isLoading}
             autoFocus
           />
+          {error && (
+            <p className="mt-2 text-sm text-red-600">{error}</p>
+          )}
         </div>
 
         {/* Action buttons */}
         <div className="flex gap-3 justify-end">
           <button
             onClick={handleCancel}
+            disabled={isLoading}
             className="btn btn-outline"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            disabled={!exerciseName.trim()}
+            disabled={!exerciseName.trim() || isLoading}
             className="btn btn-primary"
           >
-            <FaSave className="w-4 h-4 mr-2" />
-            Save
+            {isLoading ? (
+              <FaSpinner className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FaSave className="w-4 h-4 mr-2" />
+            )}
+            {isLoading ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
