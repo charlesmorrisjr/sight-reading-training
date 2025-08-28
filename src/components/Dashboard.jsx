@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { ExerciseService } from '../services/exerciseService';
 import { 
   FaHome, 
   FaKeyboard, 
@@ -11,7 +12,8 @@ import {
   FaPlus,
   FaMusic,
   FaChartArea,
-  FaBars
+  FaBars,
+  FaSpinner
 } from 'react-icons/fa';
 // Import SVG as URL
 import twoNotesRedIcon from '../assets/reshot-icon-music-F6RGPB5VSX.svg';
@@ -20,13 +22,50 @@ import threeNotesIcon from '../assets/reshot-icon-musical-notes-NQYZ4DAWFV.svg';
 import fourNotesIcon from '../assets/reshot-icon-musical-note-AT43GFYXHC.svg';
 import clefNotesIcon from '../assets/reshot-icon-music-MA3H8WZCPG.svg';
 
-const Dashboard = ({ settings, onSettingsChange }) => {
+const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   
   // State for intervals selection page
   const [showIntervalsPage, setShowIntervalsPage] = useState(false);
   
+  // State for saved exercises
+  const [savedExercises, setSavedExercises] = useState([]);
+  const [exercisesLoading, setExercisesLoading] = useState(true);
+  const [exercisesError, setExercisesError] = useState('');
+  
+  // Load saved exercises on component mount
+  useEffect(() => {
+    const loadExercises = async () => {
+      if (!user?.id) {
+        setExercisesLoading(false);
+        return;
+      }
+
+      try {
+        setExercisesLoading(true);
+        setExercisesError('');
+        
+        const result = await ExerciseService.getUserExercises(user.id);
+        
+        if (result.success) {
+          setSavedExercises(result.data || []);
+        } else {
+          setExercisesError(result.error || 'Failed to load exercises');
+          setSavedExercises([]);
+        }
+      } catch (error) {
+        console.error('Error loading exercises:', error);
+        setExercisesError('An unexpected error occurred while loading exercises');
+        setSavedExercises([]);
+      } finally {
+        setExercisesLoading(false);
+      }
+    };
+
+    loadExercises();
+  }, [user?.id]);
+
   // TODO: settings and onSettingsChange will be used for future database integration
   // Currently these props are prepared for future database integration
   console.debug('Dashboard props:', { settings, onSettingsChange });
@@ -67,6 +106,28 @@ const Dashboard = ({ settings, onSettingsChange }) => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  // Handle loading a saved exercise
+  const handleExerciseClick = async (exercise) => {
+    try {
+      // Convert database exercise back to settings format
+      const exerciseSettings = ExerciseService.convertToSettings(exercise);
+      
+      // If onLoadExercise prop is provided, use it to update settings
+      if (onLoadExercise) {
+        onLoadExercise(exerciseSettings);
+      } else {
+        // Fallback: use onSettingsChange if available
+        onSettingsChange && onSettingsChange(exerciseSettings);
+      }
+      
+      // Navigate to practice page
+      navigate('/practice');
+    } catch (error) {
+      console.error('Error loading exercise:', error);
+      alert('Failed to load exercise. Please try again.');
+    }
   };
 
   // Intervals page handlers
@@ -393,86 +454,56 @@ const Dashboard = ({ settings, onSettingsChange }) => {
             </div>
           </div>
 
-          {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            My Exercises
-            <div className="card bg-white shadow-lg">
-              <div className="card-body">
-                <h2 className="card-title text-xl mb-4 flex items-center">
-                  <span className="text-2xl mr-2">📚</span>
-                  My Exercises
-                </h2>
-                <div className="space-y-4">
-                  <button 
-                    className="btn btn-outline btn-block btn-lg border-dashed hover:bg-blue-50"
-                    onClick={handleAddCustomDrill}
-                  >
-                    <FaPlus className="mr-2" />
-                    Add Custom Drill
-                  </button>
-                  
-                  <div className="space-y-2">
-                    <button 
-                      className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
-                      onClick={() => handleCustomDrillClick('arpeggios')}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                        <span className="font-medium">5-note Arpeggios in C Major</span>
-                      </div>
-                    </button>
-                    
-                    <button 
-                      className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
-                      onClick={() => handleCustomDrillClick('step-skip')}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                        <span className="font-medium">Step-Skip Mix in Treble Clef</span>
-                      </div>
-                    </button>
-                    
-                    <button 
-                      className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
-                      onClick={() => handleCustomDrillClick('grand-staff')}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
-                        <span className="font-medium">Grand Staff Leap Challenge</span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Saved Exercises */}
+          <div className="card bg-white shadow-lg animate-scale-in">
+            <div className="card-body">
+              <h2 className="card-title text-2xl mb-6 flex items-center">
+                <FaMusic className="mr-3 text-blue-600" />
+                Saved Exercises
+              </h2>
 
-            Suggested Drill
-            <div className="card bg-white text-gray-900 shadow-lg">
-              <div className="card-body flex flex-col h-full">
-                <div>
-                  <h2 className="card-title text-xl mb-4 flex items-center">
-                    <span className="text-2xl mr-2">🔥</span>
-                    Suggested Drill
-                  </h2>
-                  <div>
-                    <h3 className="text-lg font-semibold">Interval Drill #7: 3rds and 4ths</h3>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <div className="badge badge-warning">3 min</div>
-                      <div className="badge badge-info">★★☆☆☆</div>
-                    </div>
-                  </div>
+              {exercisesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <FaSpinner className="animate-spin text-2xl text-blue-600 mr-3" />
+                  <span className="text-gray-600">Loading exercises...</span>
                 </div>
-                <div className="mt-auto pt-6">
+              ) : exercisesError ? (
+                <div className="text-center py-8">
+                  <p className="text-red-600 mb-4">{exercisesError}</p>
                   <button 
-                    className="btn btn-outline btn-lg w-full"
-                    onClick={handleDrillPlay}
+                    className="btn btn-outline btn-sm"
+                    onClick={() => window.location.reload()}
                   >
-                    <FaPlay className="mr-2" />
-                    Start Drill
+                    Try Again
                   </button>
                 </div>
-              </div>
+              ) : savedExercises.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">No exercises saved.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {savedExercises.map((exercise) => (
+                    <button
+                      key={exercise.id}
+                      className="btn btn-outline btn-lg h-auto p-4 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-300"
+                      onClick={() => handleExerciseClick(exercise)}
+                    >
+                      <div className="w-full">
+                        <div className="font-semibold text-base mb-1">{exercise.exercise_name}</div>
+                        <div className="text-sm text-gray-500">
+                          {exercise.key_signature} • {exercise.time_signature} • {exercise.measures} measures
+                        </div>
+                        <div className="text-xs text-gray-400 mt-2">
+                          {new Date(exercise.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div> */}
+          </div>
         </div>
       </main>
     </div>

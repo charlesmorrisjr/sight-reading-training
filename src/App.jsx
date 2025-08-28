@@ -1086,6 +1086,12 @@ function App() {
     setSettings(newSettings);
   }, []);
 
+  // Handle loading a saved exercise
+  const handleLoadExercise = useCallback((exerciseSettings) => {
+    console.log('Loading exercise with settings:', exerciseSettings);
+    setSettings(exerciseSettings);
+  }, []);
+
   const handleTempoChange = useCallback((newTempo) => {
     setSettings(prev => ({ ...prev, tempo: newTempo }));
   }, []);
@@ -1249,6 +1255,7 @@ function App() {
                   <Dashboard 
                     settings={settings} 
                     onSettingsChange={handleSettingsChange}
+                    onLoadExercise={handleLoadExercise}
                   />
                 </ProtectedRoute>
               } 
