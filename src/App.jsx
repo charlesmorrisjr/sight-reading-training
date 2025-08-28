@@ -21,6 +21,7 @@ import Levels from './components/Levels';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
+import { ExerciseService } from './services/exerciseService';
 import { AuthProvider } from './contexts/AuthProvider';
 import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
@@ -1018,7 +1019,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   );
 };
 
-function App() {
+function AppContent() {
+  // Get current user from auth context
+  const { user } = useAuth();
+  
   // Default settings
   const [settings, setSettings] = useState({
     key: 'C',
@@ -1214,11 +1218,31 @@ function App() {
   }, [openSaveModal]);
 
   // Handle actual save with exercise name
-  const handleSaveExerciseWithName = useCallback((exerciseName) => {
-    console.log('Save exercise called with name:', exerciseName);
-    // TODO: Implement actual save functionality
-    alert(`Exercise "${exerciseName}" would be saved here!`);
-  }, []);
+  const handleSaveExerciseWithName = useCallback(async (exerciseName) => {
+    try {
+      console.log('Save exercise called with name:', exerciseName);
+      
+      if (!user) {
+        return { success: false, error: 'You must be logged in to save exercises.' };
+      }
+
+      // Save exercise using the service
+      const result = await ExerciseService.saveExercise(exerciseName, settings, user.id);
+      
+      if (result.success) {
+        console.log('Exercise saved:', result.data);
+        // Show success notification
+        alert(`Exercise "${exerciseName}" saved successfully!`);
+        return { success: true };
+      } else {
+        console.error('Save failed:', result.error);
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('Error saving exercise:', error);
+      return { success: false, error: 'An unexpected error occurred while saving the exercise.' };
+    }
+  }, [settings, user]);
 
   // MIDI event handler
   const handleMidiEvent = useCallback((midiEvent) => {
@@ -1241,10 +1265,7 @@ function App() {
   }, [handleMidiEvent]);
 
   return (
-    <AuthProvider>
-      <IntervalsProvider>
-        <ChordsProvider>
-          <Router>
+    <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -1385,35 +1406,44 @@ function App() {
             />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
+          
+          {/* Tempo Modal */}
+          {tempoModalOpen && (
+            <TempoSelector
+              tempo={settings.tempo}
+              onTempoChange={handleTempoChange}
+              onClose={closeTempoModal}
+            />
+          )}
+
+          {/* Score Modal */}
+          {scoreModalOpen && (
+            <ScoreModal
+              isOpen={scoreModalOpen}
+              onClose={closeScoreModal}
+              correctCount={capturedScores.correctCount}
+              wrongCount={capturedScores.wrongCount}
+              correctNotes={capturedScores.correctNotes}
+              wrongNotes={capturedScores.wrongNotes}
+            />
+          )}
+
+          {/* Save Exercise Modal */}
+          <SaveExerciseModal
+            isOpen={saveModalOpen}
+            onClose={closeSaveModal}
+            onSave={handleSaveExerciseWithName}
+          />
         </Router>
-        
-        {/* Tempo Modal */}
-        {tempoModalOpen && (
-          <TempoSelector
-            tempo={settings.tempo}
-            onTempoChange={handleTempoChange}
-            onClose={closeTempoModal}
-          />
-        )}
+  );
+}
 
-        {/* Score Modal */}
-        {scoreModalOpen && (
-          <ScoreModal
-            isOpen={scoreModalOpen}
-            onClose={closeScoreModal}
-            correctCount={capturedScores.correctCount}
-            wrongCount={capturedScores.wrongCount}
-            correctNotes={capturedScores.correctNotes}
-            wrongNotes={capturedScores.wrongNotes}
-          />
-        )}
-
-        {/* Save Exercise Modal */}
-        <SaveExerciseModal
-          isOpen={saveModalOpen}
-          onClose={closeSaveModal}
-          onSave={handleSaveExerciseWithName}
-        />
+function App() {
+  return (
+    <AuthProvider>
+      <IntervalsProvider>
+        <ChordsProvider>
+          <AppContent />
         </ChordsProvider>
       </IntervalsProvider>
     </AuthProvider>
