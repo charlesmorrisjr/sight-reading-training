@@ -199,3 +199,40 @@ export const deleteExercise = async (exerciseId, userId) => {
     return { success: false, error: 'Failed to delete configuration' };
   }
 };
+
+/**
+ * Increment the exercises_generated counter for a user
+ * @param {string} userId - User's ID
+ * @returns {Object} { success: boolean, error?: string }
+ */
+export const incrementExercisesGenerated = async (userId) => {
+  try {
+    // First, get the current value and increment it
+    const { data: currentData, error: fetchError } = await supabase
+      .from('profiles')
+      .select('exercises_generated')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching current exercises_generated:', fetchError);
+      throw fetchError;
+    }
+
+    const currentCount = currentData?.exercises_generated || 0;
+    const newCount = currentCount + 1;
+
+    // Update with the incremented value
+    const { error } = await supabase
+      .from('profiles')
+      .update({ exercises_generated: newCount })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    return { success: true };
+  } catch (error) {
+    console.error('Increment exercises generated error:', error);
+    return { success: false, error: 'Failed to update exercise counter' };
+  }
+};;

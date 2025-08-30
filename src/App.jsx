@@ -22,6 +22,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
 import { ExerciseService } from './services/exerciseService';
+import { incrementExercisesGenerated } from './services/database';
 import { AuthProvider } from './contexts/AuthProvider';
 import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
@@ -33,7 +34,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, onSaveExercise }) => {
+const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, onSaveExercise, user }) => {
   const location = useLocation();
   
   // Get intervals from location state if available
@@ -134,6 +135,17 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         console.log('🎨 Post-practice highlighting reset for new exercise');
       }
       
+      // Increment exercises_generated counter for authenticated users
+      if (user?.id) {
+        try {
+          await incrementExercisesGenerated(user.id);
+          console.log('📊 Exercise counter incremented for user:', user.id);
+        } catch (error) {
+          console.warn('Failed to increment exercise counter:', error);
+          // Don't fail the exercise generation if counter update fails
+        }
+      }
+      
       console.log('📝 Generated music with metadata:', result.noteMetadata);
       console.log('🗺️ Initialized note tracking map:', initialTrackingMap);
     } catch (error) {
@@ -141,7 +153,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     } finally {
       setIsGenerating(false);
     }
-  }, [effectiveSettings, onResetScoring, onResetPostPracticeResults]);
+  }, [effectiveSettings, onResetScoring, onResetPostPracticeResults, user?.id]);;
 
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback((visualObj) => {
@@ -1400,6 +1412,7 @@ function AppContent() {
                     showPostPracticeResults={showPostPracticeResults}
                     onResetPostPracticeResults={resetPostPracticeResults}
                     onSaveExercise={handleSaveExercise}
+                    user={user}
                   />
                 </ProtectedRoute>
               } 
