@@ -236,3 +236,38 @@ export const incrementExercisesGenerated = async (userId) => {
     return { success: false, error: 'Failed to update exercise counter' };
   }
 };;
+/**
+ * Get user profile data including exercises_generated
+ * @param {string} userId - User's ID
+ * @returns {Object} { success: boolean, profile?: object, error?: string }
+ */
+export const getUserProfile = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('exercises_generated')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') { // No rows returned
+        // User profile doesn't exist yet, return default values
+        return { 
+          success: true, 
+          profile: { exercises_generated: 0 } 
+        };
+      }
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      profile: { 
+        exercises_generated: data?.exercises_generated || 0 
+      } 
+    };
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    return { success: false, error: 'Failed to load profile data' };
+  }
+};

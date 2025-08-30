@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getUserProfile } from '../services/database';
 import { 
   FaHome, 
   FaKeyboard, 
@@ -26,6 +27,9 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
   // State for intervals selection page
   const [showIntervalsPage, setShowIntervalsPage] = useState(false);
   
+  // State for user profile data
+  const [exercisesGenerated, setExercisesGenerated] = useState(0);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // TODO: settings and onSettingsChange will be used for future database integration
   // Currently these props are prepared for future database integration
@@ -100,6 +104,35 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
     7: '7th',
     8: '8th'
   };
+
+  // Fetch user profile data on component mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user?.id) {
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        setProfileLoading(true);
+        const result = await getUserProfile(user.id);
+        
+        if (result.success) {
+          setExercisesGenerated(result.profile?.exercises_generated || 0);
+        } else {
+          console.error('Failed to load profile:', result.error);
+          setExercisesGenerated(0);
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        setExercisesGenerated(0);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    loadUserProfile();
+  }, [user?.id]);
 
   // Render intervals selection page
   if (showIntervalsPage) {
@@ -315,8 +348,10 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Exercises Completed</p>
-                    <p className="text-2xl font-bold text-gray-900">24</p>
+                    <p className="text-sm font-medium text-gray-600">Exercises Generated</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {profileLoading ? '...' : exercisesGenerated}
+                    </p>
                   </div>
                 </div>
               </div>
