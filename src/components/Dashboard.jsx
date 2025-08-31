@@ -45,26 +45,6 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
     }
   };
 
-  // const handleDrillPlay = () => {
-  //   console.log('Playing suggested drill');
-  // };
-
-  // const handleAddCustomDrill = () => {
-  //   console.log('Adding custom drill');
-  // };
-
-  // const handleCustomDrillClick = (drillId) => {
-  //   console.log(`Custom drill clicked: ${drillId}`);
-  // };
-
-  const handleNavClick = (navItem) => {
-    if (navItem === 'practice') {
-      navigate('/practice');
-    } else {
-      console.log(`Navigation clicked: ${navItem}`);
-    }
-  };
-
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -111,59 +91,8 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
                 <FaMusic className="text-white text-lg" />
               </div>
               <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                Sight Reading Trainer
+                Practisia
               </h1>
-            </div>
-            <button 
-              className="btn btn-ghost btn-square"
-              title="Settings"
-            >
-              <FaBars className="text-lg" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <nav className="bg-white/90 backdrop-blur-sm border-b border-gray-100 sticky top-16 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-3">
-            <div className="flex space-x-1 overflow-x-auto">
-              <button 
-                className="btn btn-primary btn-sm"
-                onClick={() => handleNavClick('home')}
-              >
-                <FaHome className="w-4 h-4" />
-                <span className="hidden sm:inline">Home</span>
-              </button>
-              <button 
-                className="btn btn-ghost btn-sm"
-                onClick={() => handleNavClick('practice')}
-              >
-                <FaKeyboard className="w-4 h-4" />
-                <span className="hidden sm:inline">Practice</span>
-              </button>
-              <button 
-                className="btn btn-ghost btn-sm"
-                onClick={() => handleNavClick('stats')}
-              >
-                <FaChartBar className="w-4 h-4" />
-                <span className="hidden sm:inline">Stats</span>
-              </button>
-              <button 
-                className="btn btn-ghost btn-sm"
-                onClick={() => handleNavClick('leaderboard')}
-              >
-                <FaChartBar className="w-4 h-4" />
-                <span className="hidden sm:inline">Leaderboard</span>
-              </button>
-              <button 
-                className="btn btn-ghost btn-sm"
-                onClick={() => handleNavClick('profile')}
-              >
-                <FaUser className="w-4 h-4" />
-                <span className="hidden sm:inline">Profile</span>
-              </button>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -181,7 +110,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
