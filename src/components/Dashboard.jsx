@@ -22,10 +22,7 @@ import SavedExercisesCard from './SavedExercisesCard';
 
 const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  
-  // State for intervals selection page
-  const [showIntervalsPage, setShowIntervalsPage] = useState(false);
+  const { user, logout } = useAuth()
   
   // State for user profile data
   const [exercisesGenerated, setExercisesGenerated] = useState(0);
@@ -73,38 +70,6 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
     navigate('/login');
   };
 
-
-  // Intervals page handlers
-  const handleBackToMain = () => {
-    setShowIntervalsPage(false);
-  };
-
-  const handleIntervalToggle = (interval) => {
-    const currentIntervals = settings.intervals || [1, 2, 3, 4, 5];
-    const newIntervals = currentIntervals.includes(interval)
-      ? currentIntervals.filter(i => i !== interval)
-      : [...currentIntervals, interval].sort((a, b) => a - b);
-    
-    if (newIntervals.length > 0) {
-      onSettingsChange({ ...settings, intervals: newIntervals });
-    }
-  };
-
-  const handleIntervalsPractice = () => {
-    navigate('/practice', { state: { intervals: settings.intervals } });
-  };
-
-  // Interval labels mapping
-  const intervalLabels = {
-    2: '2nd',
-    3: '3rd', 
-    4: '4th',
-    5: '5th',
-    6: '6th',
-    7: '7th',
-    8: '8th'
-  };
-
   // Fetch user profile data on component mount
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -134,65 +99,6 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
     loadUserProfile();
   }, [user?.id]);
 
-  // Render intervals selection page
-  if (showIntervalsPage) {
-    return (
-      <div className="dashboard">
-        {/* Header */}
-        <header className="dashboard-header">
-          <div className="header-content">
-            <div className="app-title">
-              <h1>🎹 Sight Reading Trainer</h1>
-            </div>
-            <button className="hamburger-button" title="Settings">
-              <span className="hamburger-line"></span>
-              <span className="hamburger-line"></span>
-              <span className="hamburger-line"></span>
-            </button>
-          </div>
-        </header>
-
-        {/* Intervals Selection Content */}
-        <main className="dashboard-main">
-          <section className="intervals-page card">
-            <div className="intervals-header">
-              <button className="back-btn" onClick={handleBackToMain}>
-                ← Back
-              </button>
-            </div>
-            
-            <h2>Select Intervals</h2>
-            
-            <div className="intervals-description">
-              <p>Choose which intervals you'd like to practice:</p>
-            </div>
-
-            <div className="intervals-grid">
-              {[2, 3, 4, 5, 6, 7, 8].map(interval => (
-                <button
-                  key={interval}
-                  className={`interval-btn ${(settings.intervals || []).includes(interval) ? 'selected' : ''}`}
-                  onClick={() => handleIntervalToggle(interval)}
-                >
-                  {intervalLabels[interval]}
-                </button>
-              ))}
-            </div>
-
-            <div className="intervals-actions">
-              <button 
-                className="practice-btn primary"
-                onClick={handleIntervalsPractice}
-                disabled={(settings.intervals || []).length === 0}
-              >
-                Practice Selected Intervals
-              </button>
-            </div>
-          </section>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
