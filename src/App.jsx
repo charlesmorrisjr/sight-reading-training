@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
 import { FaMusic, FaPlay, FaStop, FaKeyboard } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
@@ -36,6 +36,7 @@ const ProtectedRoute = ({ children }) => {
 
 const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, onSaveExercise, user }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Get intervals from location state if available
   const intervalsFromState = location.state?.intervals;
@@ -886,14 +887,17 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           <div className="flex items-center justify-between h-16">
             
             {/* App Title */}
-            <div className="flex items-center space-x-3">
+            <button 
+              className="flex items-center space-x-3 cursor-pointer"
+              onClick={() => navigate('/dashboard')}
+            >
               <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
                 <FaMusic className="text-white text-lg" />
               </div>
               <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
                 Practisia
               </h1>
-            </div>
+            </button>
 
             {/* Control Buttons */}
             <div className="flex items-center space-x-4">
