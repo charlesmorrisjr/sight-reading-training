@@ -13,11 +13,11 @@ import {
   FaBars
 } from 'react-icons/fa';
 // Import SVG as URL
-import twoNotesRedIcon from '../assets/reshot-icon-music-F6RGPB5VSX.svg';
+// import twoNotesRedIcon from '../assets/reshot-icon-music-F6RGPB5VSX.svg';
+// import threeNotesIcon from '../assets/reshot-icon-musical-notes-NQYZ4DAWFV.svg';
+// import fourNotesIcon from '../assets/reshot-icon-musical-note-AT43GFYXHC.svg';
+// import clefNotesIcon from '../assets/reshot-icon-music-MA3H8WZCPG.svg';
 // import twoNotesPurpleIcon from '.things./assets/reshot-icon-music-FVR3TH9EGY.svg';
-import threeNotesIcon from '../assets/reshot-icon-musical-notes-NQYZ4DAWFV.svg';
-import fourNotesIcon from '../assets/reshot-icon-musical-note-AT43GFYXHC.svg';
-import clefNotesIcon from '../assets/reshot-icon-music-MA3H8WZCPG.svg';
 import SavedExercisesCard from './SavedExercisesCard';
 
 const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
@@ -31,6 +31,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
   // TODO: settings and onSettingsChange will be used for future database integration
   // Currently these props are prepared for future database integration
   console.debug('Dashboard props:', { settings, onSettingsChange });
+  /* For exercise categories
   const handleCategoryClick = (categoryId) => {
     if (categoryId === 'intervals') {
       navigate('/intervals');
@@ -44,6 +45,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
       console.log(`Category clicked: ${categoryId}`);
     }
   };
+  */
 
   const handleLogout = () => {
     logout();
@@ -127,7 +129,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
                 
                 <button 
                   className="btn btn-white btn-lg px-8 py-4 text-blue-600 hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                  onClick={() => navigate('/levels')}
+                  onClick={() => navigate('/free-practice')}
                 >
                   Start Practice
                 </button>
@@ -136,28 +138,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up">
-            <div className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="card-body">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                      <FaChartArea className="text-green-600 text-xl" />
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Pattern Mastery</p>
-                    <p className="text-2xl font-bold text-gray-900">68%</p>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{width: '68%'}}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-up">
             <div className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="card-body">
                 <div className="flex items-center">
@@ -193,7 +174,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
             </div>
           </div>
 
-          {/* Exercise Categories */}
+          {/* Exercise Categories
           <div className="card bg-white shadow-lg animate-scale-in">
             <div className="card-body">
               <h2 className="card-title text-2xl mb-6 flex items-center">
@@ -263,6 +244,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
               </div>
             </div>
           </div>
+          */}
 
           {/* Saved Exercises */}
           <SavedExercisesCard 
