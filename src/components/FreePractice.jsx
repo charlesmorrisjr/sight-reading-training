@@ -251,23 +251,34 @@ const FreePractice = ({ settings, onSettingsChange }) => {
               </p>
             </div>
             
-            <div className="flex justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
               <button
-                className={`btn btn-lg h-24 py-12 px-8 transition-all duration-300 transform hover:scale-105 ${
+                className={`btn btn-lg h-24 py-12 px-6 transition-all duration-300 transform hover:scale-105 ${
+                  !settings.swapHandPatterns 
+                    ? 'btn-primary shadow-lg' 
+                    : 'btn-outline btn-primary hover:btn-primary'
+                }`}
+                onClick={() => onSettingsChange({ ...settings, swapHandPatterns: false })}
+                aria-pressed={!settings.swapHandPatterns}
+              >
+                <div className="flex flex-col items-center space-y-2">
+                  <span className="font-bold text-lg">Normal Patterns</span>
+                  <span className="text-sm opacity-75">RH in treble, LH in bass</span>
+                </div>
+              </button>
+              
+              <button
+                className={`btn btn-lg h-24 py-12 px-6 transition-all duration-300 transform hover:scale-105 ${
                   settings.swapHandPatterns 
                     ? 'btn-primary shadow-lg' 
                     : 'btn-outline btn-primary hover:btn-primary'
                 }`}
-                onClick={() => onSettingsChange({ ...settings, swapHandPatterns: !settings.swapHandPatterns })}
+                onClick={() => onSettingsChange({ ...settings, swapHandPatterns: true })}
                 aria-pressed={settings.swapHandPatterns}
               >
-                <div className="flex flex-col items-center space-y-4">
-                  <span className="font-bold text-lg">
-                    {settings.swapHandPatterns ? 'Patterns Swapped' : 'Normal Patterns'}
-                  </span>
-                  <span className="text-sm opacity-75">
-                    {settings.swapHandPatterns ? 'LH in treble, RH in bass' : 'RH in treble, LH in bass'}
-                  </span>
+                <div className="flex flex-col items-center space-y-2">
+                  <span className="font-bold text-lg">Swapped Patterns</span>
+                  <span className="text-sm opacity-75">LH in treble, RH in bass</span>
                 </div>
               </button>
             </div>
