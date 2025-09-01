@@ -237,50 +237,50 @@ const FreePractice = ({ settings, onSettingsChange }) => {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Swap Hand Patterns Section */}
-        <div className="card bg-white shadow-lg animate-scale-in">
-          <div className="card-body p-8">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Swap Hand Patterns
-              </h3>
-              <p className="text-gray-600">
-                Switch left and right hand patterns with automatic octave adjustment
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-              <button
-                className={`btn btn-lg h-24 py-12 px-6 transition-all duration-300 transform hover:scale-105 ${
-                  !settings.swapHandPatterns 
-                    ? 'btn-primary shadow-lg' 
-                    : 'btn-outline btn-primary hover:btn-primary'
-                }`}
-                onClick={() => onSettingsChange({ ...settings, swapHandPatterns: false })}
-                aria-pressed={!settings.swapHandPatterns}
-              >
-                <div className="flex flex-col items-center space-y-2">
-                  <span className="font-bold text-lg">Normal Patterns</span>
-                  <span className="text-sm opacity-75">RH in treble, LH in bass</span>
-                </div>
-              </button>
+          {/* Swap Hand Patterns Section */}
+          <div className="card bg-white shadow-lg animate-scale-in">
+            <div className="card-body p-8">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  Swap Hand Patterns
+                </h3>
+                <p className="text-gray-600">
+                  Switch left and right hand patterns with automatic octave adjustment
+                </p>
+              </div>
               
-              <button
-                className={`btn btn-lg h-24 py-12 px-6 transition-all duration-300 transform hover:scale-105 ${
-                  settings.swapHandPatterns 
-                    ? 'btn-primary shadow-lg' 
-                    : 'btn-outline btn-primary hover:btn-primary'
-                }`}
-                onClick={() => onSettingsChange({ ...settings, swapHandPatterns: true })}
-                aria-pressed={settings.swapHandPatterns}
-              >
-                <div className="flex flex-col items-center space-y-2">
-                  <span className="font-bold text-lg">Swapped Patterns</span>
-                  <span className="text-sm opacity-75">LH in treble, RH in bass</span>
-                </div>
-              </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <button
+                  className={`btn btn-lg h-24 py-12 px-6 transition-all duration-300 transform hover:scale-105 ${
+                    !settings.swapHandPatterns 
+                      ? 'btn-primary shadow-lg' 
+                      : 'btn-outline btn-primary hover:btn-primary'
+                  }`}
+                  onClick={() => onSettingsChange({ ...settings, swapHandPatterns: false })}
+                  aria-pressed={!settings.swapHandPatterns}
+                >
+                  <div className="flex flex-col items-center space-y-2">
+                    <span className="font-bold text-lg">Normal Patterns</span>
+                    <span className="text-sm opacity-75">RH in treble, LH in bass</span>
+                  </div>
+                </button>
+                
+                <button
+                  className={`btn btn-lg h-24 py-12 px-6 transition-all duration-300 transform hover:scale-105 ${
+                    settings.swapHandPatterns 
+                      ? 'btn-primary shadow-lg' 
+                      : 'btn-outline btn-primary hover:btn-primary'
+                  }`}
+                  onClick={() => onSettingsChange({ ...settings, swapHandPatterns: true })}
+                  aria-pressed={settings.swapHandPatterns}
+                >
+                  <div className="flex flex-col items-center space-y-2">
+                    <span className="font-bold text-lg">Swapped Patterns</span>
+                    <span className="text-sm opacity-75">LH in treble, RH in bass</span>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
