@@ -1,4 +1,4 @@
-# Sight Reading Trainer
+# Practisia
 
 A modern web application for piano sight reading practice, built with React and Vite. This interactive training tool generates customizable musical exercises to help pianists improve their sight reading skills.
 

@@ -891,7 +891,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 <FaMusic className="text-white text-lg" />
               </div>
               <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                Sight Reading Trainer
+                Practisia
               </h1>
             </div>
 
