@@ -20,6 +20,7 @@ import TimeSignatures from './components/TimeSignatures';
 import Levels from './components/Levels';
 import Login from './components/Login';
 import Signup from './components/Signup';
+import LandingPage from './components/LandingPage';
 import { useAuth } from './contexts/AuthContext';
 import { ExerciseService } from './services/exerciseService';
 import { incrementExercisesGenerated, updateLastPracticed } from './services/database';
@@ -1438,7 +1439,7 @@ function AppContent() {
                 </ProtectedRoute>
               } 
             />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<LandingPage />} />
           </Routes>
           
           {/* Tempo Modal */}

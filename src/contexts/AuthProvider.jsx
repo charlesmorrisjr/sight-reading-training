@@ -169,6 +169,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const continueAsGuest = async () => {
+    const guestData = {
+      id: 'guest-' + Date.now(),
+      email: 'guest@practisia.com',
+      name: 'Guest User',
+      loginMethod: 'guest',
+      isGuest: true
+    };
+    
+    setUser(guestData);
+    localStorage.setItem('user', JSON.stringify(guestData));
+    return { success: true };
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     // The auth state listener will handle clearing user state
@@ -180,8 +194,10 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     loginWithGoogle,
+    continueAsGuest,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    isGuest: user?.isGuest || false
   };
 
   return (
