@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { FaGoogle, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
-import AuthLayout from './AuthLayout';
+import Header from './Header';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -55,14 +55,26 @@ const Signup = () => {
   };
 
   return (
-    <AuthLayout
-      title="Create Account"
-      subtitle="Start your sight reading journey"
-      footerText="Already have an account?"
-      footerLinkText="Sign in"
-      footerLinkTo="/login"
-    >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <Header showLogout={false} />
+      
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-4">
+        <div className="w-full max-w-md">
+          <div className="card bg-white shadow-xl">
+            <div className="card-body p-8">
+              
+              {/* Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Create Account
+                </h2>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Start your sight reading journey
+                </p>
+              </div>
+              
+              {/* Signup Form */}
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mb-6">
         {authError && (
           <div className="alert alert-error bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg text-sm text-center">
             {authError}
@@ -192,7 +204,24 @@ const Signup = () => {
           Continue with Google
         </button>
       </form>
-    </AuthLayout>
+              
+              {/* Footer */}
+              <div className="text-center text-sm text-gray-600">
+                <p>
+                  Already have an account?{' '}
+                  <Link 
+                    to="/login" 
+                    className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

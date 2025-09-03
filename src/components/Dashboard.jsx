@@ -7,11 +7,11 @@ import {
   FaKeyboard, 
   FaChartBar, 
   FaUser, 
-  FaSignOutAlt, 
   FaMusic,
   FaChartArea,
   FaBars
 } from 'react-icons/fa';
+import Header from './Header';
 // Import SVG as URL
 // import twoNotesRedIcon from '../assets/reshot-icon-music-F6RGPB5VSX.svg';
 // import threeNotesIcon from '../assets/reshot-icon-musical-notes-NQYZ4DAWFV.svg';
@@ -22,7 +22,7 @@ import SavedExercisesCard from './SavedExercisesCard';
 
 const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth()
+  const { user } = useAuth();
   
   // State for user profile data
   const [exercisesGenerated, setExercisesGenerated] = useState(0);
@@ -47,10 +47,6 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
   };
   */
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   // Fetch user profile data on component mount
   useEffect(() => {
@@ -84,32 +80,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
-                <FaMusic className="text-white text-lg" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                Practisia
-              </h1>
-            </div>
-            
-            <div className="flex items-center space-x-10">
-              <button 
-                className="btn btn-lg"
-                onClick={handleLogout}
-                title="Logout"
-              >
-                <FaSignOutAlt className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header showLogout={true} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
