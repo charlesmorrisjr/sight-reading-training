@@ -22,7 +22,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import { useAuth } from './contexts/AuthContext';
 import { ExerciseService } from './services/exerciseService';
-import { incrementExercisesGenerated } from './services/database';
+import { incrementExercisesGenerated, updateLastPracticed } from './services/database';
 import { AuthProvider } from './contexts/AuthProvider';
 import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
@@ -730,6 +730,23 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   React.useEffect(() => {
     handleGenerateNew();
   }, [handleGenerateNew]);
+
+  // Update last practiced date when user enters practice route
+  React.useEffect(() => {
+    const updatePracticeDate = async () => {
+      if (user?.id) {
+        try {
+          await updateLastPracticed(user.id);
+          console.log('Last practice date updated');
+        } catch (error) {
+          console.warn('Failed to update last practice date:', error);
+          // Non-blocking - practice continues even if update fails
+        }
+      }
+    };
+
+    updatePracticeDate();
+  }, []); // Empty dependency array - runs once when component mounts
 
   // Keep refs synchronized with state to avoid stale closure issues
   // Fixes problem with visual cursor disappearing when notes were highlighted

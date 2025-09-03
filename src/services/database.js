@@ -235,7 +235,29 @@ export const incrementExercisesGenerated = async (userId) => {
     console.error('Increment exercises generated error:', error);
     return { success: false, error: 'Failed to update exercise counter' };
   }
-};;
+};
+
+/**
+ * Update the date_last_practiced field for a user
+ * @param {string} userId - User's ID
+ * @returns {Object} { success: boolean, error?: string }
+ */
+export const updateLastPracticed = async (userId) => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ date_last_practiced: new Date().toISOString().split('T')[0] })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    return { success: true };
+  } catch (error) {
+    console.error('Update last practiced error:', error);
+    return { success: false, error: 'Failed to update last practice date' };
+  }
+};
+
 /**
  * Get user profile data including exercises_generated
  * @param {string} userId - User's ID
