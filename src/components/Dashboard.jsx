@@ -97,12 +97,9 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
               </h1>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-600 hidden sm:block">
-                Hi, {user?.name}!
-              </span>
+            <div className="flex items-center space-x-10">
               <button 
-                className="btn btn-error btn-sm"
+                className="btn btn-lg"
                 onClick={handleLogout}
                 title="Logout"
               >
@@ -121,8 +118,8 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
           {/* Welcome Section */}
           <div className="hero bg-blue-600 text-white rounded-2xl animate-fade-in">
             <div className="hero-content text-center py-12 px-8">
-              <div className="max-w-md mx-auto">
-                <h1 className="text-4xl font-bold mb-4">Welcome Back!</h1>
+              <div className="max-w-xl mx-auto">
+                <h1 className="text-4xl font-bold mb-4">Welcome back, {user?.name}!</h1>
                 <p className="text-blue-100 mb-10">
                   Ready to improve your sight reading skills? Let's continue your musical journey.
                 </p>
