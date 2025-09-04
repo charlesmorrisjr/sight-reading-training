@@ -29,6 +29,7 @@ import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
 import { generateRandomABC } from './utils/musicGenerator';
 import { initializeMIDI } from './utils/midiManager';
+import { loadUserSettings, saveUserSettings, DEFAULT_SETTINGS, incrementGuestExercisesGenerated, saveGuestExercise } from './services/settingsService';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -137,11 +138,20 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         console.log('🎨 Post-practice highlighting reset for new exercise');
       }
       
-      // Increment exercises_generated counter for authenticated users
+      // Increment exercises_generated counter based on user type
       if (user?.id) {
         try {
-          await incrementExercisesGenerated(user.id);
-          console.log('📊 Exercise counter incremented for user:', user.id);
+          if (user.isGuest) {
+            // Increment guest counter in localStorage
+            const result = incrementGuestExercisesGenerated();
+            if (result.success) {
+              console.log('📊 Guest exercise counter incremented:', result.count);
+            }
+          } else {
+            // Increment authenticated user counter in database
+            await incrementExercisesGenerated(user.id);
+            console.log('📊 Exercise counter incremented for user:', user.id);
+          }
         } catch (error) {
           console.warn('Failed to increment exercise counter:', error);
           // Don't fail the exercise generation if counter update fails
@@ -735,7 +745,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Update last practiced date when user enters practice route
   React.useEffect(() => {
     const updatePracticeDate = async () => {
-      if (user?.id) {
+      if (user?.id && !user?.isGuest) {
         try {
           await updateLastPracticed(user.id);
           console.log('Last practice date updated');
@@ -1057,30 +1067,9 @@ function AppContent() {
   // Get current user from auth context
   const { user } = useAuth();
   
-  // Default settings
-  const [settings, setSettings] = useState({
-    key: 'C',
-    timeSignature: '4/4',
-    measures: 8,
-    tempo: 120,
-    intervals: [1, 2, 3, 4, 5],
-    noteDurations: ['1/8', '1/4'],
-    chordProgressions: ['pop', '50s', 'pop-variation', 'basic-cadence', 'jazz', 'alternating', 'minor-start', 'variation'],
-    leftHandPatterns: ['block-chords'],
-    leftHandBrokenChords: ['1-3-5-3'],
-    rightHandPatterns: ['single-notes'],
-    rightHandIntervals: ['2nd'],
-    rightHand4NoteChords: ['major'],
-    swapHandPatterns: false,
-    chordTypes: ['major', 'minor'],
-    chordInversions: ['root'],
-    chordVoicings: ['closed'],
-    chordRhythms: ['straight'],
-    melodicPatterns: ['melodies'],
-    melodicArticulations: ['legato'],
-    musicScale: 1.0,
-    selectedLevel: null
-  });
+  // Settings state - will be loaded from persistence
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Tempo modal state
   const [tempoModalOpen, setTempoModalOpen] = useState(false);
@@ -1120,9 +1109,17 @@ function AppContent() {
   // Post-practice highlighting state
   const [showPostPracticeResults, setShowPostPracticeResults] = useState(false);
 
-  const handleSettingsChange = useCallback((newSettings) => {
+  const handleSettingsChange = useCallback(async (newSettings) => {
     setSettings(newSettings);
-  }, []);
+    
+    // Save settings automatically based on user type
+    if (user && settingsLoaded) {
+      const result = await saveUserSettings(user, newSettings);
+      if (!result.success) {
+        console.warn('Failed to save settings:', result.error);
+      }
+    }
+  }, [user, settingsLoaded]);
 
   // Handle loading a saved exercise
   const handleLoadExercise = useCallback((exerciseSettings) => {
@@ -1130,9 +1127,10 @@ function AppContent() {
     setSettings(exerciseSettings);
   }, []);
 
-  const handleTempoChange = useCallback((newTempo) => {
-    setSettings(prev => ({ ...prev, tempo: newTempo }));
-  }, []);
+  const handleTempoChange = useCallback(async (newTempo) => {
+    const newSettings = { ...settings, tempo: newTempo };
+    await handleSettingsChange(newSettings);
+  }, [settings, handleSettingsChange]);
 
   const openTempoModal = useCallback(() => {
     setTempoModalOpen(true);
@@ -1260,17 +1258,56 @@ function AppContent() {
         return { success: false, error: 'You must be logged in to save exercises.' };
       }
 
-      // Save exercise using the service
-      const result = await ExerciseService.saveExercise(exerciseName, settings, user.id);
-      
-      if (result.success) {
-        console.log('Exercise saved:', result.data);
-        // Show success notification
-        alert(`Exercise "${exerciseName}" saved successfully!`);
-        return { success: true };
+      if (user.isGuest) {
+        // Save exercise to localStorage for guest users
+        const exerciseData = {
+          exercise_name: exerciseName.trim(),
+          key_signature: settings.key || 'C',
+          time_signature: settings.timeSignature || '4/4',
+          measures: settings.measures || 8,
+          tempo: settings.tempo || 120,
+          intervals: settings.intervals || [1, 2, 3, 4, 5],
+          note_durations: settings.noteDurations || ['1/8', '1/4'],
+          chord_progressions: settings.chordProgressions || ['pop'],
+          left_hand_patterns: settings.leftHandPatterns || ['block-chords'],
+          left_hand_broken_chords: settings.leftHandBrokenChords || ['1-3-5-3'],
+          right_hand_patterns: settings.rightHandPatterns || ['single-notes'],
+          right_hand_intervals: settings.rightHandIntervals || ['2nd'],
+          right_hand_4_note_chords: settings.rightHand4NoteChords || ['major'],
+          swap_hand_patterns: settings.swapHandPatterns || false,
+          chord_types: settings.chordTypes || ['major', 'minor'],
+          chord_inversions: settings.chordInversions || ['root'],
+          chord_voicings: settings.chordVoicings || ['closed'],
+          chord_rhythms: settings.chordRhythms || ['straight'],
+          melodic_patterns: settings.melodicPatterns || ['melodies'],
+          melodic_articulations: settings.melodicArticulations || ['legato'],
+          music_scale: settings.musicScale || 1.0,
+          selected_level: settings.selectedLevel
+        };
+
+        const result = saveGuestExercise(exerciseData);
+        
+        if (result.success) {
+          console.log('Guest exercise saved to localStorage:', result.exercise);
+          alert(`Exercise "${exerciseName}" saved successfully!`);
+          return { success: true };
+        } else {
+          console.error('Failed to save guest exercise:', result.error);
+          return { success: false, error: result.error };
+        }
       } else {
-        console.error('Save failed:', result.error);
-        return { success: false, error: result.error };
+        // Save exercise using the database service for authenticated users
+        const result = await ExerciseService.saveExercise(exerciseName, settings, user.id);
+        
+        if (result.success) {
+          console.log('Exercise saved:', result.data);
+          // Show success notification
+          alert(`Exercise "${exerciseName}" saved successfully!`);
+          return { success: true };
+        } else {
+          console.error('Save failed:', result.error);
+          return { success: false, error: result.error };
+        }
       }
     } catch (error) {
       console.error('Error saving exercise:', error);
@@ -1297,6 +1334,29 @@ function AppContent() {
   React.useEffect(() => {
     initializeMIDI(handleMidiEvent);
   }, [handleMidiEvent]);
+
+  // Load settings when user changes
+  React.useEffect(() => {
+    const loadSettings = async () => {
+      if (user) {
+        const result = await loadUserSettings(user);
+        if (result.success) {
+          setSettings(result.settings);
+          setSettingsLoaded(true);
+        } else {
+          console.warn('Failed to load user settings:', result.error);
+          setSettings(DEFAULT_SETTINGS);
+          setSettingsLoaded(true);
+        }
+      } else {
+        // No user, use defaults
+        setSettings(DEFAULT_SETTINGS);
+        setSettingsLoaded(false);
+      }
+    };
+
+    loadSettings();
+  }, [user]);
 
   return (
     <Router>

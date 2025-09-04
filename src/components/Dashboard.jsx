@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile } from '../services/database';
+import { loadGuestExercisesGenerated } from '../services/settingsService';
 import { 
   FaHome, 
   FaKeyboard, 
@@ -56,6 +57,14 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
         return;
       }
 
+      // Handle guest users - load from localStorage
+      if (user.isGuest) {
+        const guestResult = loadGuestExercisesGenerated();
+        setExercisesGenerated(guestResult.count);
+        setProfileLoading(false);
+        return;
+      }
+
       try {
         setProfileLoading(true);
         const result = await getUserProfile(user.id);
@@ -75,7 +84,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
     };
 
     loadUserProfile();
-  }, [user?.id]);
+  }, [user?.id, user?.isGuest]);
 
 
   return (

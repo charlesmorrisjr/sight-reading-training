@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthContext } from './AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { migrateGuestSettings } from '../services/settingsService';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -49,6 +50,17 @@ export const AuthProvider = ({ children }) => {
             name: session.user.email.split('@')[0],
             loginMethod: 'email'
           };
+          
+          // Migrate guest settings on auth state change
+          try {
+            const migrationResult = await migrateGuestSettings(session.user.id);
+            if (migrationResult.migrated) {
+              console.log('Successfully migrated guest settings via auth state change');
+            }
+          } catch (migrationError) {
+            console.warn('Failed to migrate guest settings via auth state change:', migrationError);
+          }
+          
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
         } else if (event === 'SIGNED_OUT') {
@@ -83,6 +95,17 @@ export const AuthProvider = ({ children }) => {
           name: data.user.email.split('@')[0],
           loginMethod: 'email'
         };
+        
+        // Migrate guest settings on login as well (in case user logged in on new device)
+        try {
+          const migrationResult = await migrateGuestSettings(data.user.id);
+          if (migrationResult.migrated) {
+            console.log('Successfully migrated guest settings during login');
+          }
+        } catch (migrationError) {
+          console.warn('Failed to migrate guest settings during login:', migrationError);
+          // Don't fail login if migration fails
+        }
         
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
@@ -133,6 +156,17 @@ export const AuthProvider = ({ children }) => {
           name: data.user.email.split('@')[0],
           loginMethod: 'email'
         };
+        
+        // Migrate guest settings to new user account
+        try {
+          const migrationResult = await migrateGuestSettings(data.user.id);
+          if (migrationResult.migrated) {
+            console.log('Successfully migrated guest settings to new user account');
+          }
+        } catch (migrationError) {
+          console.warn('Failed to migrate guest settings:', migrationError);
+          // Don't fail signup if migration fails
+        }
         
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));

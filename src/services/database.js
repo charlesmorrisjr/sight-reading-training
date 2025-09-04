@@ -293,3 +293,63 @@ export const getUserProfile = async (userId) => {
     return { success: false, error: 'Failed to load profile data' };
   }
 };
+
+// User Settings Functions
+
+/**
+ * Save user settings to database
+ * @param {string} userId - User's ID
+ * @param {Object} settings - Complete settings object to save
+ * @returns {Object} { success: boolean, error?: string }
+ */
+export const saveUserSettings = async (userId, settings) => {
+  try {
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ 
+        user_id: userId,
+        settings: settings,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) throw error;
+
+    return { success: true };
+  } catch (error) {
+    console.error('Save user settings error:', error);
+    return { success: false, error: 'Failed to save user settings' };
+  }
+};
+
+/**
+ * Get user settings from database
+ * @param {string} userId - User's ID
+ * @returns {Object} { success: boolean, settings?: object, error?: string }
+ */
+export const getUserSettings = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') { // No rows returned
+        // User settings don't exist yet, return null to indicate defaults should be used
+        return { success: true, settings: null };
+      }
+      throw error;
+    }
+
+    return { 
+      success: true, 
+      settings: data?.settings || null
+    };
+  } catch (error) {
+    console.error('Get user settings error:', error);
+    return { success: false, error: 'Failed to load user settings' };
+  }
+};

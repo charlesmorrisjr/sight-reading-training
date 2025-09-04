@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExerciseService } from '../services/exerciseService';
+import { loadGuestExercises, deleteGuestExercise } from '../services/settingsService';
 import { FaMusic, FaSpinner, FaTrash } from 'react-icons/fa';
 import DeleteExerciseModal from './DeleteExerciseModal';
 
@@ -28,7 +29,16 @@ const SavedExercisesCard = ({ user, onExerciseClick, onLoadExercise, onSettingsC
         setExercisesLoading(true);
         setExercisesError('');
         
-        const result = await ExerciseService.getUserExercises(user.id);
+        let result;
+        if (user.isGuest) {
+          // Load exercises from localStorage for guest users
+          result = loadGuestExercises();
+          // Rename 'exercises' to 'data' to match expected format
+          result = { success: result.success, data: result.exercises };
+        } else {
+          // Load exercises from database for authenticated users
+          result = await ExerciseService.getUserExercises(user.id);
+        }
         
         if (result.success) {
           setSavedExercises(result.data || []);
@@ -46,7 +56,7 @@ const SavedExercisesCard = ({ user, onExerciseClick, onLoadExercise, onSettingsC
     };
 
     loadExercises();
-  }, [user?.id]);
+  }, [user?.id, user?.isGuest]);
 
   // Handle loading a saved exercise
   const handleExerciseClick = async (exercise) => {
@@ -98,7 +108,14 @@ const SavedExercisesCard = ({ user, onExerciseClick, onLoadExercise, onSettingsC
         return { success: false, error: 'You must be logged in to delete exercises.' };
       }
 
-      const result = await ExerciseService.deleteExercise(exercise.id, user.id);
+      let result;
+      if (user.isGuest) {
+        // Delete exercise from localStorage for guest users
+        result = deleteGuestExercise(exercise.id);
+      } else {
+        // Delete exercise from database for authenticated users
+        result = await ExerciseService.deleteExercise(exercise.id, user.id);
+      }
       
       if (result.success) {
         // Remove from local state immediately
