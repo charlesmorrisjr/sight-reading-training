@@ -1,15 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaMusic, FaSignOutAlt } from 'react-icons/fa';
+import { FaMusic, FaSignOutAlt, FaUserPlus } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 
 const Header = ({ showLogout = false }) => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleSignUp = () => {
+    navigate('/signup');
   };
 
   const handleLogoClick = () => {
@@ -34,14 +38,25 @@ const Header = ({ showLogout = false }) => {
           
           {showLogout && (
             <div className="flex items-center space-x-10">
-              <button 
-                className="btn btn-lg"
-                onClick={handleLogout}
-                title="Logout"
-              >
-                <FaSignOutAlt className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
+              {user?.isGuest ? (
+                <button 
+                  className="btn btn-lg"
+                  onClick={handleSignUp}
+                  title="Sign Up"
+                >
+                  <FaUserPlus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign Up</span>
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-lg"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  <FaSignOutAlt className="w-4 h-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -7,7 +7,7 @@ import Header from './Header';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { signup, loginWithGoogle, loading, isAuthenticated } = useAuth();
+  const { signup, loginWithGoogle, loading, isAuthenticated, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -22,7 +22,8 @@ const Signup = () => {
 
   const password = watch('password');
 
-  if (isAuthenticated) {
+  // Only redirect authenticated non-guest users
+  if (isAuthenticated && !user?.isGuest) {
     return <Navigate to="/dashboard" replace />;
   }
 
