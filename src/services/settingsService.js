@@ -1,4 +1,4 @@
-import { getUserSettings, saveUserSettings as saveUserSettingsDb, incrementExercisesGenerated } from './database.js';
+import { incrementExercisesGenerated } from './database.js';
 import { ExerciseService } from './exerciseService.js';
 
 // Default settings structure
@@ -26,30 +26,30 @@ export const DEFAULT_SETTINGS = {
   selectedLevel: null
 };
 
-// LocalStorage keys for guest data
-const GUEST_SETTINGS_KEY = 'practisia-guest-settings';
+// LocalStorage keys for all users (guest and authenticated)
+const USER_SETTINGS_KEY = 'practisia-user-settings';
 const GUEST_EXERCISES_GENERATED_KEY = 'practisia-guest-exercises-generated';
 const GUEST_SAVED_EXERCISES_KEY = 'practisia-guest-saved-exercises';
 
 /**
- * Save settings to localStorage for guest users
+ * Save settings to localStorage for all users
  */
 export const saveGuestSettings = (settings) => {
   try {
-    localStorage.setItem(GUEST_SETTINGS_KEY, JSON.stringify(settings));
+    localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(settings));
     return { success: true };
   } catch (error) {
-    console.error('Failed to save guest settings to localStorage:', error);
+    console.error('Failed to save settings to localStorage:', error);
     return { success: false, error: 'Failed to save settings' };
   }
 };
 
 /**
- * Load settings from localStorage for guest users
+ * Load settings from localStorage for all users
  */
 export const loadGuestSettings = () => {
   try {
-    const savedSettings = localStorage.getItem(GUEST_SETTINGS_KEY);
+    const savedSettings = localStorage.getItem(USER_SETTINGS_KEY);
     if (savedSettings) {
       const parsedSettings = JSON.parse(savedSettings);
       // Merge with defaults to ensure all required properties exist
@@ -60,73 +60,38 @@ export const loadGuestSettings = () => {
     }
     return { success: true, settings: DEFAULT_SETTINGS };
   } catch (error) {
-    console.error('Failed to load guest settings from localStorage:', error);
+    console.error('Failed to load settings from localStorage:', error);
     return { success: true, settings: DEFAULT_SETTINGS };
   }
 };
 
 /**
- * Clear guest settings from localStorage
+ * Clear settings from localStorage
  */
 export const clearGuestSettings = () => {
   try {
-    localStorage.removeItem(GUEST_SETTINGS_KEY);
+    localStorage.removeItem(USER_SETTINGS_KEY);
     return { success: true };
   } catch (error) {
-    console.error('Failed to clear guest settings:', error);
+    console.error('Failed to clear settings:', error);
     return { success: false, error: 'Failed to clear settings' };
   }
 };
 
 /**
- * Load settings based on user type (guest or authenticated)
+ * Load settings from localStorage for all users (guest and authenticated)
  */
 export const loadUserSettings = async (user) => {
-  if (!user) {
-    return { success: true, settings: DEFAULT_SETTINGS };
-  }
-
-  if (user.isGuest) {
-    return loadGuestSettings();
-  } else {
-    // Load from database for authenticated users
-    try {
-      const result = await getUserSettings(user.id);
-      if (result.success && result.settings) {
-        // Merge with defaults to ensure all required properties exist
-        return {
-          success: true,
-          settings: { ...DEFAULT_SETTINGS, ...result.settings }
-        };
-      }
-      // If no settings found in database, return defaults
-      return { success: true, settings: DEFAULT_SETTINGS };
-    } catch (error) {
-      console.error('Failed to load user settings from database:', error);
-      return { success: true, settings: DEFAULT_SETTINGS };
-    }
-  }
+  // All users now use localStorage for settings
+  return loadGuestSettings();
 };
 
 /**
- * Save settings based on user type (guest or authenticated)
+ * Save settings to localStorage for all users (guest and authenticated)
  */
 export const saveUserSettings = async (user, settings) => {
-  if (!user) {
-    return { success: false, error: 'No user provided' };
-  }
-
-  if (user.isGuest) {
-    return saveGuestSettings(settings);
-  } else {
-    // Save to database for authenticated users
-    try {
-      return await saveUserSettingsDb(user.id, settings);
-    } catch (error) {
-      console.error('Failed to save user settings to database:', error);
-      return { success: false, error: 'Failed to save settings' };
-    }
-  }
+  // All users now use localStorage for settings
+  return saveGuestSettings(settings);
 };
 
 // Guest Exercise Data Functions
@@ -254,27 +219,6 @@ export const migrateGuestSettings = async (userId) => {
     let migrationOccurred = false;
     const migrationResults = [];
     
-    // Migrate guest settings
-    const guestSettingsResult = loadGuestSettings();
-    if (guestSettingsResult.success && guestSettingsResult.settings) {
-      // Check if guest settings differ from defaults (indicating user has customized them)
-      const hasCustomSettings = JSON.stringify(guestSettingsResult.settings) !== JSON.stringify(DEFAULT_SETTINGS);
-      
-      if (hasCustomSettings) {
-        const saveResult = await saveUserSettingsDb(userId, guestSettingsResult.settings);
-        
-        if (saveResult.success) {
-          clearGuestSettings();
-          migrationOccurred = true;
-          migrationResults.push('Settings migrated successfully');
-          console.log('Guest settings successfully migrated to user account');
-        } else {
-          console.warn('Failed to migrate guest settings to database');
-          migrationResults.push('Settings migration failed');
-        }
-      }
-    }
-    
     // Migrate guest exercises generated count
     const exercisesGeneratedResult = loadGuestExercisesGenerated();
     if (exercisesGeneratedResult.success && exercisesGeneratedResult.count > 0) {
@@ -330,7 +274,7 @@ export const migrateGuestSettings = async (userId) => {
       }
     }
     
-    // Clear all guest data if any migration occurred
+    // Clear guest exercise data if any migration occurred  
     if (migrationOccurred) {
       clearGuestExerciseData();
       return {
