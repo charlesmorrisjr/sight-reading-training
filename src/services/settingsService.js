@@ -81,7 +81,7 @@ export const clearGuestSettings = () => {
 /**
  * Load settings from localStorage for all users (guest and authenticated)
  */
-export const loadUserSettings = async (user) => {
+export const loadUserSettings = async () => {
   // All users now use localStorage for settings
   return loadGuestSettings();
 };
