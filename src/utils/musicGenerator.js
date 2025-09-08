@@ -902,9 +902,9 @@ function getHarmonicNoteIndices(chordNotes, key) {
  * @returns {string} ABC notation for bass clef
  */
 function convertNoteToABC(noteName) {
-  // Remove sharp and flat notation because they are not needed and
+  // Remove ALL sharp and flat notation because they are not needed and
   // will cause issues with how the notes are displayed in the sheet music
-  let abcNote = noteName.replace('#', '').replace('b', '');
+  let abcNote = noteName.replace(/#+/g, '').replace(/b+/g, '');
   
   // For bass clef, we want notes in the lower octaves
   // Default bass range is around C2-C4, so we'll add commas for lower octaves
@@ -912,7 +912,7 @@ function convertNoteToABC(noteName) {
     // Single letter notes need to be lowercase for higher octave or add commas for lower
     abcNote = abcNote + ','; // One comma for one octave lower (bass range)
   } else if (abcNote.length === 2) {
-    // Notes with accidentals
+    // Notes with accidentals (should not happen after removing # and b, but kept for safety)
     abcNote = abcNote + ',';
   }
   
