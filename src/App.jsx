@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
 import { FaMusic, FaPlay, FaStop, FaKeyboard } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
@@ -25,7 +25,6 @@ import { useAuth } from './contexts/AuthContext';
 import { ExerciseService } from './services/exerciseService';
 import { incrementExercisesGenerated, updateLastPracticed } from './services/database';
 import { AuthProvider } from './contexts/AuthProvider';
-import { IntervalsProvider } from './contexts/IntervalsProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
 import { generateRandomABC } from './utils/musicGenerator';
 import { initializeMIDI } from './utils/midiManager';
@@ -37,18 +36,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, onSaveExercise, user }) => {
-  const location = useLocation();
   const navigate = useNavigate();
-  
-  // Get intervals from location state if available
-  const intervalsFromState = location.state?.intervals;
-  
-  // Merge location state with settings if intervals were passed
-  const effectiveSettings = useMemo(() => {
-    return intervalsFromState 
-      ? { ...settings, intervals: intervalsFromState }
-      : settings;
-  }, [settings, intervalsFromState]);
   
   // Current ABC notation and note metadata
   const [abcNotation, setAbcNotation] = useState('');
@@ -113,12 +101,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     // Reset scoring when generating new exercise
     if (onResetScoring) {
       onResetScoring();
-      console.log('🎯 New exercise generated - scoring reset');
+      console.log('🏯 New exercise generated - scoring reset');
     }
     
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
-      const result = generateRandomABC(effectiveSettings);
+      const result = generateRandomABC(settings);
       setAbcNotation(result.abcNotation);
       setNoteMetadata(result.noteMetadata);
       
@@ -165,7 +153,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     } finally {
       setIsGenerating(false);
     }
-  }, [effectiveSettings, onResetScoring, onResetPostPracticeResults, user?.id]);;
+  }, [settings, onResetScoring, onResetPostPracticeResults, user?.id, user?.isGuest]);
 
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback((visualObj) => {
@@ -196,7 +184,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       setIsInitializing(true);
 
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        // @ts-ignore - webkitAudioContext fallback for older browsers
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContextRef.current = new AudioContextClass();
       }
 
       if (audioContextRef.current.state === 'suspended') {
@@ -263,7 +253,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     
     // Create TimingCallbacks for precise synchronization
     console.log('🚀 Creating TimingCallbacks with config:', {
-      qpm: effectiveSettings.tempo,
+      qpm: settings.tempo,
       beatSubdivisions: 4,
       extraMeasuresAtBeginning: isPracticeMode ? 2 : 0,
       isPracticeMode,
@@ -274,7 +264,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     let timingCallbacks;
     try {
       timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
-        qpm: effectiveSettings.tempo, // Quarter notes per minute - matches settings
+        qpm: settings.tempo, // Quarter notes per minute - matches settings
         beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
         extraMeasuresAtBeginning: isPracticeMode ? 2 : 0, // Add 2 countdown measures for practice mode
         
@@ -298,7 +288,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           }
           
           // Call onPracticeEnd if we were in practice mode with note tracking statistics
-          console.log('🎯 Checking practice end condition:', {
+          console.log('🏯 Checking practice end condition:', {
             isPracticingRef: isPracticingRef.current,
             hasOnPracticeEnd: !!onPracticeEnd,
             willCallPracticeEnd: isPracticingRef.current && onPracticeEnd
@@ -349,7 +339,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             if (isMetronomeActiveRef.current) {
               console.log('🔇 Setting isMetronomeActiveRef.current = false');
               isMetronomeActiveRef.current = false;
-              console.log('🎯 Metronome stopped: practice ended naturally');
+              console.log('🏯 Metronome stopped: practice ended naturally');
               
               // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
               console.log('🛑 Calling onMetronomeToggle to stop MetronomeButton internal timing');
@@ -397,11 +387,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         
         // For practice mode, hide cursor during countdown 
         if (isPracticeMode && event.milliseconds !== undefined) {
-          const tempo = effectiveSettings.tempo || 120;
+          const tempo = settings.tempo || 120;
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
           
           // Calculate dynamic countdown beats based on time signature
-          const [beatsPerMeasure] = effectiveSettings.timeSignature.split('/').map(Number);
+          const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
           const countdownBeats = beatsPerMeasure * 2; // 2 measures countdown
           
           if (currentTimeInBeats < countdownBeats) {
@@ -430,12 +420,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         cursorLine.setAttribute('x2', cursorX);
         cursorLine.setAttribute('y2', cursorBottomY);
         
-        // 🎯 Calculate current active notes using ABCJS event timing
+        // 🏯 Calculate current active notes using ABCJS event timing
         // This approach uses event.milliseconds for precise timing that works across all BPM values
         // and eliminates timing lag between beat calculation and cursor display
         if (isPracticeMode && event && event.milliseconds !== undefined) {
           // Validate tempo to prevent division by zero or invalid values
-          let tempo = effectiveSettings.tempo || 120;
+          let tempo = settings.tempo || 120;
           if (tempo <= 0 || tempo > 300) {
             console.warn(`Invalid tempo: ${tempo}, using default 120 BPM`);
             tempo = 120;
@@ -447,7 +437,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           
           // Only process notes after countdown period
           // Calculate dynamic countdown beats based on time signature
-          const [beatsPerMeasure] = effectiveSettings.timeSignature.split('/').map(Number);
+          const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
           const countdownBeats = beatsPerMeasure * 2; // 2 measures countdown
           if (currentTimeInBeats >= countdownBeats) {
             const activeNotes = new Set();
@@ -479,7 +469,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             currentNoteIdsRef.current = activeNoteIds;
             
             const activeNotesAtCursor = Array.from(activeNotes);
-            console.log(`🎯 Cursor at position ${cursorX.toFixed(0)}, expected notes: [${activeNotesAtCursor.join(', ')}]`);
+            console.log(`🏯 Cursor at position ${cursorX.toFixed(0)}, expected notes: [${activeNotesAtCursor.join(', ')}]`);
           }
         }
       },
@@ -496,7 +486,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           
           // Handle countdown phase for practice mode
           if (isPracticeMode) {
-            const [beatsPerMeasure] = effectiveSettings.timeSignature.split('/').map(Number);
+            const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
             const countdownTotalBeats = beatsPerMeasure * 2; // 2 measures countdown
             
             // Since extraMeasuresAtBeginning doesn't seem to work in this version of ABCJS,
@@ -526,7 +516,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           
           // For practice mode, trigger metronome during countdown OR if metronome is active
           // Use ref instead of state to avoid async timing issues
-          const [beatsPerMeasure] = effectiveSettings.timeSignature.split('/').map(Number);
+          const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
           const countdownTotalBeats = beatsPerMeasure * 2; // 2 measures countdown
           const shouldTriggerMetronome = isPracticeMode ? 
             (beatNumber < countdownTotalBeats || isMetronomeActiveRef.current) : // Countdown always plays, then only if metronome active
@@ -583,7 +573,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
     
     console.log(`${isPracticeMode ? 'Practice mode' : 'abcjs TimingCallbacks'} cursor setup completed`);
-  }, [effectiveSettings.tempo, effectiveSettings.timeSignature, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap, onMetronomeToggle]);
+  }, [settings.tempo, settings.timeSignature, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap, onMetronomeToggle]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -674,7 +664,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       if (isMetronomeActiveRef.current) {
         console.log('🔇 Manual stop: Setting isMetronomeActiveRef.current = false');
         isMetronomeActiveRef.current = false;
-        console.log('🎯 Metronome stopped: practice stopped manually');
+        console.log('🏯 Metronome stopped: practice stopped manually');
         
         // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
         console.log('🛑 Manual stop: Calling onMetronomeToggle to stop MetronomeButton internal timing');
@@ -757,7 +747,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     };
 
     updatePracticeDate();
-  }, []); // Empty dependency array - runs once when component mounts
+  }, [user?.id, user?.isGuest]); // Depend on user properties
 
   // Keep refs synchronized with state to avoid stale closure issues
   // Fixes problem with visual cursor disappearing when notes were highlighted
@@ -938,12 +928,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 disabled={isPlaying || isPracticing}
                 title="Change Tempo"
               >
-                <span className="text-lg font-medium">{effectiveSettings.tempo} BPM</span>
+                <span className="text-lg font-medium">{settings.tempo} BPM</span>
               </button>
 
               {/* Metronome Button */}
               <MetronomeButton
-                tempo={effectiveSettings.tempo}
+                tempo={settings.tempo}
                 isActive={isMetronomeActive}
                 onToggle={onMetronomeToggle}
                 disabled={isInitializing || !isVisualsReady || isPlaying || isPracticing}
@@ -1030,7 +1020,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         <div className="card-body p-8">
           <MusicDisplay 
             abcNotation={abcNotation} 
-            settings={effectiveSettings}
+            settings={settings}
             onVisualsReady={handleVisualsReady}
             pressedMidiNotes={pressedMidiNotes}
             enableRealtimeHighlighting={false}
@@ -1062,6 +1052,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     </div>
   );
 };
+
 
 function AppContent() {
   // Get current user from auth context
@@ -1536,11 +1527,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <IntervalsProvider>
-        <ChordsProvider>
-          <AppContent />
-        </ChordsProvider>
-      </IntervalsProvider>
+      <ChordsProvider>
+        <AppContent />
+      </ChordsProvider>
     </AuthProvider>
   );
 }

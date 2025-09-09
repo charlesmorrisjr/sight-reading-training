@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useIntervals } from '../contexts/useIntervals';
 import { 
   AVAILABLE_KEYS, 
   AVAILABLE_TIME_SIGNATURES, 
@@ -22,7 +21,6 @@ const HamburgerMenu = ({
   onSaveExercise
 }) => {
   const navigate = useNavigate();
-  const { selectedIntervals, toggleInterval } = useIntervals();
   const [isOpen, setIsOpen] = useState(false);
   const [currentMenu, setCurrentMenu] = useState('main');
   const [menuHistory, setMenuHistory] = useState(['main']);
@@ -77,14 +75,14 @@ const HamburgerMenu = ({
   }, [settings, onSettingsChange]);
 
   const handleIntervalToggle = (interval) => {
-    toggleInterval(interval);
-    // Also update settings to maintain sync with music generation
-    const currentIntervals = selectedIntervals.includes(interval)
-      ? selectedIntervals.filter(i => i !== interval)
-      : [...selectedIntervals, interval].sort((a, b) => a - b);
+    const currentIntervals = settings.intervals || [1, 2, 3, 4, 5];
+    const newIntervals = currentIntervals.includes(interval)
+      ? currentIntervals.filter(i => i !== interval)
+      : [...currentIntervals, interval].sort((a, b) => a - b);
     
-    if (currentIntervals.length > 0) {
-      handleSettingChange('intervals', currentIntervals);
+    // Ensure at least one interval is selected
+    if (newIntervals.length > 0) {
+      handleSettingChange('intervals', newIntervals);
     }
   };
 
@@ -165,14 +163,6 @@ const HamburgerMenu = ({
     handleSettingChange('musicScale', newScale);
   };
 
-  // Sync intervals context with settings on mount and when settings change
-  useEffect(() => {
-    const settingsIntervals = settings.intervals || [1, 2, 3, 4, 5];
-    // Only sync if there's a meaningful difference
-    if (JSON.stringify(settingsIntervals.sort()) !== JSON.stringify(selectedIntervals.sort())) {
-      handleSettingChange('intervals', selectedIntervals);
-    }
-  }, [selectedIntervals, handleSettingChange, settings.intervals]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -420,7 +410,7 @@ const HamburgerMenu = ({
               {AVAILABLE_INTERVALS.map(({ value, label }) => (
                 <button
                   key={value}
-                  className={`button-grid-item ${selectedIntervals.includes(value) ? 'selected' : ''}`}
+                  className={`button-grid-item ${(settings.intervals || [1, 2, 3, 4, 5]).includes(value) ? 'selected' : ''}`}
                   onClick={() => handleIntervalToggle(value)}
                 >
                   {label}
