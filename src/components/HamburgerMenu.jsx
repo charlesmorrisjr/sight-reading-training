@@ -223,7 +223,7 @@ const HamburgerMenu = ({
               className="menu-nav-item"
               onClick={() => navigateToMenu('key')}
             >
-              Key
+              Key Signature
               <span className="menu-nav-arrow">→</span>
             </button>
             <button 
