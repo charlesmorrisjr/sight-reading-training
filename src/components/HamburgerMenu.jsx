@@ -637,7 +637,8 @@ const HamburgerMenu = ({
       case 'leftHandBrokenChords': {
         const brokenChordOptions = [
           { id: '1-3-5-3', label: '1-3-5-3 (1/8 notes)' },
-          { id: '1-3-5-3-quarter', label: '1-3-5-3 (1/4 notes)' }
+          { id: '1-3-5-3-quarter', label: '1-3-5-3 (1/4 notes)' },
+          { id: 'broken-chords-1', label: 'Broken Chords 1' }
         ];
         
         return (

@@ -1135,9 +1135,6 @@ function generateLeftHandBrokenChords(chordNotes, totalBeats, pattern) {
   }
   fifthNote = convertNoteIndexToABC(fifthIndex + (bestFifthOctave * 7), octaveOffset, maxOctavesLower);
   
-  // Pattern: 1-3-5-3 (root-third-fifth-third)
-  const chordPattern = [rootNote, thirdNote, fifthNote, thirdNote];
-  
   let measure = '';
   let beatsUsed = 0;
   
@@ -1145,14 +1142,28 @@ function generateLeftHandBrokenChords(chordNotes, totalBeats, pattern) {
     // Quarter note pattern - 4 quarter notes in 4/4 time
     // Each quarter note takes 2 eighth-note units in our system
     const quarterNoteBeats = 2;
+    const chordPattern = [rootNote, thirdNote, fifthNote, thirdNote];
     
     for (let i = 0; i < 4 && beatsUsed < totalBeats; i++) {
       const patternIndex = i % chordPattern.length;
       measure += chordPattern[patternIndex] + '2'; // '2' suffix for quarter notes
       beatsUsed += quarterNoteBeats;
     }
+  } else if (pattern === 'broken-chords-1') {
+    // Pattern: 1-3-5-8-5-3-1 (root-third-fifth-octave-fifth-third-root)
+    // Create octave note (root note one octave higher)
+    const octaveNote = convertNoteIndexToABC(rootIndex, octaveOffset, maxOctavesLower);
+    const chordPattern = [rootNote, thirdNote, fifthNote, octaveNote, fifthNote, thirdNote, rootNote];
+    
+    while (beatsUsed < totalBeats) {
+      const patternIndex = beatsUsed % chordPattern.length;
+      measure += chordPattern[patternIndex]; // No duration notation = eighth notes (default)
+      beatsUsed += 1; // Each note is an eighth note (1 beat in our system)
+    }
   } else {
     // Default eighth note pattern (1-3-5-3)
+    const chordPattern = [rootNote, thirdNote, fifthNote, thirdNote];
+    
     while (beatsUsed < totalBeats) {
       const patternIndex = beatsUsed % chordPattern.length;
       measure += chordPattern[patternIndex]; // No duration notation = eighth notes (default)
