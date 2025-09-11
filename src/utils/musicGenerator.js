@@ -1071,6 +1071,105 @@ function generateLeftHandOctaves(chordNotes, totalBeats) {
 }
 
 /**
+ * Convert note index to specific octave level with proper comma notation
+ * @param {number} noteIndex - Note index (0-6)
+ * @param {number} octaveLevel - Octave level (0=,,, 1=,, 2=no comma, etc.)
+ * @returns {string} ABC notation with correct octave
+ */
+function getNoteAtOctaveLevel(noteIndex, octaveLevel) {
+  const octaveOffset = 0;
+  const maxOctavesLower = 3;
+  
+  // Convert octave level to note index adjustment
+  // Level 0: ,, (noteIndex - 14)
+  // Level 1: , (noteIndex - 7) 
+  // Level 2: no comma (noteIndex)
+  const adjustment = (2 - octaveLevel) * 7;
+  
+  return convertNoteIndexToABC(noteIndex - adjustment, octaveOffset, maxOctavesLower);
+}
+
+/**
+ * Get absolute pitch position for comparison (higher number = higher pitch)
+ * @param {number} noteIndex - Note index (0-6)
+ * @param {number} octaveLevel - Octave level (0=,,, 1=,, 2=no comma)
+ * @returns {number} Absolute pitch for comparison
+ */
+function getAbsolutePitch(noteIndex, octaveLevel) {
+  return noteIndex + (octaveLevel * 7);
+}
+
+/**
+ * Generate properly spaced octaves for 1-5-1-3-5-3-1-5 broken chord pattern
+ * First 5 notes ascending, last 3 notes descending
+ * @param {number} rootIndex - Root note index (0-6)
+ * @param {number} thirdIndex - Third note index (0-6) 
+ * @param {number} fifthIndex - Fifth note index (0-6)
+ * @returns {array} Array with properly octaved notes for each pattern position
+ */
+function validateBrokenChordOctaves(rootIndex, thirdIndex, fifthIndex) {
+  // Pattern positions: 1-5-1-3-5-3-1-5
+  // Indices:          [0,1,2,3,4,5,6,7]
+  const pattern = [
+    {degree: rootIndex, pos: 0},   // 1
+    {degree: fifthIndex, pos: 1},  // 5
+    {degree: rootIndex, pos: 2},   // 1 
+    {degree: thirdIndex, pos: 3},  // 3
+    {degree: fifthIndex, pos: 4},  // 5
+    {degree: thirdIndex, pos: 5},  // 3
+    {degree: rootIndex, pos: 6},   // 1
+    {degree: fifthIndex, pos: 7}   // 5
+  ];
+  
+  // Determine octave levels for ascending positions 0-4
+  let octaveLevels = new Array(8);
+  let currentPitch = -1;
+  
+  // Positions 0-4: Ascending (each note >= previous)
+  for (let i = 0; i < 5; i++) {
+    let bestLevel = 0;
+    let bestPitch = getAbsolutePitch(pattern[i].degree, 0);
+    
+    // Find lowest octave level that maintains ascending order
+    for (let level = 0; level <= 2; level++) {
+      let testPitch = getAbsolutePitch(pattern[i].degree, level);
+      if (testPitch >= currentPitch) {
+        bestLevel = level;
+        bestPitch = testPitch;
+        break;
+      }
+    }
+    
+    octaveLevels[i] = bestLevel;
+    currentPitch = bestPitch;
+  }
+  
+  // Positions 5-7: Descending (each note <= previous)
+  currentPitch = getAbsolutePitch(pattern[4].degree, octaveLevels[4]); // Start from position 4
+  
+  for (let i = 5; i < 8; i++) {
+    let bestLevel = 2;
+    let bestPitch = getAbsolutePitch(pattern[i].degree, 2);
+    
+    // Find highest octave level that maintains descending order  
+    for (let level = 2; level >= 0; level--) {
+      let testPitch = getAbsolutePitch(pattern[i].degree, level);
+      if (testPitch <= currentPitch) {
+        bestLevel = level;
+        bestPitch = testPitch;
+        break;
+      }
+    }
+    
+    octaveLevels[i] = bestLevel;
+    currentPitch = bestPitch;
+  }
+  
+  // Convert to ABC notation
+  return pattern.map((note, i) => getNoteAtOctaveLevel(note.degree, octaveLevels[i]));
+}
+
+/**
  * Generate a left-hand broken chord measure with specified pattern
  * @param {string[]} chordNotes - Array of chord note names
  * @param {number} totalBeats - Total beats in the measure
@@ -1150,10 +1249,8 @@ function generateLeftHandBrokenChords(chordNotes, totalBeats, pattern) {
       beatsUsed += quarterNoteBeats;
     }
   } else if (pattern === 'broken-chords-1') {
-    // Pattern: 1-3-5-8-5-3-1 (root-third-fifth-octave-fifth-third-root)
-    // Create octave note (root note one octave higher)
-    const octaveNote = convertNoteIndexToABC(rootIndex, octaveOffset, maxOctavesLower);
-    const chordPattern = [rootNote, thirdNote, fifthNote, octaveNote, fifthNote, thirdNote, rootNote];
+    // Pattern: 1-5-1-3-5-3-1-5 with validated octave placements
+    const chordPattern = validateBrokenChordOctaves(rootIndex, thirdIndex, fifthIndex);
     
     while (beatsUsed < totalBeats) {
       const patternIndex = beatsUsed % chordPattern.length;
