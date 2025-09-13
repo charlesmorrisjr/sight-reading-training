@@ -171,11 +171,11 @@ const SavedExercisesCard = ({ user, onExerciseClick, onLoadExercise, onSettingsC
                     onClick={() => handleExerciseClick(exercise)}
                   >
                     <div className="w-full">
-                      <div className="font-semibold text-base mb-1">{exercise.exercise_name}</div>
-                      <div className="text-sm text-gray-500">
+                      <div className="font-semibold text-xl mb-2">{exercise.exercise_name}</div>
+                      <div className="text-base text-gray-500">
                         {exercise.key_signature} • {exercise.time_signature} • {exercise.measures} measures
                       </div>
-                      <div className="text-xs text-gray-400 mt-2">
+                      <div className="text-sm text-gray-400 mt-2">
                         {new Date(exercise.created_at).toLocaleDateString()}
                       </div>
                     </div>
