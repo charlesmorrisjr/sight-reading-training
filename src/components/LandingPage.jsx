@@ -21,7 +21,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-4xl mx-auto text-center">
+      <div className="max-w-6xl mx-auto text-center">
         {/* App Logo and Title */}
         <div className="flex items-center justify-center space-x-4 mb-8">
           <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
@@ -37,28 +37,28 @@ export default function LandingPage() {
           <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
             Master Sight Reading Through Interactive Practice
           </h2>
-          <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
             Improve your piano sight reading skills with algorithmically generated exercises, 
             real-time MIDI feedback, and personalized practice sessions. 
             Track your progress and develop fluency with adaptive difficulty levels.
           </p>
           
           {/* Feature highlights */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-5xl mx-auto">
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-md">
-              <div className="text-blue-500 mb-3">🎹</div>
-              <h3 className="font-semibold text-gray-800 mb-2">MIDI Integration</h3>
-              <p className="text-sm text-gray-600">Connect your piano for real-time feedback and scoring</p>
+              <div className="text-blue-500 mb-4 text-2xl">🎹</div>
+              <h3 className="font-bold text-xl text-gray-800 mb-3">MIDI Integration</h3>
+              <p className="text-base text-gray-600 leading-relaxed">Connect your piano for real-time feedback and scoring</p>
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-md">
-              <div className="text-purple-500 mb-3">🎵</div>
-              <h3 className="font-semibold text-gray-800 mb-2">Algorithmically Generated Music</h3>
-              <p className="text-sm text-gray-600">Endless variety with customizable difficulty and styles</p>
+              <div className="text-purple-500 mb-4 text-2xl">🎵</div>
+              <h3 className="font-bold text-xl text-gray-800 mb-3">Algorithmically Generated Music</h3>
+              <p className="text-base text-gray-600 leading-relaxed">Endless variety with customizable difficulty and styles</p>
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-md">
-              <div className="text-green-500 mb-3">📊</div>
-              <h3 className="font-semibold text-gray-800 mb-2">Progress Tracking</h3>
-              <p className="text-sm text-gray-600">Monitor your improvement with detailed analytics</p>
+              <div className="text-green-500 mb-4 text-2xl">📊</div>
+              <h3 className="font-bold text-xl text-gray-800 mb-3">Progress Tracking</h3>
+              <p className="text-base text-gray-600 leading-relaxed">Monitor your improvement with detailed analytics</p>
             </div>
           </div>
         </div>
