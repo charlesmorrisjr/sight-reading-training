@@ -88,7 +88,7 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Header showLogout={true} />
 
       {/* Main Content */}
@@ -116,33 +116,33 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-up">
-            <div className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="card-body">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <FaKeyboard className="text-blue-600 text-xl" />
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                      <FaKeyboard className="text-blue-600 dark:text-blue-400 text-xl" />
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Last Practice</p>
-                    <p className="text-2xl font-bold text-gray-900">July 20</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Last Practice</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">July 20</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="card-body">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <FaMusic className="text-purple-600 text-xl" />
+                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                      <FaMusic className="text-purple-600 dark:text-purple-400 text-xl" />
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Exercises Generated</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Exercises Generated</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
                       {profileLoading ? '...' : exercisesGenerated}
                     </p>
                   </div>

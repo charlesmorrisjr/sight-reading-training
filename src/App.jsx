@@ -4,6 +4,7 @@ import * as ABCJS from 'abcjs';
 import { FaMusic, FaPlay, FaStop, FaKeyboard } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
+import DarkModeToggle from './components/DarkModeToggle';
 import TempoSelector from './components/TempoSelector';
 import MetronomeButton from './components/MetronomeButton';
 import ScoreModal from './components/ScoreModal';
@@ -26,6 +27,7 @@ import { ExerciseService } from './services/exerciseService';
 import { incrementExercisesGenerated, updateLastPracticed } from './services/database';
 import { AuthProvider } from './contexts/AuthProvider';
 import { ChordsProvider } from './contexts/ChordsProvider';
+import ThemeProvider from './contexts/ThemeProvider';
 import { generateRandomABC } from './utils/musicGenerator';
 import { initializeMIDI } from './utils/midiManager';
 import { loadUserSettings, saveUserSettings, DEFAULT_SETTINGS, incrementGuestExercisesGenerated, saveGuestExercise } from './services/settingsService';
@@ -898,9 +900,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   }, [isPracticing, onResetScoring]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             
@@ -912,7 +914,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
                 <FaMusic className="text-white text-lg" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
                 Practisia
               </h1>
             </button>
@@ -980,6 +982,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 </span>
               </button>
 
+              {/* Dark Mode Toggle */}
+              <DarkModeToggle />
+
               {/* Settings */}
               <HamburgerMenu
                 settings={settings}
@@ -993,23 +998,23 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
       {/* Countdown Display */}
       {isCountingDown && (
-        <div className="bg-orange-100 border border-orange-300 px-4 py-8 text-center animate-pulse">
-          <div className="text-6xl font-bold text-orange-800 mb-2">
+        <div className="bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 px-4 py-8 text-center animate-pulse">
+          <div className="text-6xl font-bold text-orange-800 dark:text-orange-200 mb-2">
             {countdownBeats}
           </div>
-          <div className="text-lg font-medium text-orange-700">
+          <div className="text-lg font-medium text-orange-700 dark:text-orange-300">
             Practice starts in {countdownBeats} beat{countdownBeats !== 1 ? 's' : ''}
           </div>
         </div>
       )}
 
       {/* MIDI Debug Display - for testing */}
-      <div className="bg-yellow-100 border border-yellow-300 px-4 py-2 text-center">
-        <span className="text-sm font-medium text-yellow-800">
+      <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 px-4 py-2 text-center">
+        <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
           MIDI Notes: {pressedMidiNotes.size > 0 ? Array.from(pressedMidiNotes).join(', ') : 'None pressed'} | 
           {beatInfo || 'No beat info'} | 
-          <span className="text-green-700">✓ Correct: {correctNotesCount}</span> | 
-          <span className="text-red-700">✗ Wrong: {wrongNotesCount}</span>
+          <span className="text-green-700 dark:text-green-300">✓ Correct: {correctNotesCount}</span> | 
+          <span className="text-red-700 dark:text-red-300">✗ Wrong: {wrongNotesCount}</span>
         </span>
       </div>
 
@@ -1526,11 +1531,13 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <ChordsProvider>
-        <AppContent />
-      </ChordsProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ChordsProvider>
+          <AppContent />
+        </ChordsProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

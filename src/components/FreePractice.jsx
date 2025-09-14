@@ -92,9 +92,9 @@ const FreePractice = ({ settings, onSettingsChange }) => {
   const displayIntervals = AVAILABLE_INTERVALS.filter(interval => interval.value >= 2 && interval.value <= 8);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             
@@ -117,13 +117,13 @@ const FreePractice = ({ settings, onSettingsChange }) => {
         {/* Practice Selection Cards */}
         <div className="space-y-8">
           {/* Intervals Section */}
-          <div className="card bg-white shadow-lg animate-fade-in">
+          <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 animate-fade-in">
             <div className="card-body p-8">
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                   Intervals
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Select which intervals to practice (multiple selections allowed)
                 </p>
               </div>
@@ -142,13 +142,13 @@ const FreePractice = ({ settings, onSettingsChange }) => {
           </div>
 
           {/* Chord Progressions Section */}
-          <div className="card bg-white shadow-lg animate-slide-up">
+          <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 animate-slide-up">
             <div className="card-body p-8">
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                   Chord Progressions
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Select which chord progressions to practice (multiple selections allowed)
                 </p>
               </div>
@@ -166,13 +166,13 @@ const FreePractice = ({ settings, onSettingsChange }) => {
           </div>
 
           {/* Left Hand Patterns Section */}
-          <div className="card bg-white shadow-lg animate-slide-up">
+          <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 animate-slide-up">
             <div className="card-body p-8">
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                   Left Hand Patterns
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Select one left hand pattern to practice
                 </p>
               </div>
@@ -190,13 +190,13 @@ const FreePractice = ({ settings, onSettingsChange }) => {
           </div>
 
           {/* Right Hand Patterns Section */}
-          <div className="card bg-white shadow-lg animate-scale-in">
+          <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 animate-scale-in">
             <div className="card-body p-8">
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                   Right Hand Patterns
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Select one right hand pattern to practice
                 </p>
               </div>
@@ -214,13 +214,13 @@ const FreePractice = ({ settings, onSettingsChange }) => {
           </div>
 
           {/* Swap Hand Patterns Section */}
-          <div className="card bg-white shadow-lg animate-scale-in">
+          <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 animate-scale-in">
             <div className="card-body p-8">
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                   Swap Hand Patterns
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Switch left and right hand patterns with automatic octave adjustment
                 </p>
               </div>
