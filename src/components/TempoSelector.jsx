@@ -34,24 +34,24 @@ const TempoSelector = ({ tempo, onTempoChange, onClose }) => {
       />
       
       {/* Modal content */}
-      <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 animate-scale-in">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Tempo</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Tempo</h2>
           <button
             onClick={handleClose}
             className="btn btn-ghost btn-sm btn-circle"
           >
-            <FaTimes className="text-gray-500" />
+            <FaTimes className="text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
         {/* Tempo Display */}
         <div className="text-center mb-8">
-          <div className="text-6xl font-bold text-blue-600 mb-2">
+          <div className="text-6xl font-bold text-blue-600 dark:text-blue-400 mb-2">
             {localTempo}
           </div>
-          <div className="text-gray-600 text-lg">BPM</div>
+          <div className="text-gray-600 dark:text-gray-300 text-lg">BPM</div>
         </div>
 
         {/* Tempo Slider */}
@@ -62,12 +62,9 @@ const TempoSelector = ({ tempo, onTempoChange, onClose }) => {
             max="200"
             value={localTempo}
             onChange={handleSliderChange}
-            className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-            style={{
-              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((localTempo - 40) / 160) * 100}%, #e5e7eb ${((localTempo - 40) / 160) * 100}%, #e5e7eb 100%)`
-            }}
+            className="w-full h-3 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
           />
-          <div className="flex justify-between text-sm text-gray-500 mt-2">
+          <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-2">
             <span>40</span>
             <span>120</span>
             <span>200</span>
