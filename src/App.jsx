@@ -963,7 +963,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
               {/* Practice Button */}
               <button 
-                className={`btn btn-lg ${isPracticing ? 'btn-error' : 'btn-warning'} ${
+                className={`btn btn-lg btn-outline ${isPracticing ? 'btn-error' : 'btn-warning'} ${
                   (isInitializing || !isVisualsReady || isPlaying) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 onClick={handlePracticeClick}
