@@ -103,7 +103,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     // Reset scoring when generating new exercise
     if (onResetScoring) {
       onResetScoring();
-      console.log('🏯 New exercise generated - scoring reset');
     }
     
     try {
@@ -125,7 +124,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       // Reset post-practice highlighting when generating new exercise
       if (onResetPostPracticeResults) {
         onResetPostPracticeResults();
-        console.log('🎨 Post-practice highlighting reset for new exercise');
       }
       
       // Increment exercises_generated counter based on user type
@@ -133,25 +131,19 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         try {
           if (user.isGuest) {
             // Increment guest counter in localStorage
-            const result = incrementGuestExercisesGenerated();
-            if (result.success) {
-              console.log('📊 Guest exercise counter incremented:', result.count);
-            }
+            incrementGuestExercisesGenerated();
           } else {
             // Increment authenticated user counter in database
             await incrementExercisesGenerated(user.id);
-            console.log('📊 Exercise counter incremented for user:', user.id);
           }
-        } catch (error) {
-          console.warn('Failed to increment exercise counter:', error);
+        } catch {
+          // Failed to increment exercise counter
           // Don't fail the exercise generation if counter update fails
         }
       }
       
-      console.log('📝 Generated music with metadata:', result.noteMetadata);
-      console.log('🗺️ Initialized note tracking map:', initialTrackingMap);
-    } catch (error) {
-      console.error('Error generating ABC notation:', error);
+    } catch {
+      // Error generating ABC notation
     } finally {
       setIsGenerating(false);
     }
@@ -178,7 +170,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Initialize audio context and synth
   const initializeSynth = useCallback(async () => {
     if (!visualObjectRef.current) {
-      console.error('No visual object available for synth');
       return false;
     }
 
@@ -207,8 +198,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
       await synthRef.current.prime();
       return true;
-    } catch (error) {
-      console.error('Error initializing synth:', error);
+    } catch {
       return false;
     } finally {
       setIsInitializing(false);
@@ -217,20 +207,17 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
   // abcjs TimingCallbacks-based cursor that syncs perfectly with music
   const startVisualCursor = useCallback((isPracticeMode = false) => {
-    console.log(`Starting ${isPracticeMode ? 'practice mode' : 'abcjs TimingCallbacks-based'} cursor...`);
     
     // Cursor padding constants
     const CURSOR_TOP_PADDING = 5;
     const CURSOR_BOTTOM_PADDING = 25;
     
     if (!visualObjectRef.current) {
-      console.log('No visual object available for cursor');
       return;
     }
     
     const svgContainer = document.querySelector('.music-notation svg');
     if (!svgContainer) {
-      console.log('No SVG container found');
       return;
     }
     
@@ -251,17 +238,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     
     // Add cursor to SVG
     svgContainer.appendChild(cursorLine);
-    console.log('Cursor line added to SVG');
     
     // Create TimingCallbacks for precise synchronization
-    console.log('🚀 Creating TimingCallbacks with config:', {
-      qpm: settings.tempo,
-      beatSubdivisions: 4,
-      extraMeasuresAtBeginning: isPracticeMode ? 2 : 0,
-      isPracticeMode,
-      visualObject: !!visualObjectRef.current,
-      noteMetadataCount: noteMetadata.length
-    });
     
     let timingCallbacks;
     try {
@@ -272,32 +250,16 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         
         // Event callback - called for each musical event (note, rest, etc.)
         eventCallback: (event) => {
-          // Enhanced logging to track practice end sequence
-          console.log('⚡ EventCallback fired!', { 
-            hasEvent: !!event, 
-            eventType: typeof event, 
-            isPracticeMode, 
-            isPracticingRef: isPracticingRef.current,
-            isMetronomeActiveRef: isMetronomeActiveRef.current,
-            timestamp: new Date().toISOString().substring(17, 23)
-          });
           
         if (!event) {
-          console.log('🏁 MUSIC ENDED - Starting cleanup sequence');
           // Music has ended - stop playback and reset button
           if (!isPracticeMode) {
             setIsPlaying(false);
           }
           
           // Call onPracticeEnd if we were in practice mode with note tracking statistics
-          console.log('🏯 Checking practice end condition:', {
-            isPracticingRef: isPracticingRef.current,
-            hasOnPracticeEnd: !!onPracticeEnd,
-            willCallPracticeEnd: isPracticingRef.current && onPracticeEnd
-          });
           
           if (isPracticingRef.current && onPracticeEnd) {
-            console.log('📊 Calling onPracticeEnd...');
             // Calculate final scores from note tracking map
             let correctCount = 0;
             let wrongCount = 0;
@@ -328,10 +290,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           }
           
           if (isPracticeMode) {
-            console.log('🧹 Cleaning up practice mode state...', {
-              wasPracticing: isPracticingRef.current,
-              wasMetronomeActive: isMetronomeActiveRef.current
-            });
             
             setIsPracticing(false);
             setIsCountingDown(false);
@@ -339,17 +297,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             
             // CRITICAL FIX: Stop metronome immediately to prevent internal timing fallback
             if (isMetronomeActiveRef.current) {
-              console.log('🔇 Setting isMetronomeActiveRef.current = false');
               isMetronomeActiveRef.current = false;
-              console.log('🏯 Metronome stopped: practice ended naturally');
               
               // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
-              console.log('🛑 Calling onMetronomeToggle to stop MetronomeButton internal timing');
               if (onMetronomeToggle) {
                 onMetronomeToggle();
               }
-            } else {
-              console.log('⚠️ Metronome was already inactive');
             }
           }
           setBeatInfo(''); // Clear beat info when music ends
@@ -359,32 +312,21 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             synthRef.current.stop();
           }
           // Stop TimingCallbacks to prevent infinite beatCallback execution
-          console.log('🛑 Attempting to stop TimingCallbacks...', {
-            hasTimingCallbacks: !!timingCallbacks,
-            hasCursor: !!(cursorLine && cursorLine.parentNode)
-          });
           
           if (timingCallbacks) {
-            console.log('⏹️ Calling timingCallbacks.stop()');
             timingCallbacks.stop();
-            console.log('✅ TimingCallbacks stopped successfully');
-          } else {
-            console.log('⚠️ No timingCallbacks reference found');
           }
           
           // Remove cursor
           if (cursorLine && cursorLine.parentNode) {
-            console.log('🗑️ Removing cursor from DOM');
             cursorLine.remove();
           }
           
-          console.log('🏁 EventCallback cleanup complete - music ended');
           return;
         }
         
           // Enhanced debugging and note tracking (commented out)
           // if (event) {
-          //   console.log('🎵 Processing event with data:', { event: event, eventKeys: Object.keys(event), hasMidiPitches: !!(event.midiPitches && Array.isArray(event.midiPitches)), midiPitchesLength: event.midiPitches ? event.midiPitches.length : 0, midiPitches: event.midiPitches });
           // }
         
         // For practice mode, hide cursor during countdown 
@@ -402,7 +344,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             cursorLine.setAttribute('y1', -100);
             cursorLine.setAttribute('x2', -100);
             cursorLine.setAttribute('y2', -100);
-            console.log(`🔒 Hiding cursor during countdown: ${currentTimeInBeats.toFixed(2)}/${countdownBeats}`);
             return; // Skip normal cursor positioning
           }
         }
@@ -429,7 +370,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           // Validate tempo to prevent division by zero or invalid values
           let tempo = settings.tempo || 120;
           if (tempo <= 0 || tempo > 300) {
-            console.warn(`Invalid tempo: ${tempo}, using default 120 BPM`);
             tempo = 120;
           }
           
@@ -470,8 +410,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             currentNotesRef.current = activeNotes;
             currentNoteIdsRef.current = activeNoteIds;
             
-            const activeNotesAtCursor = Array.from(activeNotes);
-            console.log(`🏯 Cursor at position ${cursorX.toFixed(0)}, expected notes: [${activeNotesAtCursor.join(', ')}]`);
+            // Calculate active notes at cursor position
+            Array.from(activeNotes);
           }
         }
       },
@@ -479,12 +419,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         // Beat callback - called on each beat for additional timing info
         beatCallback: (beatNumber, totalBeats) => {
           // Enhanced debug logging to track metronome decisions
-          console.log(`🥁 BeatCallback: beatNumber=${beatNumber}, totalBeats=${totalBeats}, isPracticeMode=${isPracticeMode}, practicing=${isPracticingRef.current}, metronomeRef=${isMetronomeActiveRef.current}`);
           
           // CRITICAL: Check if beatCallback is still firing after music should have ended
-          if (beatNumber >= totalBeats) {
-            console.error(`🚨 CRITICAL: BeatCallback firing AFTER music end! Beat ${beatNumber}/${totalBeats}`);
-          }
           
           // Handle countdown phase for practice mode
           if (isPracticeMode) {
@@ -496,12 +432,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             if (beatNumber < countdownTotalBeats) {
               // We're in countdown phase (first 8 beats for 4/4 time)
               const remainingBeats = countdownTotalBeats - Math.floor(beatNumber);
-              console.log(`🔢 Countdown: beatNumber=${beatNumber}, remainingBeats=${remainingBeats}`);
               setCountdownBeats(remainingBeats);
               setIsCountingDown(remainingBeats > 0);
             } else {
               // We're past countdown - in actual music
-              console.log(`🎵 Music started: beatNumber=${beatNumber}`);
               setIsCountingDown(false);
               setCountdownBeats(0);
             }
@@ -514,7 +448,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           const roundedBeat = Math.round(beatNumber);
           const isWholeBeat = Math.abs(beatNumber - roundedBeat) < 0.1;
           
-          console.log(`🎛️ Metronome check: roundedBeat=${roundedBeat}, isWholeBeat=${isWholeBeat}, isMetronomeActive=${isMetronomeActive}, isMetronomeActiveRef=${isMetronomeActiveRef.current}, hasTrigger=${!!metronomeTriggerRef.current}`);
           
           // For practice mode, trigger metronome during countdown OR if metronome is active
           // Use ref instead of state to avoid async timing issues
@@ -524,19 +457,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             (beatNumber < countdownTotalBeats || isMetronomeActiveRef.current) : // Countdown always plays, then only if metronome active
             isMetronomeActiveRef.current; // Non-practice mode only if metronome active
           
-          console.log(`🔍 Metronome decision: shouldTrigger=${shouldTriggerMetronome}, countdown=${beatNumber < countdownTotalBeats}, practicing=${isPracticingRef.current}`);
           
           if (shouldTriggerMetronome && metronomeTriggerRef.current && isWholeBeat && beatNumber < totalBeats) {
-            console.log(`🥁 TRIGGERING metronome beat: ${roundedBeat}`);
             metronomeTriggerRef.current();
-          } else if (isWholeBeat) {
-            console.log(`🔇 NOT triggering metronome: shouldTrigger=${shouldTriggerMetronome}, hasTrigger=${!!metronomeTriggerRef.current}`);
           }
         },
       
       // Line end callback - called when reaching end of a music line
       lineEndCallback: (info) => {
-        // console.log('Line end reached:', info);
         
         // Use line-level bounds when available for more accurate cursor positioning
         if (info && info.top !== undefined && info.bottom !== undefined && svgContainer.contains(cursorLine)) {
@@ -544,13 +472,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           cursorLine.setAttribute('y1', info.top - CURSOR_TOP_PADDING);
           cursorLine.setAttribute('y2', info.bottom + CURSOR_BOTTOM_PADDING);
           
-          // Debug
-          // console.log(`Updated cursor height using line bounds with padding: Y=${(info.top - CURSOR_TOP_PADDING).toFixed(0)} to ${(info.bottom + CURSOR_BOTTOM_PADDING).toFixed(0)}`);
         }
       }
       });
-    } catch (error) {
-      console.error('❌ Error creating TimingCallbacks:', error);
+    } catch {
       return; // Exit if TimingCallbacks creation fails
     }
     
@@ -559,23 +484,19 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     
     // Create a way to stop the animation externally
     cursorLine.stopAnimation = () => {
-      console.log('External stop called on TimingCallbacks cursor');
       if (timingCallbacks) {
         timingCallbacks.stop();
       }
     };
     
     // Start the timing callbacks with error handling
-    console.log('🚀 Starting TimingCallbacks...');
     try {
       timingCallbacks.start();
-      console.log('✅ TimingCallbacks started successfully');
-    } catch (error) {
-      console.error('❌ Error starting TimingCallbacks:', error);
+    } catch {
+      // Error starting TimingCallbacks
     }
     
-    console.log(`${isPracticeMode ? 'Practice mode' : 'abcjs TimingCallbacks'} cursor setup completed`);
-  }, [settings.tempo, settings.timeSignature, onPracticeEnd, isMetronomeActive, noteMetadata, noteTrackingMap, onMetronomeToggle]);
+  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteTrackingMap, onMetronomeToggle]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -599,7 +520,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
 
     if (!visualObjectRef.current) {
-      console.error('No music notation loaded');
       return;
     }
 
@@ -616,7 +536,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       // Start playback normally 
       synthRef.current.start(undefined, {
         end: () => {
-          console.log('Playback ended');
           setIsPlaying(false);
         }
       });
@@ -624,8 +543,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       // Start visual cursor
       startVisualCursor();
 
-    } catch (error) {
-      console.error('Error playing music:', error);
+    } catch {
       setIsPlaying(false);
       // Stop and remove any existing cursor on error
       const existingCursor = document.querySelector('.playback-cursor');
@@ -645,10 +563,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
-    console.log('🎹 Practice button clicked, isPracticing:', isPracticing);
     
     if (isPracticing) {
-      console.log('🛑 Stopping practice mode');
       
       // Stop and remove any existing cursor
       const existingCursor = document.querySelector('.playback-cursor');
@@ -664,17 +580,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       
       // CRITICAL FIX: Stop metronome when manually stopping practice
       if (isMetronomeActiveRef.current) {
-        console.log('🔇 Manual stop: Setting isMetronomeActiveRef.current = false');
         isMetronomeActiveRef.current = false;
-        console.log('🏯 Metronome stopped: practice stopped manually');
         
         // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
-        console.log('🛑 Manual stop: Calling onMetronomeToggle to stop MetronomeButton internal timing');
         if (onMetronomeToggle) {
           onMetronomeToggle();
         }
-      } else {
-        console.log('⚠️ Manual stop: Metronome was already inactive');
       }
       
       setIsPracticing(false);
@@ -684,16 +595,13 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
 
     if (!visualObjectRef.current) {
-      console.error('No music notation loaded');
       return;
     }
 
     try {
-      console.log('🚀 Starting practice mode with countdown');
       
       // Auto-start metronome if not already active
       if (!isMetronomeActive) {
-        console.log('🥁 Auto-starting metronome for practice mode');
         onMetronomeToggle(); // This will set isMetronomeActive to true
         isMetronomeActiveRef.current = true; // Update ref immediately for sync
       }
@@ -701,18 +609,13 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       // CRITICAL FIX: Always sync ref with state when starting practice
       // This ensures metronome works on subsequent practice sessions even if manually started
       isMetronomeActiveRef.current = isMetronomeActive;
-      console.log('🔄 Metronome ref synchronized with state:', {
-        isMetronomeActive,
-        isMetronomeActiveRef: isMetronomeActiveRef.current
-      });
       
       setIsPracticing(true);
       
       // Start visual cursor with countdown - this will trigger the countdown automatically
       startVisualCursor(true); // Pass true to indicate practice mode (no audio)
 
-    } catch (error) {
-      console.error('Error during practice:', error);
+    } catch {
       setIsPracticing(false);
       setIsCountingDown(false);
       setCountdownBeats(0);
@@ -740,9 +643,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       if (user?.id && !user?.isGuest) {
         try {
           await updateLastPracticed(user.id);
-          console.log('Last practice date updated');
-        } catch (error) {
-          console.warn('Failed to update last practice date:', error);
+        } catch {
+          // Failed to update last practice date
           // Non-blocking - practice continues even if update fails
         }
       }
@@ -1112,14 +1014,13 @@ function AppContent() {
     if (user && settingsLoaded) {
       const result = await saveUserSettings(user, newSettings);
       if (!result.success) {
-        console.warn('Failed to save settings:', result.error);
+        // Failed to save settings
       }
     }
   }, [user, settingsLoaded]);
 
   // Handle loading a saved exercise
   const handleLoadExercise = useCallback((exerciseSettings) => {
-    console.log('Loading exercise with settings:', exerciseSettings);
     setSettings(exerciseSettings);
   }, []);
 
@@ -1160,18 +1061,10 @@ function AppContent() {
 
   // Handle practice end - always show score modal
   const handlePracticeEnd = useCallback((practiceStats) => {
-    console.log('🎯 handlePracticeEnd called', {
-      isMetronomeActive,
-      practiceStats,
-      timestamp: new Date().toISOString().substring(17, 23)
-    });
     
     // Auto-stop metronome when practice ends
     if (isMetronomeActive) {
-      console.log('🔇 Setting isMetronomeActive to false in App component');
       setIsMetronomeActive(false);
-    } else {
-      console.log('⚠️ Metronome was already inactive in App component');
     }
     
     // Always use the accurate counters from MIDI Debug Display
@@ -1193,19 +1086,9 @@ function AppContent() {
     
     // Enable post-practice highlighting to show results
     setShowPostPracticeResults(true);
-    console.log('🎨 Post-practice highlighting enabled - showing note results');
     
-    // Keep essential practice end logging for troubleshooting
-    if (practiceStats) {
-      console.log('Practice ended - Note tracking vs Accurate scores:', {
-        tracking: { correct: practiceStats.correctCount, wrong: practiceStats.wrongCount },
-        accurate: { correct: capturedCorrectCount, wrong: capturedWrongCount }
-      });
-    }
     
-    console.log('📊 Opening score modal...');
     openScoreModal();
-    console.log('✅ handlePracticeEnd complete');
   }, [correctNotes, wrongNotes, openScoreModal, isMetronomeActive, setShowPostPracticeResults]);
 
   // Scoring functions
@@ -1248,7 +1131,6 @@ function AppContent() {
   // Handle actual save with exercise name
   const handleSaveExerciseWithName = useCallback(async (exerciseName) => {
     try {
-      console.log('Save exercise called with name:', exerciseName);
       
       if (!user) {
         return { success: false, error: 'You must be logged in to save exercises.' };
@@ -1284,11 +1166,10 @@ function AppContent() {
         const result = saveGuestExercise(exerciseData);
         
         if (result.success) {
-          console.log('Guest exercise saved to localStorage:', result.exercise);
           alert(`Exercise "${exerciseName}" saved successfully!`);
           return { success: true };
         } else {
-          console.error('Failed to save guest exercise:', result.error);
+          // Failed to save guest exercise
           return { success: false, error: result.error };
         }
       } else {
@@ -1296,17 +1177,16 @@ function AppContent() {
         const result = await ExerciseService.saveExercise(exerciseName, settings, user.id);
         
         if (result.success) {
-          console.log('Exercise saved:', result.data);
           // Show success notification
           alert(`Exercise "${exerciseName}" saved successfully!`);
           return { success: true };
         } else {
-          console.error('Save failed:', result.error);
+          // Save failed
           return { success: false, error: result.error };
         }
       }
-    } catch (error) {
-      console.error('Error saving exercise:', error);
+    } catch {
+      // Error saving exercise
       return { success: false, error: 'An unexpected error occurred while saving the exercise.' };
     }
   }, [settings, user]);
@@ -1314,7 +1194,6 @@ function AppContent() {
   // MIDI event handler
   const handleMidiEvent = useCallback((midiEvent) => {
     // Debugging MIDI events
-    // console.log('MIDI Event received in App:', midiEvent);
     setPressedMidiNotes(prevNotes => {
       const newNotes = new Set(prevNotes);
       if (midiEvent.type === 'noteon') {
@@ -1340,7 +1219,7 @@ function AppContent() {
           setSettings(result.settings);
           setSettingsLoaded(true);
         } else {
-          console.warn('Failed to load user settings:', result.error);
+          // Failed to load user settings
           setSettings(DEFAULT_SETTINGS);
           setSettingsLoaded(true);
         }
