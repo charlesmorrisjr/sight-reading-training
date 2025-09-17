@@ -83,6 +83,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Ref to track previously highlighted note elements for cleanup
   const previouslyHighlightedElementsRef = useRef(new Set());
 
+  // Ref to track all notes that have been highlighted and should stay green
+  const allHighlightedElementsRef = useRef(new Set());
+
   // CursorControl object for proper note highlighting
   const cursorControlRef = useRef(null);
   
@@ -102,13 +105,19 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
       this.onFinished = function() {
         console.log('🎯 CursorControl: Playback finished');
-        // Clean up highlighting when finished
+        // Clean up all highlighting when finished (both current and persistent)
         previouslyHighlightedElementsRef.current.forEach(element => {
           if (element && element.classList) {
             element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
           }
         });
+        allHighlightedElementsRef.current.forEach(element => {
+          if (element && element.classList) {
+            element.classList.remove('abcjs-note-played');
+          }
+        });
         previouslyHighlightedElementsRef.current.clear();
+        allHighlightedElementsRef.current.clear();
       };
 
       this.onEvent = function(event) {
@@ -123,10 +132,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           event: event
         });
 
-        // Remove previous highlights first
+        // Convert current highlights to persistent before clearing
         previouslyHighlightedElementsRef.current.forEach(element => {
           if (element && element.classList) {
+            // Remove current highlight class and add persistent class
             element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
+            element.classList.add('abcjs-note-played');
+            // Move to persistent tracking
+            allHighlightedElementsRef.current.add(element);
           }
         });
         previouslyHighlightedElementsRef.current.clear();
@@ -207,6 +220,20 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       if (onResetPostPracticeResults) {
         onResetPostPracticeResults();
       }
+
+      // Clear all note highlights for fresh start
+      previouslyHighlightedElementsRef.current.forEach(element => {
+        if (element && element.classList) {
+          element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
+        }
+      });
+      allHighlightedElementsRef.current.forEach(element => {
+        if (element && element.classList) {
+          element.classList.remove('abcjs-note-played');
+        }
+      });
+      previouslyHighlightedElementsRef.current.clear();
+      allHighlightedElementsRef.current.clear();
       
       // Increment exercises_generated counter based on user type
       if (user?.id) {
@@ -396,13 +423,19 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           setBeatInfo(''); // Clear beat info when music ends
           currentNotesRef.current = new Set(); // Clear current notes when music ends
 
-          // Clean up any remaining note highlights
+          // Clean up all note highlights when practice ends
           previouslyHighlightedElementsRef.current.forEach(element => {
             if (element && element.classList) {
               element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
             }
           });
+          allHighlightedElementsRef.current.forEach(element => {
+            if (element && element.classList) {
+              element.classList.remove('abcjs-note-played');
+            }
+          });
           previouslyHighlightedElementsRef.current.clear();
+          allHighlightedElementsRef.current.clear();
 
           if (!isPracticeMode && synthRef.current) {
             synthRef.current.stop();
@@ -475,10 +508,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             event: event
           });
 
-          // Remove previous highlights first
+          // Convert current highlights to persistent before clearing
           previouslyHighlightedElementsRef.current.forEach(element => {
             if (element && element.classList) {
+              // Remove current highlight class and add persistent class
               element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
+              element.classList.add('abcjs-note-played');
+              // Move to persistent tracking
+              allHighlightedElementsRef.current.add(element);
             }
           });
           previouslyHighlightedElementsRef.current.clear();
@@ -810,13 +847,19 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         }
       }
 
-      // Clean up any remaining note highlights when manually stopping practice
+      // Clean up all note highlights when manually stopping practice
       previouslyHighlightedElementsRef.current.forEach(element => {
         if (element && element.classList) {
           element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
         }
       });
+      allHighlightedElementsRef.current.forEach(element => {
+        if (element && element.classList) {
+          element.classList.remove('abcjs-note-played');
+        }
+      });
       previouslyHighlightedElementsRef.current.clear();
+      allHighlightedElementsRef.current.clear();
 
       setIsPracticing(false);
       setIsCountingDown(false);
@@ -861,13 +904,19 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         existingCursor.remove();
       }
 
-      // Clean up any remaining note highlights on error
+      // Clean up all note highlights on error
       previouslyHighlightedElementsRef.current.forEach(element => {
         if (element && element.classList) {
           element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
         }
       });
+      allHighlightedElementsRef.current.forEach(element => {
+        if (element && element.classList) {
+          element.classList.remove('abcjs-note-played');
+        }
+      });
       previouslyHighlightedElementsRef.current.clear();
+      allHighlightedElementsRef.current.clear();
     }
   }, [isPracticing, startVisualCursor, isMetronomeActive, onMetronomeToggle]);
 
