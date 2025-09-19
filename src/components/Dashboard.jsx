@@ -103,13 +103,22 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
                 <p className="text-blue-100 mb-10">
                   Ready to improve your sight reading skills? Let's continue your musical journey.
                 </p>
-                
-                <button 
-                  className="btn btn-white btn-lg px-8 py-4 text-blue-600 hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                  onClick={() => navigate('/free-practice')}
-                >
-                  Start Practice
-                </button>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <button
+                    className="btn btn-white btn-lg px-8 py-4 text-blue-600 hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                    onClick={() => navigate('/practice')}
+                  >
+                    Start Practice
+                  </button>
+
+                  <button
+                    className="btn btn-lg px-8 py-4 bg-black text-white hover:bg-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg border-0"
+                    onClick={() => navigate('/flow')}
+                  >
+                    Flow Mode
+                  </button>
+                </div>
               </div>
             </div>
           </div>
