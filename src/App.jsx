@@ -88,9 +88,12 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
   // CursorControl object for proper note highlighting
   const cursorControlRef = useRef(null);
-  
 
-  
+  // Ref to track DOM elements at the current cursor position
+  const currentCursorElementsRef = useRef(new Map()); // Map of noteId -> DOM element
+
+
+
   // Handle metronome external beat trigger
   const handleMetronomeTrigger = useCallback((triggerFunction) => {
     metronomeTriggerRef.current = triggerFunction;
@@ -190,6 +193,33 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     return noteNames[noteIndex] + octave;
   }, []);
 
+  // Helper function to highlight a specific note ID using cursor position mapping
+  const highlightNoteById = useCallback((noteId, highlightType) => {
+    // Only highlight notes that are at the current cursor position
+    const domElement = currentCursorElementsRef.current.get(noteId);
+
+    if (!domElement || !domElement.classList) {
+      console.log(`No DOM element found for note ID ${noteId} at current cursor position`);
+      return;
+    }
+
+    // Apply highlighting class based on type
+    const className = highlightType === 'correct' ? 'abcjs-note_selected' : 'abcjs-note-incorrect';
+
+    // Remove any existing highlighting classes
+    domElement.classList.remove('abcjs-note_selected', 'abcjs-note-incorrect', 'abcjs-note-played');
+
+    // Add the appropriate highlighting class
+    domElement.classList.add(className);
+
+    // Store reference for cleanup
+    if (highlightType === 'correct') {
+      allHighlightedElementsRef.current.add(domElement);
+    }
+
+    console.log(`Successfully highlighted note ID ${noteId} as ${highlightType} at cursor position`);
+  }, []);
+
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
     setIsGenerating(true);
@@ -222,18 +252,29 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       }
 
       // Clear all note highlights for fresh start
+      const svgContainer = document.querySelector('.music-notation svg');
+      if (svgContainer) {
+        const allNoteElements = svgContainer.querySelectorAll('.abcjs-note');
+        allNoteElements.forEach(element => {
+          element.classList.remove('abcjs-note_selected', 'cursor-highlighted', 'abcjs-note-played', 'abcjs-note-incorrect');
+        });
+      }
+
       previouslyHighlightedElementsRef.current.forEach(element => {
         if (element && element.classList) {
-          element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
+          element.classList.remove('abcjs-note_selected', 'cursor-highlighted', 'abcjs-note-incorrect');
         }
       });
       allHighlightedElementsRef.current.forEach(element => {
         if (element && element.classList) {
-          element.classList.remove('abcjs-note-played');
+          element.classList.remove('abcjs-note-played', 'abcjs-note-incorrect');
         }
       });
       previouslyHighlightedElementsRef.current.clear();
       allHighlightedElementsRef.current.clear();
+
+      // Clear cursor element references
+      currentCursorElementsRef.current.clear();
       
       // Increment exercises_generated counter based on user type
       if (user?.id) {
@@ -437,6 +478,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           previouslyHighlightedElementsRef.current.clear();
           allHighlightedElementsRef.current.clear();
 
+          // Clear cursor element references when practice ends
+          currentCursorElementsRef.current.clear();
+
           if (!isPracticeMode && synthRef.current) {
             synthRef.current.stop();
           }
@@ -497,110 +541,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         cursorLine.setAttribute('x2', cursorX);
         cursorLine.setAttribute('y2', cursorBottomY);
 
-        // 🎯 Note highlighting during practice mode
-        if (isPracticeMode && event) {
-          // DEBUG: Log complete event structure
-          console.log('🎵 TimingCallbacks event:', {
-            hasElements: !!event.elements,
-            elementsType: typeof event.elements,
-            elementsLength: event.elements?.length,
-            eventKeys: Object.keys(event),
-            event: event
-          });
-
-          // Convert current highlights to persistent before clearing
-          previouslyHighlightedElementsRef.current.forEach(element => {
-            if (element && element.classList) {
-              // Remove current highlight class and add persistent class
-              element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
-              element.classList.add('abcjs-note-played');
-              // Move to persistent tracking
-              allHighlightedElementsRef.current.add(element);
-            }
-          });
-          previouslyHighlightedElementsRef.current.clear();
-
-          // Try highlighting if elements exist
-          if (event.elements && Array.isArray(event.elements)) {
-            console.log('🎯 Attempting to highlight', event.elements.length, 'elements');
-
-            event.elements.forEach((element, index) => {
-              console.log(`🔍 Deep Analysis Element ${index}:`, {
-                type: typeof element,
-                isArray: Array.isArray(element),
-                length: element?.length,
-                keys: element ? Object.keys(element) : null,
-                firstItem: Array.isArray(element) && element.length > 0 ? element[0] : null,
-                element: element
-              });
-
-              // If element is an array, analyze its contents
-              if (Array.isArray(element) && element.length > 0) {
-                element.forEach((item, itemIndex) => {
-                  console.log(`🔍 Array Item ${itemIndex}:`, {
-                    type: typeof item,
-                    keys: item ? Object.keys(item) : null,
-                    hasAbsX: item?.abselem?.absx !== undefined,
-                    hasAbsY: item?.abselem?.absy !== undefined,
-                    abselem: item?.abselem,
-                    item: item
-                  });
-                });
-              }
-
-              // 🎯 Direct DOM element access - element[0] IS the DOM element!
-              if (Array.isArray(element) && element.length > 0) {
-                const domElement = element[0]; // This is the actual DOM element
-
-                console.log(`🎯 Direct DOM element access:`, {
-                  isDOMElement: domElement instanceof Element,
-                  tagName: domElement?.tagName,
-                  classList: domElement?.classList?.toString(),
-                  hasClassList: !!domElement?.classList,
-                  element: domElement
-                });
-
-                if (domElement && domElement.classList) {
-                  domElement.classList.add('abcjs-note_selected');
-                  previouslyHighlightedElementsRef.current.add(domElement);
-                  console.log(`✅ Successfully added abcjs-note_selected to DOM element`);
-                } else {
-                  console.log(`❌ DOM element missing classList:`, domElement);
-                }
-              }
-            });
-          } else {
-            console.log('❌ No valid elements array found in event');
-
-            // FALLBACK: Try coordinate-based highlighting
-            const svgContainer = document.querySelector('.music-notation svg');
-            if (svgContainer && event.left !== undefined && event.top !== undefined) {
-              console.log('🔄 Attempting coordinate-based highlighting at', event.left, event.top);
-
-              // Find note elements near the cursor position
-              const noteElements = svgContainer.querySelectorAll('.abcjs-note');
-              console.log('Found', noteElements.length, 'total note elements in SVG');
-
-              noteElements.forEach((noteElement) => {
-                const rect = noteElement.getBoundingClientRect();
-                const svgRect = svgContainer.getBoundingClientRect();
-
-                // Convert to SVG coordinates
-                const noteX = rect.left - svgRect.left;
-                const noteY = rect.top - svgRect.top;
-
-                // Check if note is near cursor position (within 20px)
-                const distance = Math.sqrt(Math.pow(noteX - event.left, 2) + Math.pow(noteY - event.top, 2));
-
-                if (distance < 20) {
-                  console.log(`🎯 Highlighting note at distance ${distance.toFixed(1)}px from cursor`);
-                  noteElement.classList.add('abcjs-note_selected');
-                  previouslyHighlightedElementsRef.current.add(noteElement);
-                }
-              });
-            }
-          }
-        }
+        // Note: Automatic highlighting removed - notes will only highlight when user plays correct MIDI notes
         
         // 🏯 Calculate current active notes using ABCJS event timing
         // This approach uses event.milliseconds for precise timing that works across all BPM values
@@ -648,9 +589,55 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             // Update current notes refs
             currentNotesRef.current = activeNotes;
             currentNoteIdsRef.current = activeNoteIds;
-            
-            // Calculate active notes at cursor position
-            Array.from(activeNotes);
+
+            // Capture DOM elements at current cursor position for highlighting
+            currentCursorElementsRef.current.clear();
+
+            // Try to map DOM elements to active note IDs using ABCJS event elements
+            if (event.elements && Array.isArray(event.elements)) {
+              event.elements.forEach((element, index) => {
+                if (Array.isArray(element) && element.length > 0) {
+                  const domElement = element[0]; // This is the actual DOM element
+
+                  // Map this DOM element to corresponding note IDs
+                  // Since we can't directly correlate elements to note IDs, we'll use position-based mapping
+                  const activeNoteIdsArray = Array.from(activeNoteIds);
+                  if (activeNoteIdsArray[index]) {
+                    currentCursorElementsRef.current.set(activeNoteIdsArray[index], domElement);
+                  }
+                }
+              });
+            } else {
+              // Fallback: Use coordinate-based approach to find DOM elements at cursor position
+              const svgContainer = document.querySelector('.music-notation svg');
+              if (svgContainer && event.left !== undefined && event.top !== undefined) {
+                const noteElements = svgContainer.querySelectorAll('.abcjs-note');
+                const tolerance = 30; // pixels
+
+                noteElements.forEach((noteElement) => {
+                  const rect = noteElement.getBoundingClientRect();
+                  const svgRect = svgContainer.getBoundingClientRect();
+
+                  // Convert to SVG coordinates
+                  const noteX = rect.left - svgRect.left;
+                  const noteY = rect.top - svgRect.top;
+
+                  // Check if note is near cursor position
+                  const distance = Math.sqrt(Math.pow(noteX - event.left, 2) + Math.pow(noteY - event.top, 2));
+
+                  if (distance < tolerance) {
+                    // Map this element to the first unassigned active note ID
+                    const activeNoteIdsArray = Array.from(activeNoteIds);
+                    for (const noteId of activeNoteIdsArray) {
+                      if (!currentCursorElementsRef.current.has(noteId)) {
+                        currentCursorElementsRef.current.set(noteId, noteElement);
+                        break;
+                      }
+                    }
+                  }
+                });
+              }
+            }
           }
         }
       },
@@ -861,6 +848,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       previouslyHighlightedElementsRef.current.clear();
       allHighlightedElementsRef.current.clear();
 
+      // Clear cursor element references when manually stopping practice
+      currentCursorElementsRef.current.clear();
+
       setIsPracticing(false);
       setIsCountingDown(false);
       setCountdownBeats(0);
@@ -1045,7 +1035,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               newMap.set(noteId, { ...trackedNote, status: 'correct' });
               return newMap;
             });
-            
+
+            // Highlight the note green for correct input
+            highlightNoteById(noteId, 'correct');
+
             onCorrectNote(pressedNote);
             noteProcessed = true;
             processedNotesInThisCycle.add(pressedNote); // Mark as processed
@@ -1057,7 +1050,23 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       
       // If note wasn't processed as correct, check if it's a wrong note
       if (!noteProcessed && !expectedNotes.has(pressedNote)) {
-        // Completely wrong note - only count if not already processed
+        // Completely wrong note - highlight the first unplayed note at current position as incorrect
+        for (const noteId of currentActiveNoteIds) {
+          const trackedNote = noteTrackingMap.get(noteId);
+          if (trackedNote && trackedNote.status === 'unplayed') {
+            // Mark note as incorrect and update tracking
+            setNoteTrackingMap(prevMap => {
+              const newMap = new Map(prevMap);
+              newMap.set(noteId, { ...trackedNote, status: 'incorrect' });
+              return newMap;
+            });
+
+            // Highlight the note red for incorrect input
+            highlightNoteById(noteId, 'incorrect');
+            break; // Only mark one note as incorrect per wrong press
+          }
+        }
+
         onWrongNote(pressedNote);
         processedNotesInThisCycle.add(pressedNote); // Mark as processed
         scoringLockedRef.current = true; // Lock scoring after wrong note
@@ -1066,7 +1075,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap, midiPitchToNoteName, correctNotesCount, wrongNotesCount]);
+  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById]);
 
   // Reset note tracking when practice mode starts
   React.useEffect(() => {
