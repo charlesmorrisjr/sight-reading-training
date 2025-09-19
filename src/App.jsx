@@ -99,6 +99,42 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     metronomeTriggerRef.current = triggerFunction;
   }, []);
 
+  // Robust cleanup function that doesn't rely on stored DOM references
+  const resetAllNoteHighlighting = useCallback(() => {
+    try {
+      // Find all highlighted notes via CSS selectors instead of stored references
+      const svgContainer = document.querySelector('.music-notation svg');
+      if (svgContainer) {
+        const highlightedNotes = svgContainer.querySelectorAll('.abcjs-note_selected, .abcjs-note-incorrect, .abcjs-note-played');
+        highlightedNotes.forEach(element => {
+          if (element && element.classList) {
+            element.classList.remove('abcjs-note_selected', 'abcjs-note-incorrect', 'abcjs-note-played');
+            console.log('Removed highlighting from note element');
+          }
+        });
+        console.log(`Reset highlighting for ${highlightedNotes.length} notes`);
+      }
+
+      // Clear all stored references
+      previouslyHighlightedElementsRef.current.clear();
+      allHighlightedElementsRef.current.clear();
+      currentCursorElementsRef.current.clear();
+
+      // Reset note tracking map statuses to 'unplayed'
+      setNoteTrackingMap(prevMap => {
+        const newMap = new Map();
+        prevMap.forEach((note, id) => {
+          newMap.set(id, { ...note, status: 'unplayed' });
+        });
+        return newMap;
+      });
+
+      console.log('Successfully reset all note highlighting and tracking');
+    } catch (error) {
+      console.warn('Error during note highlighting cleanup:', error);
+    }
+  }, []);
+
   // Create CursorControl object for note highlighting
   const createCursorControl = useCallback((isPracticeMode) => {
     const CursorControl = function() {
@@ -108,19 +144,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
       this.onFinished = function() {
         console.log('🎯 CursorControl: Playback finished');
-        // Clean up all highlighting when finished (both current and persistent)
-        previouslyHighlightedElementsRef.current.forEach(element => {
-          if (element && element.classList) {
-            element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
-          }
-        });
-        allHighlightedElementsRef.current.forEach(element => {
-          if (element && element.classList) {
-            element.classList.remove('abcjs-note-played');
-          }
-        });
-        previouslyHighlightedElementsRef.current.clear();
-        allHighlightedElementsRef.current.clear();
+        // Use robust cleanup function instead of manual reference cleanup
+        resetAllNoteHighlighting();
       };
 
       this.onEvent = function(event) {
@@ -183,7 +208,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     };
 
     return new CursorControl();
-  }, []);
+  }, [resetAllNoteHighlighting]);
 
   // Convert MIDI pitch number to note name (e.g., 60 -> "C4")
   const midiPitchToNoteName = useCallback((midiNumber) => {
@@ -251,30 +276,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         onResetPostPracticeResults();
       }
 
-      // Clear all note highlights for fresh start
-      const svgContainer = document.querySelector('.music-notation svg');
-      if (svgContainer) {
-        const allNoteElements = svgContainer.querySelectorAll('.abcjs-note');
-        allNoteElements.forEach(element => {
-          element.classList.remove('abcjs-note_selected', 'cursor-highlighted', 'abcjs-note-played', 'abcjs-note-incorrect');
-        });
-      }
-
-      previouslyHighlightedElementsRef.current.forEach(element => {
-        if (element && element.classList) {
-          element.classList.remove('abcjs-note_selected', 'cursor-highlighted', 'abcjs-note-incorrect');
-        }
-      });
-      allHighlightedElementsRef.current.forEach(element => {
-        if (element && element.classList) {
-          element.classList.remove('abcjs-note-played', 'abcjs-note-incorrect');
-        }
-      });
-      previouslyHighlightedElementsRef.current.clear();
-      allHighlightedElementsRef.current.clear();
-
-      // Clear cursor element references
-      currentCursorElementsRef.current.clear();
+      // Clear all note highlights for fresh start using robust cleanup
+      resetAllNoteHighlighting();
       
       // Increment exercises_generated counter based on user type
       if (user?.id) {
@@ -297,7 +300,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     } finally {
       setIsGenerating(false);
     }
-  }, [settings, onResetScoring, onResetPostPracticeResults, user?.id, user?.isGuest]);
+  }, [settings, onResetScoring, onResetPostPracticeResults, user?.id, user?.isGuest, resetAllNoteHighlighting]);
 
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback((visualObj) => {
@@ -464,22 +467,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           setBeatInfo(''); // Clear beat info when music ends
           currentNotesRef.current = new Set(); // Clear current notes when music ends
 
-          // Clean up all note highlights when practice ends
-          previouslyHighlightedElementsRef.current.forEach(element => {
-            if (element && element.classList) {
-              element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
-            }
-          });
-          allHighlightedElementsRef.current.forEach(element => {
-            if (element && element.classList) {
-              element.classList.remove('abcjs-note-played');
-            }
-          });
-          previouslyHighlightedElementsRef.current.clear();
-          allHighlightedElementsRef.current.clear();
-
-          // Clear cursor element references when practice ends
-          currentCursorElementsRef.current.clear();
+          // Clean up all note highlights when practice ends using robust cleanup
+          resetAllNoteHighlighting();
 
           if (!isPracticeMode && synthRef.current) {
             synthRef.current.stop();
@@ -742,7 +731,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       }
     }
     
-  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteTrackingMap, onMetronomeToggle, createCursorControl]);
+  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteTrackingMap, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -834,22 +823,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         }
       }
 
-      // Clean up all note highlights when manually stopping practice
-      previouslyHighlightedElementsRef.current.forEach(element => {
-        if (element && element.classList) {
-          element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
-        }
-      });
-      allHighlightedElementsRef.current.forEach(element => {
-        if (element && element.classList) {
-          element.classList.remove('abcjs-note-played');
-        }
-      });
-      previouslyHighlightedElementsRef.current.clear();
-      allHighlightedElementsRef.current.clear();
-
-      // Clear cursor element references when manually stopping practice
-      currentCursorElementsRef.current.clear();
+      // Clean up all note highlights when manually stopping practice using robust cleanup
+      resetAllNoteHighlighting();
 
       setIsPracticing(false);
       setIsCountingDown(false);
@@ -894,21 +869,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         existingCursor.remove();
       }
 
-      // Clean up all note highlights on error
-      previouslyHighlightedElementsRef.current.forEach(element => {
-        if (element && element.classList) {
-          element.classList.remove('abcjs-note_selected', 'cursor-highlighted');
-        }
-      });
-      allHighlightedElementsRef.current.forEach(element => {
-        if (element && element.classList) {
-          element.classList.remove('abcjs-note-played');
-        }
-      });
-      previouslyHighlightedElementsRef.current.clear();
-      allHighlightedElementsRef.current.clear();
+      // Clean up all note highlights on error using robust cleanup
+      resetAllNoteHighlighting();
     }
-  }, [isPracticing, startVisualCursor, isMetronomeActive, onMetronomeToggle]);
+  }, [isPracticing, startVisualCursor, isMetronomeActive, onMetronomeToggle, resetAllNoteHighlighting]);
 
   React.useEffect(() => {
     handleGenerateNew();
