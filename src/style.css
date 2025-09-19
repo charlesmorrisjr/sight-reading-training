@@ -204,6 +204,11 @@
   fill: rgba(239, 68, 68, 1) !important; /* Red color */
 }
 
+/* Dark yellow highlighting for corrected notes (wrong then right) */
+.abcjs-note-corrected {
+  fill: rgba(194, 138, 12, 1) !important; /* Dark yellow/amber color */
+}
+
 /* Ensure highlighting takes precedence over other music styles */
 svg .abcjs-note.abcjs-note_selected {
   fill: rgba(34, 197, 94, 0.8) !important;

@@ -105,10 +105,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       // Find all highlighted notes via CSS selectors instead of stored references
       const svgContainer = document.querySelector('.music-notation svg');
       if (svgContainer) {
-        const highlightedNotes = svgContainer.querySelectorAll('.abcjs-note_selected, .abcjs-note-incorrect, .abcjs-note-played');
+        const highlightedNotes = svgContainer.querySelectorAll('.abcjs-note_selected, .abcjs-note-incorrect, .abcjs-note-played, .abcjs-note-corrected');
         highlightedNotes.forEach(element => {
           if (element && element.classList) {
-            element.classList.remove('abcjs-note_selected', 'abcjs-note-incorrect', 'abcjs-note-played');
+            element.classList.remove('abcjs-note_selected', 'abcjs-note-incorrect', 'abcjs-note-played', 'abcjs-note-corrected');
             console.log('Removed highlighting from note element');
           }
         });
@@ -229,16 +229,26 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
 
     // Apply highlighting class based on type
-    const className = highlightType === 'correct' ? 'abcjs-note_selected' : 'abcjs-note-incorrect';
+    let className;
+    if (highlightType === 'correct') {
+      className = 'abcjs-note_selected';
+    } else if (highlightType === 'incorrect') {
+      className = 'abcjs-note-incorrect';
+    } else if (highlightType === 'corrected') {
+      className = 'abcjs-note-corrected';
+    } else {
+      console.warn(`Unknown highlight type: ${highlightType}`);
+      return;
+    }
 
     // Remove any existing highlighting classes
-    domElement.classList.remove('abcjs-note_selected', 'abcjs-note-incorrect', 'abcjs-note-played');
+    domElement.classList.remove('abcjs-note_selected', 'abcjs-note-incorrect', 'abcjs-note-played', 'abcjs-note-corrected');
 
     // Add the appropriate highlighting class
     domElement.classList.add(className);
 
     // Store reference for cleanup
-    if (highlightType === 'correct') {
+    if (highlightType === 'correct' || highlightType === 'corrected') {
       allHighlightedElementsRef.current.add(domElement);
     }
 
@@ -956,9 +966,18 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     
     // Skip scoring if locked (already scored at this cursor position)
     if (scoringLockedRef.current) {
-      // Update previous pressed notes even when locked to avoid stale state
-      previousPressedNotesRef.current = new Set(pressedMidiNotes);
-      return;
+      // Allow processing if we're trying to correct an incorrect note
+      const hasIncorrectNotes = Array.from(currentActiveNoteIds).some(noteId => {
+        const trackedNote = noteTrackingMap.get(noteId);
+        return trackedNote && trackedNote.status === 'incorrect';
+      });
+
+      if (!hasIncorrectNotes) {
+        // Update previous pressed notes even when locked to avoid stale state
+        previousPressedNotesRef.current = new Set(pressedMidiNotes);
+        return;
+      }
+      // If there are incorrect notes, continue processing to allow corrections
     }
 
     // Get newly pressed notes (notes that weren't pressed before)
@@ -983,31 +1002,36 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
       let noteProcessed = false;
       
-      // Find the first unplayed note that matches (priority-based matching)
+      // Find the first unplayed or incorrect note that matches (priority-based matching)
       // This prevents one key press from matching multiple note IDs
       for (const noteId of currentActiveNoteIds) {
         const trackedNote = noteTrackingMap.get(noteId);
-        
-        if (trackedNote && trackedNote.status === 'unplayed') {
+
+        if (trackedNote && (trackedNote.status === 'unplayed' || trackedNote.status === 'incorrect')) {
           // Check if the pressed note matches this tracked note
-          if (trackedNote.expectedNote === pressedNote || 
+          if (trackedNote.expectedNote === pressedNote ||
               (trackedNote.midiPitch && midiPitchToNoteName(trackedNote.midiPitch) === pressedNote)) {
-            
-            // Mark note as correct and update tracking
+
+            // Determine the new status and highlight type based on previous state
+            const isCorrection = trackedNote.status === 'incorrect';
+            const newStatus = isCorrection ? 'corrected' : 'correct';
+            const highlightType = isCorrection ? 'corrected' : 'correct';
+
+            // Mark note with appropriate status and update tracking
             setNoteTrackingMap(prevMap => {
               const newMap = new Map(prevMap);
-              newMap.set(noteId, { ...trackedNote, status: 'correct' });
+              newMap.set(noteId, { ...trackedNote, status: newStatus });
               return newMap;
             });
 
-            // Highlight the note green for correct input
-            highlightNoteById(noteId, 'correct');
+            // Highlight the note with appropriate color (green for correct, dark yellow for corrected)
+            highlightNoteById(noteId, highlightType);
 
             onCorrectNote(pressedNote);
             noteProcessed = true;
             processedNotesInThisCycle.add(pressedNote); // Mark as processed
             scoringLockedRef.current = true; // Lock scoring after correct note
-            break; // Only match the first unplayed note - prevents duplicates
+            break; // Only match the first unplayed/incorrect note - prevents duplicates
           }
         }
       }
