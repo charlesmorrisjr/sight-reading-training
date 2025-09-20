@@ -223,3 +223,8 @@ svg .abcjs-note.abcjs-note_selected {
 }
 
 */
+
+/* Hide tempo markings from visual display while keeping them for audio */
+.abcjs-tempo {
+  display: none;
+}
