@@ -1,46 +1,19 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
 import { FaMusic, FaPlay, FaStop, FaKeyboard, FaRedo, FaClock } from 'react-icons/fa';
-import HamburgerMenu from './components/HamburgerMenu';
-import MusicDisplay from './components/MusicDisplay';
-import DarkModeToggle from './components/DarkModeToggle';
-import TempoSelector from './components/TempoSelector';
-import MetronomeButton from './components/MetronomeButton';
-import ScoreModal from './components/ScoreModal';
-import SaveExerciseModal from './components/SaveExerciseModal';
-import Dashboard from './components/Dashboard';
-import Intervals from './components/Intervals';
-import Keys from './components/Keys';
-import MeasuresPage from './components/MeasuresPage';
-import ChordsPractice from './components/ChordsPractice';
-import MelodicPractice from './components/MelodicPractice';
-import NoteDuration from './components/NoteDuration';
-import FreePractice from './components/FreePractice';
-import TimeSignatures from './components/TimeSignatures';
-import Levels from './components/Levels';
-import Login from './components/Login';
-import Signup from './components/Signup';
-import LandingPage from './components/LandingPage';
-import FlowView from './components/FlowView';
-import { useAuth } from './contexts/AuthContext';
-import { ExerciseService } from './services/exerciseService';
-import { incrementExercisesGenerated, updateLastPracticed } from './services/database';
-import { AuthProvider } from './contexts/AuthProvider';
-import { ChordsProvider } from './contexts/ChordsProvider';
-import ThemeProvider from './contexts/ThemeProvider';
-import { generateRandomABC } from './utils/musicGenerator';
-import { initializeMIDI } from './utils/midiManager';
-import { loadUserSettings, saveUserSettings, DEFAULT_SETTINGS, incrementGuestExercisesGenerated, saveGuestExercise } from './services/settingsService';
+import HamburgerMenu from './HamburgerMenu';
+import MusicDisplay from './MusicDisplay';
+import DarkModeToggle from './DarkModeToggle';
+import TempoSelector from './TempoSelector';
+import MetronomeButton from './MetronomeButton';
+import { incrementExercisesGenerated, updateLastPracticed } from '../services/database';
+import { generateRandomABC } from '../utils/musicGenerator';
+import { incrementGuestExercisesGenerated } from '../services/settingsService';
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
-};
-
-const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, onSaveExercise, user }) => {
+const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, user }) => {
   const navigate = useNavigate();
-  
+
   // Current ABC notation and note metadata
   const [abcNotation, setAbcNotation] = useState('');
   const [noteMetadata, setNoteMetadata] = useState([]);
@@ -59,25 +32,25 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
   // Beat tracking state for debugging display
   const [beatInfo, setBeatInfo] = useState('');
-  
+
   // Countdown state
   const [isCountingDown, setIsCountingDown] = useState(false);
   const [countdownBeats, setCountdownBeats] = useState(0);
-  
+
   // Current notes tracking for debugging display - use ref to avoid stale closure
   const currentNotesRef = useRef(new Set());
-  
+
   // Note tracking system - map of note ID to note status
   const [noteTrackingMap, setNoteTrackingMap] = useState(new Map());
   const currentNoteIdsRef = useRef(new Set());
-  
+
   // Refs to track current playing state without causing re-renders
   const isPlayingRef = useRef(false);
   const isPracticingRef = useRef(false);
-  
+
   // Ref to store metronome trigger function
   const metronomeTriggerRef = useRef(null);
-  
+
   // Ref to track metronome state immediately (avoids async state update issues)
   const isMetronomeActiveRef = useRef(false);
 
@@ -260,18 +233,18 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   const handleGenerateNew = useCallback(async () => {
     setIsGenerating(true);
     setIsVisualsReady(false);
-    
+
     // Reset scoring when generating new exercise
     if (onResetScoring) {
       onResetScoring();
     }
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
       const result = generateRandomABC(settings);
       setAbcNotation(result.abcNotation);
       setNoteMetadata(result.noteMetadata);
-      
+
       // Initialize note tracking map with 'unplayed' status
       const initialTrackingMap = new Map();
       result.noteMetadata.forEach(note => {
@@ -281,7 +254,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         });
       });
       setNoteTrackingMap(initialTrackingMap);
-      
+
       // Reset post-practice highlighting when generating new exercise
       if (onResetPostPracticeResults) {
         onResetPostPracticeResults();
@@ -289,7 +262,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
       // Clear all note highlights for fresh start using robust cleanup
       resetAllNoteHighlighting();
-      
+
       // Increment exercises_generated counter based on user type
       if (user?.id) {
         try {
@@ -305,7 +278,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           // Don't fail the exercise generation if counter update fails
         }
       }
-      
+
     } catch {
       // Error generating ABC notation
     } finally {
@@ -317,14 +290,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   const handleVisualsReady = useCallback((visualObj) => {
     visualObjectRef.current = visualObj;
     setIsVisualsReady(true);
-    
+
     // Use refs to get current values without causing re-renders
     // Fixes problem with visual cursor disappearing when notes were highlighted
     if (synthRef.current && !isPlayingRef.current && !isPracticingRef.current) {
       synthRef.current.stop();
       synthRef.current = null;
     }
-    
+
     // Only reset playing state if we're not currently in practice mode
     if (!isPracticingRef.current) {
       setIsPlaying(false);
@@ -371,26 +344,26 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
   // abcjs TimingCallbacks-based cursor that syncs perfectly with music
   const startVisualCursor = useCallback((isPracticeMode = false) => {
-    
+
     // Cursor padding constants
     const CURSOR_TOP_PADDING = 5;
     const CURSOR_BOTTOM_PADDING = 25;
-    
+
     if (!visualObjectRef.current) {
       return;
     }
-    
+
     const svgContainer = document.querySelector('.music-notation svg');
     if (!svgContainer) {
       return;
     }
-    
+
     // Remove any existing cursor
     const existingCursor = svgContainer.querySelector('.playback-cursor');
     if (existingCursor) {
       existingCursor.remove();
     }
-    
+
     // Create the cursor line
     const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     cursorLine.setAttribute('class', 'playback-cursor');
@@ -399,10 +372,10 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     cursorLine.setAttribute('stroke-linecap', 'round');
     cursorLine.setAttribute('opacity', '0.3');
     cursorLine.style.pointerEvents = 'none';
-    
+
     // Add cursor to SVG
     svgContainer.appendChild(cursorLine);
-    
+
     // Create CursorControl for note highlighting
     if (isPracticeMode) {
       cursorControlRef.current = createCursorControl(isPracticeMode);
@@ -417,18 +390,18 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         qpm: settings.tempo, // Quarter notes per minute - matches settings
         beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
         extraMeasuresAtBeginning: isPracticeMode ? 2 : 0, // Add 2 countdown measures for practice mode
-        
+
         // Event callback - called for each musical event (note, rest, etc.)
         eventCallback: (event) => {
-          
+
         if (!event) {
           // Music has ended - stop playback and reset button
           if (!isPracticeMode) {
             setIsPlaying(false);
           }
-          
+
           // Call onPracticeEnd if we were in practice mode with note tracking statistics
-          
+
           if (isPracticingRef.current && onPracticeEnd) {
             // Calculate final scores from note tracking map
             let correctCount = 0;
@@ -436,7 +409,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             let unplayedCount = 0;
             const correctNotesList = [];
             const wrongNotesList = [];
-            
+
             noteTrackingMap.forEach((note) => {
               if (note.status === 'correct') {
                 correctCount++;
@@ -448,7 +421,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 unplayedCount++;
               }
             });
-            
+
             onPracticeEnd({
               correctCount,
               wrongCount,
@@ -458,17 +431,17 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               wrongNotes: wrongNotesList
             });
           }
-          
+
           if (isPracticeMode) {
-            
+
             setIsPracticing(false);
             setIsCountingDown(false);
             setCountdownBeats(0);
-            
+
             // CRITICAL FIX: Stop metronome immediately to prevent internal timing fallback
             if (isMetronomeActiveRef.current) {
               isMetronomeActiveRef.current = false;
-              
+
               // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
               if (onMetronomeToggle) {
                 onMetronomeToggle();
@@ -485,11 +458,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             synthRef.current.stop();
           }
           // Stop TimingCallbacks to prevent infinite beatCallback execution
-          
+
           if (timingCallbacks) {
             timingCallbacks.stop();
           }
-          
+
           // Clean up practice timer if it exists
           if (cursorLine && cursorLine.practiceTimer) {
             clearInterval(cursorLine.practiceTimer);
@@ -499,23 +472,23 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           if (cursorLine && cursorLine.parentNode) {
             cursorLine.remove();
           }
-          
+
           return;
         }
-        
+
           // Enhanced debugging and note tracking (commented out)
           // if (event) {
           // }
-        
-        // For practice mode, hide cursor during countdown 
+
+        // For practice mode, hide cursor during countdown
         if (isPracticeMode && event.milliseconds !== undefined) {
           const tempo = settings.tempo || 120;
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
-          
+
           // Calculate dynamic countdown beats based on time signature
           const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
           const countdownBeats = beatsPerMeasure * 2; // 2 measures countdown
-          
+
           if (currentTimeInBeats < countdownBeats) {
             // During countdown - hide cursor by positioning it off-screen
             cursorLine.setAttribute('x1', -100);
@@ -525,16 +498,16 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
             return; // Skip normal cursor positioning
           }
         }
-        
+
         // Use abcjs-provided positioning data for precise cursor placement
         const cursorX = (event.left + 5) || 0;    // Add 5px to the left to center the cursor
         const eventTopY = event.top || 0;
         const eventHeight = event.height || 30;
-        
+
         // Set cursor bounds using abcjs measurements with padding constants
         const cursorTopY = eventTopY - CURSOR_TOP_PADDING;
         const cursorBottomY = eventTopY + eventHeight + CURSOR_BOTTOM_PADDING;
-        
+
         // Update cursor position and dimensions
         cursorLine.setAttribute('x1', (cursorX));
         cursorLine.setAttribute('y1', cursorTopY);
@@ -542,8 +515,8 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         cursorLine.setAttribute('y2', cursorBottomY);
 
         // Note: Automatic highlighting removed - notes will only highlight when user plays correct MIDI notes
-        
-        // 🏯 Calculate current active notes using ABCJS event timing
+
+        // 🎮 Calculate current active notes using ABCJS event timing
         // This approach uses event.milliseconds for precise timing that works across all BPM values
         // and eliminates timing lag between beat calculation and cursor display
         if (isPracticeMode && event && event.milliseconds !== undefined) {
@@ -552,11 +525,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           if (tempo <= 0 || tempo > 300) {
             tempo = 120;
           }
-          
+
           // Convert ABCJS milliseconds to musical beats
           // This formula works for any BPM: (ms / 1000 seconds) * (beats per minute / 60 seconds) = beats
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
-          
+
           // Only process notes after countdown period
           // Calculate dynamic countdown beats based on time signature
           const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
@@ -564,7 +537,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           if (currentTimeInBeats >= countdownBeats) {
             const activeNotes = new Set();
             const activeNoteIds = new Set();
-            
+
             // Find notes that should be active at the current time
             // Note metadata uses eighth-note units, so we convert to quarter-note beats for comparison
             noteMetadata.forEach(noteData => {
@@ -572,20 +545,20 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
               const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
               const absoluteEndTime = absoluteStartTime + noteData.duration;
-              
+
               // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
               const absoluteStartBeat = absoluteStartTime / 2;
               const absoluteEndBeat = absoluteEndTime / 2;
-              
+
               // Adjust for countdown offset
               const adjustedCurrentTime = currentTimeInBeats - countdownBeats;
-              
+
               if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
                 activeNotes.add(noteData.expectedNote);
                 activeNoteIds.add(noteData.id);
               }
             });
-            
+
             // Update current notes refs
             currentNotesRef.current = activeNotes;
             currentNoteIdsRef.current = activeNoteIds;
@@ -641,18 +614,18 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           }
         }
       },
-      
+
         // Beat callback - called on each beat for additional timing info
         beatCallback: (beatNumber, totalBeats) => {
           // Enhanced debug logging to track metronome decisions
-          
+
           // CRITICAL: Check if beatCallback is still firing after music should have ended
-          
+
           // Handle countdown phase for practice mode
           if (isPracticeMode) {
             const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
             const countdownTotalBeats = beatsPerMeasure * 2; // 2 measures countdown
-            
+
             // Since extraMeasuresAtBeginning doesn't seem to work in this version of ABCJS,
             // we'll create our own countdown by treating the first 8 beats as countdown
             if (beatNumber < countdownTotalBeats) {
@@ -666,48 +639,48 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
               setCountdownBeats(0);
             }
           }
-          
+
           // Beat info for debugging display
           setBeatInfo(`Beat ${beatNumber}/${totalBeats}`);
-          
+
           // Trigger metronome on whole beat counts (including countdown beats)
           const roundedBeat = Math.round(beatNumber);
           const isWholeBeat = Math.abs(beatNumber - roundedBeat) < 0.1;
-          
-          
+
+
           // For practice mode, trigger metronome during countdown OR if metronome is active
           // Use ref instead of state to avoid async timing issues
           const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
           const countdownTotalBeats = beatsPerMeasure * 2; // 2 measures countdown
-          const shouldTriggerMetronome = isPracticeMode ? 
+          const shouldTriggerMetronome = isPracticeMode ?
             (beatNumber < countdownTotalBeats || isMetronomeActiveRef.current) : // Countdown always plays, then only if metronome active
             isMetronomeActiveRef.current; // Non-practice mode only if metronome active
-          
-          
+
+
           if (shouldTriggerMetronome && metronomeTriggerRef.current && isWholeBeat && beatNumber < totalBeats) {
             metronomeTriggerRef.current();
           }
         },
-      
+
       // Line end callback - called when reaching end of a music line
       lineEndCallback: (info) => {
-        
+
         // Use line-level bounds when available for more accurate cursor positioning
         if (info && info.top !== undefined && info.bottom !== undefined && svgContainer.contains(cursorLine)) {
           // Update cursor height to span the entire line with consistent padding
           cursorLine.setAttribute('y1', info.top - CURSOR_TOP_PADDING);
           cursorLine.setAttribute('y2', info.bottom + CURSOR_BOTTOM_PADDING);
-          
+
         }
       }
       });
     } catch {
       return; // Exit if TimingCallbacks creation fails
     }
-    
+
     // Store timing callbacks reference for cleanup
     cursorLine.timingCallbacks = timingCallbacks;
-    
+
     // Create a way to stop the animation externally
     cursorLine.stopAnimation = () => {
       if (timingCallbacks) {
@@ -717,7 +690,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         clearInterval(cursorLine.practiceTimer);
       }
     };
-    
+
     // Start the timing callbacks with error handling
     try {
       timingCallbacks.start();
@@ -741,7 +714,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         console.log('❌ Error starting CursorControl practice timer');
       }
     }
-    
+
   }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteTrackingMap, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting]);
 
   // Handle play button click
@@ -778,14 +751,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       }
 
       setIsPlaying(true);
-      
-      // Start playback normally 
+
+      // Start playback normally
       synthRef.current.start(undefined, {
         end: () => {
           setIsPlaying(false);
         }
       });
-      
+
       // Start visual cursor
       startVisualCursor();
 
@@ -806,12 +779,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   }, [isPlaying, initializeSynth, startVisualCursor]);
 
 
-  
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
-    
+
     if (isPracticing) {
-      
+
       // Stop and remove any existing cursor
       const existingCursor = document.querySelector('.playback-cursor');
       if (existingCursor) {
@@ -823,7 +795,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         }
         existingCursor.remove();
       }
-      
+
       // CRITICAL FIX: Stop metronome when manually stopping practice
       if (isMetronomeActiveRef.current) {
         isMetronomeActiveRef.current = false;
@@ -848,19 +820,19 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
 
     try {
-      
+
       // Auto-start metronome if not already active
       if (!isMetronomeActive) {
         onMetronomeToggle(); // This will set isMetronomeActive to true
         isMetronomeActiveRef.current = true; // Update ref immediately for sync
       }
-      
+
       // CRITICAL FIX: Always sync ref with state when starting practice
       // This ensures metronome works on subsequent practice sessions even if manually started
       isMetronomeActiveRef.current = isMetronomeActive;
-      
+
       setIsPracticing(true);
-      
+
       // Start visual cursor with countdown - this will trigger the countdown automatically
       startVisualCursor(true); // Pass true to indicate practice mode (no audio)
 
@@ -914,7 +886,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   React.useEffect(() => {
     isPracticingRef.current = isPracticing;
   }, [isPracticing]);
-  
+
   // Keep metronome ref synchronized with state
   React.useEffect(() => {
     isMetronomeActiveRef.current = isMetronomeActive;
@@ -925,13 +897,13 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
-  
+
     };
   }, []);
 
   // Enhanced scoring logic using note tracking system to prevent duplicate counting
   const previousPressedNotesRef = useRef(new Set());
-  
+
   // Cursor position-based scoring lock to prevent multiple counting at same position
   const previousActiveNoteIdsRef = useRef(new Set());
   const scoringLockedRef = useRef(false);
@@ -944,11 +916,11 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     // Get current expected notes from the music
     const expectedNotes = currentNotesRef.current;
     const currentActiveNoteIds = currentNoteIdsRef.current;
-    
+
     // Detect cursor position change by comparing current vs previous note IDs
     const previousNoteIds = previousActiveNoteIdsRef.current;
     const noteIdsChanged = !areSetsSame(currentActiveNoteIds, previousNoteIds);
-    
+
     // Helper function to compare Sets
     function areSetsSame(set1, set2) {
       if (set1.size !== set2.size) return false;
@@ -957,14 +929,14 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       }
       return true;
     }
-    
+
     // If cursor moved to new notes, unlock scoring for the new position
     if (noteIdsChanged) {
       scoringLockedRef.current = false;
       previousActiveNoteIdsRef.current = new Set(currentActiveNoteIds);
       previousPressedNotesRef.current = new Set(); // Reset: all held notes now "new" for this position
     }
-    
+
     // Skip scoring if locked (already scored at this cursor position)
     if (scoringLockedRef.current) {
       // Allow processing if we're trying to correct an incorrect note
@@ -985,7 +957,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     const newlyPressedNotes = new Set(
       [...pressedMidiNotes].filter(note => !previousPressedNotesRef.current.has(note))
     );
-    
+
     // Skip if no new notes pressed
     if (newlyPressedNotes.size === 0) {
       return;
@@ -1002,7 +974,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       }
 
       let noteProcessed = false;
-      
+
       // Find the first unplayed or incorrect note that matches (priority-based matching)
       // This prevents one key press from matching multiple note IDs
       for (const noteId of currentActiveNoteIds) {
@@ -1036,7 +1008,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
           }
         }
       }
-      
+
       // If note wasn't processed as correct, check if it's a wrong note
       if (!noteProcessed && !expectedNotes.has(pressedNote)) {
         // Completely wrong note - highlight the first unplayed note at current position as incorrect
@@ -1077,9 +1049,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         });
         return newMap;
       });
-      
+
       onResetScoring();
-      
+
       // Reset cursor position tracking and scoring lock
       previousActiveNoteIdsRef.current = new Set();
       scoringLockedRef.current = false;
@@ -1092,641 +1064,152 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            
+
             {/* App Title */}
-            <button 
+            <button
               className="flex items-center space-x-3 cursor-pointer"
               onClick={() => navigate('/dashboard')}
             >
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
-                <FaMusic className="text-white text-lg" />
+              <FaMusic className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              <div className="text-left">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Flow Mode</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Sight Reading Training</p>
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
-                Practisia
-              </h1>
             </button>
 
-            {/* Control Buttons */}
+            {/* Controls */}
             <div className="flex items-center space-x-4">
-              {/* Tempo Button */}
+              {/* Tempo Control */}
               <button
                 onClick={onTempoClick}
-                className={`btn btn-lg btn-outline text-gray-700 hover:bg-gray-100 ${
-                  (isPlaying || isPracticing) ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                disabled={isPlaying || isPracticing}
-                title="Change Tempo"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                title="Adjust Tempo"
               >
-                <span className="text-lg font-medium">{settings.tempo} BPM</span>
-              </button>
-
-              {/* Metronome Button */}
-              <MetronomeButton
-                tempo={settings.tempo}
-                isActive={isMetronomeActive}
-                onToggle={onMetronomeToggle}
-                disabled={isInitializing || !isVisualsReady || isPlaying || isPracticing}
-                useExternalTiming={isPlaying || isPracticing}
-                onExternalBeatTrigger={handleMetronomeTrigger}
-              />
-
-              {/* Play Button */}
-              <button 
-                className={`btn btn-lg btn-outline ${isPlaying ? 'btn-error' : 'bg-white border-gray-300 hover:bg-gray-50'} ${
-                  (isInitializing || !isVisualsReady || isPracticing) ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                onClick={handlePlayClick}
-                disabled={isInitializing || !isVisualsReady || isPracticing}
-                title={isPlaying ? 'Stop' : 'Play'}
-              >
-                {isInitializing ? (
-                  <div className="w-7 h-7 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : isPlaying ? (
-                  <FaStop className="w-7 h-7" />
-                ) : (
-                  <FaPlay className="w-7 h-7" />
-                )}
-              </button>
-
-              {/* Practice Button */}
-              <button 
-                className={`btn btn-lg btn-outline ${isPracticing ? 'btn-error' : 'btn-warning'} ${
-                  (isInitializing || !isVisualsReady || isPlaying) ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                onClick={handlePracticeClick}
-                disabled={isInitializing || !isVisualsReady || isPlaying}
-                title={isPracticing ? 'Stop Practice' : 'Practice'}
-              >
-                {isInitializing ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : isPracticing ? (
-                  <FaStop className="w-5 h-5" />
-                ) : (
-                  <FaKeyboard className="w-5 h-5" />
-                )}
-                <span className="hidden sm:inline">
-                  {isInitializing ? 'Loading...' : isPracticing ? 'Stop' : 'Practice'}
+                <FaClock className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {settings.tempo}
                 </span>
               </button>
+
+              {/* Metronome */}
+              <MetronomeButton
+                isActive={isMetronomeActive}
+                onToggle={onMetronomeToggle}
+                onTrigger={handleMetronomeTrigger}
+                tempo={settings.tempo}
+                timeSignature={settings.timeSignature}
+              />
 
               {/* Dark Mode Toggle */}
               <DarkModeToggle />
 
-              {/* Settings */}
+              {/* Settings Menu */}
               <HamburgerMenu
                 settings={settings}
                 onSettingsChange={onSettingsChange}
-                onSaveExercise={onSaveExercise}
               />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Countdown Display */}
-      {isCountingDown && (
-        <div className="bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 px-4 py-8 text-center animate-pulse">
-          <div className="text-6xl font-bold text-orange-800 dark:text-orange-200 mb-2">
-            {countdownBeats}
-          </div>
-          <div className="text-lg font-medium text-orange-700 dark:text-orange-300">
-            Practice starts in {countdownBeats} beat{countdownBeats !== 1 ? 's' : ''}
-          </div>
-        </div>
-      )}
-
-      {/* MIDI Debug Display - for testing */}
-      <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 px-4 py-2 text-center">
-        <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-          MIDI Notes: {pressedMidiNotes.size > 0 ? Array.from(pressedMidiNotes).join(', ') : 'None pressed'} | 
-          {beatInfo || 'No beat info'} | 
-          <span className="text-green-700 dark:text-green-300">✓ Correct: {correctNotesCount}</span> | 
-          <span className="text-red-700 dark:text-red-300">✗ Wrong: {wrongNotesCount}</span>
-        </span>
-      </div>
-
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Music Display Section */}
-        <div className="card-body p-8">
-          <MusicDisplay 
-            abcNotation={abcNotation} 
-            settings={settings}
-            onVisualsReady={handleVisualsReady}
-            pressedMidiNotes={pressedMidiNotes}
-            enableRealtimeHighlighting={false}
-            noteTrackingMap={noteTrackingMap}
-            showPostPracticeResults={showPostPracticeResults}
-          />
-        </div>
+        <div className="space-y-8">
 
-        {/* Generate Button */}
-        <div className="text-center">
-          <button 
-            className={`btn btn-primary btn-lg ${isGenerating ? 'loading' : ''} ${
-              (isGenerating || isPlaying || isPracticing) ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            onClick={handleGenerateNew}
-            disabled={isGenerating || isPlaying || isPracticing}
-          >
-            {isGenerating ? (
-              <>
-                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                Generating...
-              </>
-            ) : (
-              'Generate New Exercise'
-            )}
-          </button>
+          {/* Practice Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+
+            {/* Generate New Button */}
+            <button
+              onClick={handleGenerateNew}
+              disabled={isGenerating || isPlaying || isPracticing}
+              className="btn btn-lg px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <FaRedo className="mr-2" />
+              {isGenerating ? 'Generating...' : 'Generate New'}
+            </button>
+
+            {/* Play Button */}
+            <button
+              onClick={handlePlayClick}
+              disabled={!isVisualsReady || isGenerating || isPracticing || isInitializing}
+              className="btn btn-lg px-8 py-4 bg-green-600 hover:bg-green-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <FaPlay className={`mr-2 ${isPlaying ? 'hidden' : ''}`} />
+              <FaStop className={`mr-2 ${!isPlaying ? 'hidden' : ''}`} />
+              {isInitializing ? 'Loading...' : (isPlaying ? 'Stop' : 'Play')}
+            </button>
+
+            {/* Practice Button */}
+            <button
+              onClick={handlePracticeClick}
+              disabled={!isVisualsReady || isGenerating || isPlaying}
+              className="btn btn-lg px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <FaKeyboard className={`mr-2 ${isPracticing ? 'hidden' : ''}`} />
+              <FaStop className={`mr-2 ${!isPracticing ? 'hidden' : ''}`} />
+              {isPracticing ? 'Stop Practice' : 'Practice'}
+            </button>
+          </div>
+
+          {/* Countdown Display */}
+          {isCountingDown && countdownBeats > 0 && (
+            <div className="text-center">
+              <div className="text-6xl font-bold text-orange-500 animate-pulse">
+                {countdownBeats}
+              </div>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
+                Get ready...
+              </p>
+            </div>
+          )}
+
+          {/* Music Display */}
+          {abcNotation && (
+            <div className="music-display-container">
+              <MusicDisplay
+                abcNotation={abcNotation}
+                onVisualsReady={handleVisualsReady}
+                showPostPracticeResults={showPostPracticeResults}
+              />
+            </div>
+          )}
+
+          {/* Practice Status */}
+          {isPracticing && (
+            <div className="text-center space-y-2">
+              <div className="flex justify-center space-x-8">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {correctNotesCount}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Correct
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {wrongNotesCount}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Wrong
+                  </div>
+                </div>
+              </div>
+
+              {/* Debug info */}
+              {beatInfo && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {beatInfo}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>
   );
 };
 
-function AppContent() {
-  // Get current user from auth context
-  const { user } = useAuth();
-  
-  // Settings state - will be loaded from persistence
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-
-  // Tempo modal state
-  const [tempoModalOpen, setTempoModalOpen] = useState(false);
-
-  // Metronome state
-  const [isMetronomeActive, setIsMetronomeActive] = useState(false);
-
-  // MIDI state - track currently pressed notes
-  const [pressedMidiNotes, setPressedMidiNotes] = useState(new Set());
-
-  // Scoring state - track correct and wrong notes during practice
-  const [correctNotesCount, setCorrectNotesCount] = useState(0);
-  const [wrongNotesCount, setWrongNotesCount] = useState(0);
-  
-  // Refs to track current scoring values without causing re-renders
-  const correctNotesCountRef = useRef(0);
-  const wrongNotesCountRef = useRef(0);
-  
-  // Score modal state
-  const [scoreModalOpen, setScoreModalOpen] = useState(false);
-  
-  // Save exercise modal state
-  const [saveModalOpen, setSaveModalOpen] = useState(false);
-  
-  // Arrays to track individual notes played correctly and incorrectly
-  const [correctNotes, setCorrectNotes] = useState([]);
-  const [wrongNotes, setWrongNotes] = useState([]);
-  
-  // Captured scores to avoid race condition with resets
-  const [capturedScores, setCapturedScores] = useState({
-    correctCount: 0,
-    wrongCount: 0,
-    correctNotes: [],
-    wrongNotes: []
-  });
-
-  // Post-practice highlighting state
-  const [showPostPracticeResults, setShowPostPracticeResults] = useState(false);
-
-  const handleSettingsChange = useCallback(async (newSettings) => {
-    setSettings(newSettings);
-    
-    // Save settings automatically based on user type
-    if (user && settingsLoaded) {
-      const result = await saveUserSettings(user, newSettings);
-      if (!result.success) {
-        // Failed to save settings
-      }
-    }
-  }, [user, settingsLoaded]);
-
-  // Handle loading a saved exercise
-  const handleLoadExercise = useCallback((exerciseSettings) => {
-    setSettings(exerciseSettings);
-  }, []);
-
-  const handleTempoChange = useCallback(async (newTempo) => {
-    const newSettings = { ...settings, tempo: newTempo };
-    await handleSettingsChange(newSettings);
-  }, [settings, handleSettingsChange]);
-
-  const openTempoModal = useCallback(() => {
-    setTempoModalOpen(true);
-  }, []);
-
-  const closeTempoModal = useCallback(() => {
-    setTempoModalOpen(false);
-  }, []);
-
-  const handleMetronomeToggle = useCallback(() => {
-    setIsMetronomeActive(prev => !prev);
-  }, []);
-
-  // Score modal functions
-  const openScoreModal = useCallback(() => {
-    setScoreModalOpen(true);
-  }, []);
-
-  const closeScoreModal = useCallback(() => {
-    setScoreModalOpen(false);
-  }, []);
-
-  // Save modal functions
-  const openSaveModal = useCallback(() => {
-    setSaveModalOpen(true);
-  }, []);
-
-  const closeSaveModal = useCallback(() => {
-    setSaveModalOpen(false);
-  }, []);
-
-  // Handle practice end - always show score modal
-  const handlePracticeEnd = useCallback((practiceStats) => {
-    
-    // Auto-stop metronome when practice ends
-    if (isMetronomeActive) {
-      setIsMetronomeActive(false);
-    }
-    
-    // Always use the accurate counters from MIDI Debug Display
-    // These are the same counters shown in the debug display and are guaranteed to be correct
-    const capturedCorrectCount = correctNotesCountRef.current;
-    const capturedWrongCount = wrongNotesCountRef.current;
-    const capturedCorrectNotes = [...correctNotes];
-    const capturedWrongNotes = [...wrongNotes];
-    
-    setCapturedScores({
-      correctCount: capturedCorrectCount,
-      wrongCount: capturedWrongCount,
-      correctNotes: capturedCorrectNotes,
-      wrongNotes: capturedWrongNotes,
-      // Include additional stats if provided by note tracking system
-      totalNotes: practiceStats?.totalNotes,
-      unplayedCount: practiceStats?.unplayedCount
-    });
-    
-    // Enable post-practice highlighting to show results
-    setShowPostPracticeResults(true);
-    
-    
-    openScoreModal();
-  }, [correctNotes, wrongNotes, openScoreModal, isMetronomeActive, setShowPostPracticeResults]);
-
-  // Scoring functions
-  const incrementCorrectNotes = useCallback((note) => {
-    setCorrectNotesCount(prev => {
-      const newValue = prev + 1;
-      correctNotesCountRef.current = newValue;
-      return newValue;
-    });
-    setCorrectNotes(prev => [...prev, note]);
-  }, []);
-
-  const incrementWrongNotes = useCallback((note) => {
-    setWrongNotesCount(prev => {
-      const newValue = prev + 1;
-      wrongNotesCountRef.current = newValue;
-      return newValue;
-    });
-    setWrongNotes(prev => [...prev, note]);
-  }, []);
-
-  const resetPostPracticeResults = useCallback(() => {
-    setShowPostPracticeResults(false);
-  }, []);
-
-  const resetScoring = useCallback(() => {
-    setCorrectNotesCount(0);
-    setWrongNotesCount(0);
-    setCorrectNotes([]);
-    setWrongNotes([]);
-    correctNotesCountRef.current = 0;
-    wrongNotesCountRef.current = 0;
-  }, []);
-
-  // Handle save exercise - open modal
-  const handleSaveExercise = useCallback(() => {
-    openSaveModal();
-  }, [openSaveModal]);
-
-  // Handle actual save with exercise name
-  const handleSaveExerciseWithName = useCallback(async (exerciseName) => {
-    try {
-      
-      if (!user) {
-        return { success: false, error: 'You must be logged in to save exercises.' };
-      }
-
-      if (user.isGuest) {
-        // Save exercise to localStorage for guest users
-        const exerciseData = {
-          exercise_name: exerciseName.trim(),
-          key_signature: settings.key || 'C',
-          time_signature: settings.timeSignature || '4/4',
-          measures: settings.measures || 8,
-          tempo: settings.tempo || 120,
-          intervals: settings.intervals || [1, 2, 3, 4, 5],
-          note_durations: settings.noteDurations || ['1/8', '1/4'],
-          chord_progressions: settings.chordProgressions || ['pop'],
-          left_hand_patterns: settings.leftHandPatterns || ['block-chords'],
-          left_hand_broken_chords: settings.leftHandBrokenChords || ['1-3-5-3'],
-          right_hand_patterns: settings.rightHandPatterns || ['single-notes'],
-          right_hand_intervals: settings.rightHandIntervals || ['2nd'],
-          right_hand_4_note_chords: settings.rightHand4NoteChords || ['major'],
-          swap_hand_patterns: settings.swapHandPatterns || false,
-          chord_types: settings.chordTypes || ['major', 'minor'],
-          chord_inversions: settings.chordInversions || ['root'],
-          chord_voicings: settings.chordVoicings || ['closed'],
-          chord_rhythms: settings.chordRhythms || ['straight'],
-          melodic_patterns: settings.melodicPatterns || ['melodies'],
-          melodic_articulations: settings.melodicArticulations || ['legato'],
-          music_scale: settings.musicScale || 1.0,
-          selected_level: settings.selectedLevel
-        };
-
-        const result = saveGuestExercise(exerciseData);
-        
-        if (result.success) {
-          alert(`Exercise "${exerciseName}" saved successfully!`);
-          return { success: true };
-        } else {
-          // Failed to save guest exercise
-          return { success: false, error: result.error };
-        }
-      } else {
-        // Save exercise using the database service for authenticated users
-        const result = await ExerciseService.saveExercise(exerciseName, settings, user.id);
-        
-        if (result.success) {
-          // Show success notification
-          alert(`Exercise "${exerciseName}" saved successfully!`);
-          return { success: true };
-        } else {
-          // Save failed
-          return { success: false, error: result.error };
-        }
-      }
-    } catch {
-      // Error saving exercise
-      return { success: false, error: 'An unexpected error occurred while saving the exercise.' };
-    }
-  }, [settings, user]);
-
-  // MIDI event handler
-  const handleMidiEvent = useCallback((midiEvent) => {
-    // Debugging MIDI events
-    setPressedMidiNotes(prevNotes => {
-      const newNotes = new Set(prevNotes);
-      if (midiEvent.type === 'noteon') {
-        newNotes.add(midiEvent.note);
-      } else if (midiEvent.type === 'noteoff') {
-        newNotes.delete(midiEvent.note);
-      }
-      return newNotes;
-    });
-  }, []);
-
-  // Initialize MIDI when app starts
-  React.useEffect(() => {
-    initializeMIDI(handleMidiEvent);
-  }, [handleMidiEvent]);
-
-  // Load settings when user changes
-  React.useEffect(() => {
-    const loadSettings = async () => {
-      if (user) {
-        const result = await loadUserSettings(user);
-        if (result.success) {
-          setSettings(result.settings);
-          setSettingsLoaded(true);
-        } else {
-          // Failed to load user settings
-          setSettings(DEFAULT_SETTINGS);
-          setSettingsLoaded(true);
-        }
-      } else {
-        // No user, use defaults
-        setSettings(DEFAULT_SETTINGS);
-        setSettingsLoaded(false);
-      }
-    };
-
-    loadSettings();
-  }, [user]);
-
-  return (
-    <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                    onLoadExercise={handleLoadExercise}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/intervals" 
-              element={
-                <ProtectedRoute>
-                  <Intervals 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/levels" 
-              element={
-                <ProtectedRoute>
-                  <Levels 
-                    selectedLevel={settings.selectedLevel} 
-                    onLevelChange={(level) => handleSettingsChange({ ...settings, selectedLevel: level })}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/keys" 
-              element={
-                <ProtectedRoute>
-                  <Keys 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/time-signatures" 
-              element={
-                <ProtectedRoute>
-                  <TimeSignatures 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/measures" 
-              element={
-                <ProtectedRoute>
-                  <MeasuresPage 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/chords" 
-              element={
-                <ProtectedRoute>
-                  <ChordsPractice 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/melodic" 
-              element={
-                <ProtectedRoute>
-                  <MelodicPractice 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/free-practice" 
-              element={
-                <ProtectedRoute>
-                  <FreePractice 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/note-durations" 
-              element={
-                <ProtectedRoute>
-                  <NoteDuration 
-                    settings={settings} 
-                    onSettingsChange={handleSettingsChange}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route
-              path="/practice"
-              element={
-                <ProtectedRoute>
-                  <PracticeView
-                    settings={settings}
-                    onSettingsChange={handleSettingsChange}
-                    onTempoClick={openTempoModal}
-                    pressedMidiNotes={pressedMidiNotes}
-                    correctNotesCount={correctNotesCount}
-                    wrongNotesCount={wrongNotesCount}
-                    onCorrectNote={incrementCorrectNotes}
-                    onWrongNote={incrementWrongNotes}
-                    onResetScoring={resetScoring}
-                    onPracticeEnd={handlePracticeEnd}
-                    isMetronomeActive={isMetronomeActive}
-                    onMetronomeToggle={handleMetronomeToggle}
-                    showPostPracticeResults={showPostPracticeResults}
-                    onResetPostPracticeResults={resetPostPracticeResults}
-                    onSaveExercise={handleSaveExercise}
-                    user={user}
-                  />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/flow"
-              element={
-                <ProtectedRoute>
-                  <FlowView
-                    settings={settings}
-                    onSettingsChange={handleSettingsChange}
-                    onTempoClick={openTempoModal}
-                    pressedMidiNotes={pressedMidiNotes}
-                    correctNotesCount={correctNotesCount}
-                    wrongNotesCount={wrongNotesCount}
-                    onCorrectNote={incrementCorrectNotes}
-                    onWrongNote={incrementWrongNotes}
-                    onResetScoring={resetScoring}
-                    onPracticeEnd={handlePracticeEnd}
-                    isMetronomeActive={isMetronomeActive}
-                    onMetronomeToggle={handleMetronomeToggle}
-                    showPostPracticeResults={showPostPracticeResults}
-                    onResetPostPracticeResults={resetPostPracticeResults}
-                    onSaveExercise={handleSaveExercise}
-                    user={user}
-                  />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/" element={<LandingPage />} />
-          </Routes>
-          
-          {/* Tempo Modal */}
-          {tempoModalOpen && (
-            <TempoSelector
-              tempo={settings.tempo}
-              onTempoChange={handleTempoChange}
-              onClose={closeTempoModal}
-            />
-          )}
-
-          {/* Score Modal */}
-          {scoreModalOpen && (
-            <ScoreModal
-              isOpen={scoreModalOpen}
-              onClose={closeScoreModal}
-              correctCount={capturedScores.correctCount}
-              wrongCount={capturedScores.wrongCount}
-              correctNotes={capturedScores.correctNotes}
-              wrongNotes={capturedScores.wrongNotes}
-            />
-          )}
-
-          {/* Save Exercise Modal */}
-          <SaveExerciseModal
-            isOpen={saveModalOpen}
-            onClose={closeSaveModal}
-            onSave={handleSaveExerciseWithName}
-          />
-        </Router>
-  );
-}
-
-function App() {
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <ChordsProvider>
-          <AppContent />
-        </ChordsProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  );
-}
-
-export default App;
+export default FlowView;
