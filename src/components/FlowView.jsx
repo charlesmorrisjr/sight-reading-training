@@ -14,9 +14,13 @@ import { incrementGuestExercisesGenerated } from '../services/settingsService';
 const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, user }) => {
   const navigate = useNavigate();
 
-  // Current ABC notation and note metadata
+  // Current ABC notation and note metadata for first display
   const [abcNotation, setAbcNotation] = useState('');
   const [noteMetadata, setNoteMetadata] = useState([]);
+
+  // Second display ABC notation and note metadata
+  const [abcNotation2, setAbcNotation2] = useState('');
+  const [noteMetadata2, setNoteMetadata2] = useState([]);
 
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,10 +29,16 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPracticing, setIsPracticing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+
+  // Continuous playback state
+  const [currentPlayingDisplay, setCurrentPlayingDisplay] = useState(null); // 1, 2, or null
+  const [continuousPlaybackActive, setContinuousPlaybackActive] = useState(false);
   const [isVisualsReady, setIsVisualsReady] = useState(false);
+  const [isVisualsReady2, setIsVisualsReady2] = useState(false);
   const audioContextRef = useRef(null);
   const synthRef = useRef(null);
   const visualObjectRef = useRef(null);
+  const visualObjectRef2 = useRef(null);
 
   // Beat tracking state for debugging display
   const [beatInfo, setBeatInfo] = useState('');
@@ -47,6 +57,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   // Refs to track current playing state without causing re-renders
   const isPlayingRef = useRef(false);
   const isPracticingRef = useRef(false);
+  const continuousPlaybackActiveRef = useRef(false);
+  const currentPlayingDisplayRef = useRef(null);
 
   // Ref to store metronome trigger function
   const metronomeTriggerRef = useRef(null);
@@ -233,6 +245,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   const handleGenerateNew = useCallback(async () => {
     setIsGenerating(true);
     setIsVisualsReady(false);
+    setIsVisualsReady2(false);
 
     // Reset scoring when generating new exercise
     if (onResetScoring) {
@@ -241,18 +254,41 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
-      const result = generateRandomABC(settings);
-      setAbcNotation(result.abcNotation);
-      setNoteMetadata(result.noteMetadata);
 
-      // Initialize note tracking map with 'unplayed' status
+      // Generate first 4-measure exercise
+      const settingsFor4Measures = { ...settings, measures: 4 };
+      const result1 = generateRandomABC(settingsFor4Measures);
+      setAbcNotation(result1.abcNotation);
+      setNoteMetadata(result1.noteMetadata);
+
+      // Generate second 4-measure exercise
+      const result2 = generateRandomABC(settingsFor4Measures);
+      setAbcNotation2(result2.abcNotation);
+      setNoteMetadata2(result2.noteMetadata);
+
+      // Initialize note tracking map with 'unplayed' status for both exercises
       const initialTrackingMap = new Map();
-      result.noteMetadata.forEach(note => {
+
+      // Add notes from first exercise
+      result1.noteMetadata.forEach(note => {
         initialTrackingMap.set(note.id, {
           ...note,
-          status: 'unplayed' // unplayed | correct | incorrect
+          status: 'unplayed', // unplayed | correct | incorrect
+          displayNumber: 1
         });
       });
+
+      // Add notes from second exercise with unique IDs
+      result2.noteMetadata.forEach(note => {
+        const uniqueId = `ex2_${note.id}`;
+        initialTrackingMap.set(uniqueId, {
+          ...note,
+          id: uniqueId,
+          status: 'unplayed',
+          displayNumber: 2
+        });
+      });
+
       setNoteTrackingMap(initialTrackingMap);
 
       // Reset post-practice highlighting when generating new exercise
@@ -302,6 +338,12 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     if (!isPracticingRef.current) {
       setIsPlaying(false);
     }
+  }, []);
+
+  // Handle when visual objects are ready from second MusicDisplay
+  const handleVisualsReady2 = useCallback((visualObj) => {
+    visualObjectRef2.current = visualObj;
+    setIsVisualsReady2(true);
   }, []);
 
   // Initialize audio context and synth
@@ -538,8 +580,10 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             const activeNotes = new Set();
             const activeNoteIds = new Set();
 
-            // Find notes that should be active at the current time
+            // Find notes that should be active at the current time from both exercises
             // Note metadata uses eighth-note units, so we convert to quarter-note beats for comparison
+
+            // Process first exercise notes
             noteMetadata.forEach(noteData => {
               // Convert measure-relative timing to absolute timing in eighth-note units
               const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
@@ -556,6 +600,27 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
               if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
                 activeNotes.add(noteData.expectedNote);
                 activeNoteIds.add(noteData.id);
+              }
+            });
+
+            // Process second exercise notes (offset by 4 measures)
+            noteMetadata2.forEach(noteData => {
+              // Convert measure-relative timing to absolute timing in eighth-note units
+              const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
+              // Add 4 measures offset for second exercise (4 * 8 = 32 eighth-note units)
+              const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure) + 32;
+              const absoluteEndTime = absoluteStartTime + noteData.duration;
+
+              // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
+              const absoluteStartBeat = absoluteStartTime / 2;
+              const absoluteEndBeat = absoluteEndTime / 2;
+
+              // Adjust for countdown offset
+              const adjustedCurrentTime = currentTimeInBeats - countdownBeats;
+
+              if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
+                activeNotes.add(noteData.expectedNote);
+                activeNoteIds.add(`ex2_${noteData.id}`); // Use the same unique ID format from handleGenerateNew
               }
             });
 
@@ -715,7 +780,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       }
     }
 
-  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteTrackingMap, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting]);
+  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -857,6 +922,112 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     }
   }, [isPracticing, startVisualCursor, isMetronomeActive, onMetronomeToggle, resetAllNoteHighlighting]);
 
+  // Stop continuous playback
+  const stopContinuousPlayback = useCallback(() => {
+    setContinuousPlaybackActive(false);
+    continuousPlaybackActiveRef.current = false;
+    setCurrentPlayingDisplay(null);
+    currentPlayingDisplayRef.current = null;
+
+    if (synthRef.current) {
+      synthRef.current.stop();
+    }
+
+    // Stop and remove any existing cursor
+    const existingCursor = document.querySelector('.playback-cursor');
+    if (existingCursor) {
+      if (existingCursor.stopAnimation) {
+        existingCursor.stopAnimation();
+      }
+      if (existingCursor.timingCallbacks) {
+        existingCursor.timingCallbacks.stop();
+      }
+      existingCursor.remove();
+    }
+
+    console.log('Continuous playback stopped');
+  }, []);
+
+  // Start continuous playback that alternates between displays
+  const startContinuousPlayback = useCallback(async () => {
+    if (!visualObjectRef.current || !visualObjectRef2.current) {
+      console.error('Both visual objects must be ready for continuous playback');
+      return;
+    }
+
+    setContinuousPlaybackActive(true);
+    continuousPlaybackActiveRef.current = true;
+    setCurrentPlayingDisplay(1);
+    currentPlayingDisplayRef.current = 1;
+
+    const playNextDisplay = async (displayNumber) => {
+      // Check if continuous playback was stopped
+      if (!continuousPlaybackActiveRef.current) {
+        return;
+      }
+
+      console.log(`Playing display ${displayNumber}`);
+      setCurrentPlayingDisplay(displayNumber);
+      currentPlayingDisplayRef.current = displayNumber;
+
+      try {
+        // Initialize synth if needed
+        if (!synthRef.current) {
+          const initialized = await initializeSynth();
+          if (!initialized) {
+            console.error('Failed to initialize synth for continuous playback');
+            stopContinuousPlayback();
+            return;
+          }
+        }
+
+        // Set the appropriate visual object for the current display
+        const visualObj = displayNumber === 1 ? visualObjectRef.current : visualObjectRef2.current;
+
+        // Update synth with current visual object
+        await synthRef.current.init({
+          audioContext: audioContextRef.current,
+          visualObj: visualObj,
+          options: {
+            soundFontUrl: "https://paulrosen.github.io/midi-js-soundfonts/MusyngKite/"
+          }
+        });
+
+        await synthRef.current.prime();
+
+        // Start playback with completion callback
+        synthRef.current.start(undefined, {
+          end: () => {
+            console.log(`Display ${displayNumber} finished playing`);
+
+            // Check if continuous playback is still active
+            if (continuousPlaybackActiveRef.current) {
+              // Switch to the other display
+              const nextDisplay = displayNumber === 1 ? 2 : 1;
+              setTimeout(() => {
+                playNextDisplay(nextDisplay);
+              }, 500); // Small delay between exercises
+            } else {
+              // Continuous playback was stopped
+              setCurrentPlayingDisplay(null);
+              currentPlayingDisplayRef.current = null;
+            }
+          }
+        });
+
+        // Start visual cursor for the current display
+        startVisualCursor(false);
+
+      } catch (error) {
+        console.error(`Error playing display ${displayNumber}:`, error);
+        stopContinuousPlayback();
+      }
+    };
+
+    // Start with first display
+    playNextDisplay(1);
+  }, [initializeSynth, startVisualCursor, stopContinuousPlayback]);
+
   React.useEffect(() => {
     handleGenerateNew();
   }, [handleGenerateNew]);
@@ -891,6 +1062,15 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   React.useEffect(() => {
     isMetronomeActiveRef.current = isMetronomeActive;
   }, [isMetronomeActive]);
+
+  // Keep continuous playback refs synchronized with state
+  React.useEffect(() => {
+    continuousPlaybackActiveRef.current = continuousPlaybackActive;
+  }, [continuousPlaybackActive]);
+
+  React.useEffect(() => {
+    currentPlayingDisplayRef.current = currentPlayingDisplay;
+  }, [currentPlayingDisplay]);
 
   React.useEffect(() => {
     return () => {
@@ -1133,18 +1313,29 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             {/* Play Button */}
             <button
               onClick={handlePlayClick}
-              disabled={!isVisualsReady || isGenerating || isPracticing || isInitializing}
+              disabled={!isVisualsReady || !isVisualsReady2 || isGenerating || isPracticing || isInitializing || continuousPlaybackActive}
               className="btn btn-lg px-8 py-4 bg-green-600 hover:bg-green-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               <FaPlay className={`mr-2 ${isPlaying ? 'hidden' : ''}`} />
               <FaStop className={`mr-2 ${!isPlaying ? 'hidden' : ''}`} />
-              {isInitializing ? 'Loading...' : (isPlaying ? 'Stop' : 'Play')}
+              {isInitializing ? 'Loading...' : (isPlaying ? 'Stop' : 'Play Exercise 1')}
+            </button>
+
+            {/* Continuous Play Button */}
+            <button
+              onClick={continuousPlaybackActive ? stopContinuousPlayback : startContinuousPlayback}
+              disabled={!isVisualsReady || !isVisualsReady2 || isGenerating || isPracticing || isInitializing || isPlaying}
+              className="btn btn-lg px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <FaPlay className={`mr-2 ${continuousPlaybackActive ? 'hidden' : ''}`} />
+              <FaStop className={`mr-2 ${!continuousPlaybackActive ? 'hidden' : ''}`} />
+              {continuousPlaybackActive ? 'Stop Flow' : 'Play Flow'}
             </button>
 
             {/* Practice Button */}
             <button
               onClick={handlePracticeClick}
-              disabled={!isVisualsReady || isGenerating || isPlaying}
+              disabled={!isVisualsReady || !isVisualsReady2 || isGenerating || isPlaying || continuousPlaybackActive}
               className="btn btn-lg px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               <FaKeyboard className={`mr-2 ${isPracticing ? 'hidden' : ''}`} />
@@ -1165,16 +1356,58 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             </div>
           )}
 
-          {/* Music Display */}
-          {abcNotation && (
-            <div className="music-display-container">
-              <MusicDisplay
-                abcNotation={abcNotation}
-                onVisualsReady={handleVisualsReady}
-                showPostPracticeResults={showPostPracticeResults}
-              />
-            </div>
-          )}
+          {/* Music Displays */}
+          <div className="space-y-6">
+            {/* First Exercise */}
+            {abcNotation && (
+              <div className="music-display-container">
+                <div className="text-center mb-2">
+                  <h3 className={`text-lg font-semibold flex items-center justify-center space-x-2 ${
+                    currentPlayingDisplay === 1
+                      ? 'text-orange-600 dark:text-orange-400'
+                      : 'text-gray-700 dark:text-gray-300'
+                  }`}>
+                    <span>Exercise 1</span>
+                    {currentPlayingDisplay === 1 && (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full dark:bg-orange-900 dark:text-orange-300 animate-pulse">
+                        Playing
+                      </span>
+                    )}
+                  </h3>
+                </div>
+                <MusicDisplay
+                  abcNotation={abcNotation}
+                  onVisualsReady={handleVisualsReady}
+                  showPostPracticeResults={showPostPracticeResults}
+                />
+              </div>
+            )}
+
+            {/* Second Exercise */}
+            {abcNotation2 && (
+              <div className="music-display-container">
+                <div className="text-center mb-2">
+                  <h3 className={`text-lg font-semibold flex items-center justify-center space-x-2 ${
+                    currentPlayingDisplay === 2
+                      ? 'text-orange-600 dark:text-orange-400'
+                      : 'text-gray-700 dark:text-gray-300'
+                  }`}>
+                    <span>Exercise 2</span>
+                    {currentPlayingDisplay === 2 && (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full dark:bg-orange-900 dark:text-orange-300 animate-pulse">
+                        Playing
+                      </span>
+                    )}
+                  </h3>
+                </div>
+                <MusicDisplay
+                  abcNotation={abcNotation2}
+                  onVisualsReady={handleVisualsReady2}
+                  showPostPracticeResults={showPostPracticeResults}
+                />
+              </div>
+            )}
+          </div>
 
           {/* Practice Status */}
           {isPracticing && (
