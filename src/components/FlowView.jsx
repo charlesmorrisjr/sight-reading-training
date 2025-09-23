@@ -36,7 +36,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   const [isVisualsReady, setIsVisualsReady] = useState(false);
   const [isVisualsReady2, setIsVisualsReady2] = useState(false);
   const audioContextRef = useRef(null);
-  const synthRef = useRef(null);
+  const synthRef1 = useRef(null);  // Synth for display 1
+  const synthRef2 = useRef(null);  // Synth for display 2
   const visualObjectRef = useRef(null);
   const visualObjectRef2 = useRef(null);
 
@@ -322,32 +323,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     }
   }, [settings, onResetScoring, onResetPostPracticeResults, user?.id, user?.isGuest, resetAllNoteHighlighting]);
 
-  // Handle when visual objects are ready from MusicDisplay
-  const handleVisualsReady = useCallback((visualObj) => {
-    visualObjectRef.current = visualObj;
-    setIsVisualsReady(true);
-
-    // Use refs to get current values without causing re-renders
-    // Fixes problem with visual cursor disappearing when notes were highlighted
-    if (synthRef.current && !isPlayingRef.current && !isPracticingRef.current) {
-      synthRef.current.stop();
-      synthRef.current = null;
-    }
-
-    // Only reset playing state if we're not currently in practice mode
-    if (!isPracticingRef.current) {
-      setIsPlaying(false);
-    }
-  }, []);
-
-  // Handle when visual objects are ready from second MusicDisplay
-  const handleVisualsReady2 = useCallback((visualObj) => {
-    visualObjectRef2.current = visualObj;
-    setIsVisualsReady2(true);
-  }, []);
-
-  // Initialize audio context and synth
-  const initializeSynth = useCallback(async () => {
+  // Minimal synth initialization for visual-only mode (display 1)
+  const initializeSynth1 = useCallback(async () => {
     if (!visualObjectRef.current) {
       return false;
     }
@@ -355,6 +332,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     try {
       setIsInitializing(true);
 
+      // Create minimal audio context for compatibility
       if (!audioContextRef.current) {
         // @ts-ignore - webkitAudioContext fallback for older browsers
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -365,9 +343,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         await audioContextRef.current.resume();
       }
 
-      synthRef.current = new ABCJS.synth.CreateSynth();
-
-      await synthRef.current.init({
+      // Create synth for visual object compatibility only
+      synthRef1.current = new ABCJS.synth.CreateSynth();
+      await synthRef1.current.init({
         audioContext: audioContextRef.current,
         visualObj: visualObjectRef.current,
         options: {
@@ -375,28 +353,109 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         }
       });
 
-      await synthRef.current.prime();
       return true;
-    } catch {
+    } catch (error) {
+      console.error('Synth1 initialization failed:', error);
       return false;
     } finally {
       setIsInitializing(false);
     }
   }, []);
 
+  // Minimal synth initialization for visual-only mode (display 2)
+  const initializeSynth2 = useCallback(async () => {
+    if (!visualObjectRef2.current) {
+      return false;
+    }
+
+    try {
+      setIsInitializing(true);
+
+      // Create minimal audio context for compatibility
+      if (!audioContextRef.current) {
+        // @ts-ignore - webkitAudioContext fallback for older browsers
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContextRef.current = new AudioContextClass();
+      }
+
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
+      // Create synth for visual object compatibility only
+      synthRef2.current = new ABCJS.synth.CreateSynth();
+      await synthRef2.current.init({
+        audioContext: audioContextRef.current,
+        visualObj: visualObjectRef2.current,
+        options: {
+          soundFontUrl: "https://paulrosen.github.io/midi-js-soundfonts/MusyngKite/"
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Synth2 initialization failed:', error);
+      return false;
+    } finally {
+      setIsInitializing(false);
+    }
+  }, []);
+
+  // Handle when visual objects are ready from MusicDisplay
+  const handleVisualsReady = useCallback(async (visualObj) => {
+    visualObjectRef.current = visualObj;
+    setIsVisualsReady(true);
+
+    // Initialize minimal synth for visual compatibility
+    try {
+      await initializeSynth1();
+    } catch (error) {
+      console.error('Failed to initialize synth 1:', error);
+    }
+
+    // Only reset playing state if we're not currently in practice mode
+    if (!isPracticingRef.current) {
+      setIsPlaying(false);
+    }
+  }, [initializeSynth1]);
+
+  // Handle when visual objects are ready from second MusicDisplay
+  const handleVisualsReady2 = useCallback(async (visualObj) => {
+    visualObjectRef2.current = visualObj;
+    setIsVisualsReady2(true);
+
+    // Initialize minimal synth for visual compatibility
+    try {
+      await initializeSynth2();
+    } catch (error) {
+      console.error('Failed to initialize synth 2:', error);
+    }
+  }, [initializeSynth2]);
+
   // abcjs TimingCallbacks-based cursor that syncs perfectly with music
-  const startVisualCursor = useCallback((isPracticeMode = false) => {
+  const startVisualCursor = useCallback((isPracticeMode = false, displayNumber = 1, visualObj = null, continuousCallback = null) => {
 
     // Cursor padding constants
     const CURSOR_TOP_PADDING = 5;
     const CURSOR_BOTTOM_PADDING = 25;
 
-    if (!visualObjectRef.current) {
+    // Use provided visual object or default based on display number
+    const targetVisualObj = visualObj || (displayNumber === 1 ? visualObjectRef.current : visualObjectRef2.current);
+
+    if (!targetVisualObj) {
       return;
     }
 
-    const svgContainer = document.querySelector('.music-notation svg');
+    // Target the specific display's SVG container
+    const displayContainer = document.querySelector(`[data-display="${displayNumber}"]`);
+    if (!displayContainer) {
+      console.error(`Could not find display container ${displayNumber}`);
+      return;
+    }
+
+    const svgContainer = displayContainer.querySelector('.music-notation svg');
     if (!svgContainer) {
+      console.error(`Could not find SVG in display ${displayNumber}`);
       return;
     }
 
@@ -428,7 +487,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     let timingCallbacks;
     try {
-      timingCallbacks = new ABCJS.TimingCallbacks(visualObjectRef.current, {
+      timingCallbacks = new ABCJS.TimingCallbacks(targetVisualObj, {
         qpm: settings.tempo, // Quarter notes per minute - matches settings
         beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
         extraMeasuresAtBeginning: isPracticeMode ? 2 : 0, // Add 2 countdown measures for practice mode
@@ -437,13 +496,37 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         eventCallback: (event) => {
 
         if (!event) {
-          // Music has ended - stop playback and reset button
+          // Music has ended - handle different playback modes
+          console.log(`🏁 VISUAL CURSOR: Music ended for display ${displayNumber}, mode: ${isPracticeMode ? 'practice' : 'play'}, continuous: ${continuousPlaybackActiveRef.current}`);
+
+          // Handle continuous playback flow
+          if (continuousPlaybackActiveRef.current && continuousCallback) {
+            console.log(`🔄 CONTINUOUS FLOW: Display ${displayNumber} finished, switching to next`);
+
+            // Clean up current cursor
+            if (cursorLine && cursorLine.parentNode) {
+              cursorLine.remove();
+            }
+
+            // Stop current TimingCallbacks
+            if (timingCallbacks) {
+              timingCallbacks.stop();
+            }
+
+            // Use the passed callback to trigger next display
+            setTimeout(() => {
+              continuousCallback(displayNumber);
+            }, 50); // Tiny delay to ensure cleanup completes
+
+            return; // Exit early for continuous flow
+          }
+
+          // Handle regular playback ending
           if (!isPracticeMode) {
             setIsPlaying(false);
           }
 
           // Call onPracticeEnd if we were in practice mode with note tracking statistics
-
           if (isPracticingRef.current && onPracticeEnd) {
             // Calculate final scores from note tracking map
             let correctCount = 0;
@@ -475,7 +558,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           }
 
           if (isPracticeMode) {
-
             setIsPracticing(false);
             setIsCountingDown(false);
             setCountdownBeats(0);
@@ -496,11 +578,13 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           // Clean up all note highlights when practice ends using robust cleanup
           resetAllNoteHighlighting();
 
-          if (!isPracticeMode && synthRef.current) {
-            synthRef.current.stop();
+          // Only stop synth for regular playback (not continuous)
+          if (!isPracticeMode && synthRef1.current && !continuousPlaybackActiveRef.current) {
+            console.log('🔇 SYNTH STOP MONITOR: startVisualCursor eventCallback stopping synth 1 (regular playback)');
+            synthRef1.current.stop();
           }
-          // Stop TimingCallbacks to prevent infinite beatCallback execution
 
+          // Stop TimingCallbacks to prevent infinite beatCallback execution
           if (timingCallbacks) {
             timingCallbacks.stop();
           }
@@ -785,8 +869,14 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
     if (isPlaying) {
-      if (synthRef.current) {
-        synthRef.current.stop();
+      if (synthRef1.current) {
+        console.log('🔇 SYNTH STOP MONITOR: handlePlayClick stopping synth 1');
+        console.log('🔇 STOP CONTEXT:', {
+          caller: 'handlePlayClick',
+          reason: 'user stopped regular playback',
+          stack: new Error().stack?.split('\n').slice(1, 4).join('\n')
+        });
+        synthRef1.current.stop();
       }
       // Stop and remove any existing cursor
       const existingCursor = document.querySelector('.playback-cursor');
@@ -803,29 +893,22 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       return;
     }
 
-    if (!visualObjectRef.current) {
+    if (!visualObjectRef.current || !synthRef1.current) {
       return;
     }
 
     try {
-      if (!synthRef.current) {
-        const initialized = await initializeSynth();
-        if (!initialized) {
-          return;
-        }
-      }
-
       setIsPlaying(true);
 
-      // Start playback normally
-      synthRef.current.start(undefined, {
+      // Start playbook with pre-initialized synth for display 1
+      synthRef1.current.start(undefined, {
         end: () => {
           setIsPlaying(false);
         }
       });
 
       // Start visual cursor
-      startVisualCursor();
+      startVisualCursor(false, 1);
 
     } catch {
       setIsPlaying(false);
@@ -841,7 +924,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         existingCursor.remove();
       }
     }
-  }, [isPlaying, initializeSynth, startVisualCursor]);
+  }, [isPlaying, startVisualCursor]);
 
 
   // Handle practice button click - does not play audio
@@ -899,7 +982,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       setIsPracticing(true);
 
       // Start visual cursor with countdown - this will trigger the countdown automatically
-      startVisualCursor(true); // Pass true to indicate practice mode (no audio)
+      startVisualCursor(true, 1); // Pass true to indicate practice mode (no audio), display 1
 
     } catch {
       setIsPracticing(false);
@@ -929,11 +1012,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     setCurrentPlayingDisplay(null);
     currentPlayingDisplayRef.current = null;
 
-    if (synthRef.current) {
-      synthRef.current.stop();
-    }
-
-    // Stop and remove any existing cursor
+    // Clean up visual cursors
     const existingCursor = document.querySelector('.playback-cursor');
     if (existingCursor) {
       if (existingCursor.stopAnimation) {
@@ -944,14 +1023,19 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       }
       existingCursor.remove();
     }
-
-    console.log('Continuous playback stopped');
   }, []);
 
   // Start continuous playback that alternates between displays
   const startContinuousPlayback = useCallback(async () => {
+    // Verify both visual objects are ready
     if (!visualObjectRef.current || !visualObjectRef2.current) {
-      console.error('Both visual objects must be ready for continuous playback');
+      console.error('Both visual objects must be ready for continuous flow');
+      return;
+    }
+
+    // Verify both synths are ready
+    if (!synthRef1.current || !synthRef2.current) {
+      console.error('Both synths must be ready for continuous flow');
       return;
     }
 
@@ -966,67 +1050,41 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         return;
       }
 
-      console.log(`Playing display ${displayNumber}`);
       setCurrentPlayingDisplay(displayNumber);
       currentPlayingDisplayRef.current = displayNumber;
 
+      // Get the appropriate resources for the current display
+      const currentSynth = displayNumber === 1 ? synthRef1.current : synthRef2.current;
+      const visualObj = displayNumber === 1 ? visualObjectRef.current : visualObjectRef2.current;
+
       try {
-        // Initialize synth if needed
-        if (!synthRef.current) {
-          const initialized = await initializeSynth();
-          if (!initialized) {
-            console.error('Failed to initialize synth for continuous playback');
-            stopContinuousPlayback();
-            return;
-          }
+        if (!currentSynth || !visualObj) {
+          console.error(`Display ${displayNumber} not ready for continuous flow`);
+          stopContinuousPlayback();
+          return;
         }
 
-        // Set the appropriate visual object for the current display
-        const visualObj = displayNumber === 1 ? visualObjectRef.current : visualObjectRef2.current;
+        // Store display info for visual cursor callback
+        currentSynth._displayNumber = displayNumber;
+        currentSynth._continuousMode = true;
 
-        // Update synth with current visual object
-        await synthRef.current.init({
-          audioContext: audioContextRef.current,
-          visualObj: visualObj,
-          options: {
-            soundFontUrl: "https://paulrosen.github.io/midi-js-soundfonts/MusyngKite/"
-          }
-        });
+        // For continuous mode, pass callback function to handle transitions
+        const continuousTransitionCallback = (currentDisplay) => {
+          const nextDisplay = currentDisplay === 1 ? 2 : 1;
+          playNextDisplay(nextDisplay);
+        };
 
-        await synthRef.current.prime();
-
-        // Start playback with completion callback
-        synthRef.current.start(undefined, {
-          end: () => {
-            console.log(`Display ${displayNumber} finished playing`);
-
-            // Check if continuous playback is still active
-            if (continuousPlaybackActiveRef.current) {
-              // Switch to the other display
-              const nextDisplay = displayNumber === 1 ? 2 : 1;
-              setTimeout(() => {
-                playNextDisplay(nextDisplay);
-              }, 500); // Small delay between exercises
-            } else {
-              // Continuous playback was stopped
-              setCurrentPlayingDisplay(null);
-              currentPlayingDisplayRef.current = null;
-            }
-          }
-        });
-
-        // Start visual cursor for the current display
-        startVisualCursor(false);
+        startVisualCursor(false, displayNumber, visualObj, continuousTransitionCallback);
 
       } catch (error) {
-        console.error(`Error playing display ${displayNumber}:`, error);
+        console.error(`Error in continuous flow for display ${displayNumber}:`, error);
         stopContinuousPlayback();
       }
     };
 
     // Start with first display
     playNextDisplay(1);
-  }, [initializeSynth, startVisualCursor, stopContinuousPlayback]);
+  }, [startVisualCursor, stopContinuousPlayback]);
 
   React.useEffect(() => {
     handleGenerateNew();
@@ -1323,7 +1381,28 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
             {/* Continuous Play Button */}
             <button
-              onClick={continuousPlaybackActive ? stopContinuousPlayback : startContinuousPlayback}
+              onClick={() => {
+                console.log('🎯 Play Flow Button: Clicked');
+                console.log('🎯 Play Flow Button: Current state:', {
+                  continuousPlaybackActive,
+                  isVisualsReady,
+                  isVisualsReady2,
+                  synthRef1Ready: !!synthRef1.current,
+                  synthRef2Ready: !!synthRef2.current,
+                  isGenerating,
+                  isPracticing,
+                  isInitializing,
+                  isPlaying
+                });
+
+                if (continuousPlaybackActive) {
+                  console.log('🛑 Play Flow Button: Calling stopContinuousPlayback');
+                  stopContinuousPlayback();
+                } else {
+                  console.log('🚀 Play Flow Button: Calling startContinuousPlayback');
+                  startContinuousPlayback();
+                }
+              }}
               disabled={!isVisualsReady || !isVisualsReady2 || isGenerating || isPracticing || isInitializing || isPlaying}
               className="btn btn-lg px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
@@ -1360,7 +1439,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           <div className="space-y-6">
             {/* First Exercise */}
             {abcNotation && (
-              <div className="music-display-container">
+              <div className="music-display-container" data-display="1">
                 <div className="text-center mb-2">
                   <h3 className={`text-lg font-semibold flex items-center justify-center space-x-2 ${
                     currentPlayingDisplay === 1
@@ -1385,7 +1464,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
             {/* Second Exercise */}
             {abcNotation2 && (
-              <div className="music-display-container">
+              <div className="music-display-container" data-display="2">
                 <div className="text-center mb-2">
                   <h3 className={`text-lg font-semibold flex items-center justify-center space-x-2 ${
                     currentPlayingDisplay === 2
