@@ -435,7 +435,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   }, [initializeSynth2]);
 
   // abcjs TimingCallbacks-based cursor that syncs perfectly with music
-  const startVisualCursor = useCallback((isPracticeMode = false, displayNumber = 1, visualObj = null, continuousCallback = null) => {
+  const startVisualCursor = useCallback((isPracticeMode = false, displayNumber = 1, visualObj = null, continuousCallback = null, isInitialStart = false) => {
 
     // Cursor padding constants
     const CURSOR_TOP_PADDING = 5;
@@ -492,7 +492,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       timingCallbacks = new ABCJS.TimingCallbacks(targetVisualObj, {
         qpm: settings.tempo, // Quarter notes per minute - matches settings
         beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
-        extraMeasuresAtBeginning: isPracticeMode ? 2 : 0, // Add 2 countdown measures for practice mode
+        extraMeasuresAtBeginning: (isPracticeMode && isInitialStart) ? 2 : 0, // Add 2 countdown measures only for initial practice start
 
         // Event callback - called for each musical event (note, rest, etc.)
         eventCallback: (event) => {
@@ -609,8 +609,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           // if (event) {
           // }
 
-        // For practice mode, hide cursor during countdown
-        if (isPracticeMode && event.milliseconds !== undefined) {
+        // For practice mode, hide cursor during countdown (only on initial start)
+        if (isPracticeMode && isInitialStart && event.milliseconds !== undefined) {
           const tempo = settings.tempo || 120;
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
 
@@ -659,10 +659,10 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           // This formula works for any BPM: (ms / 1000 seconds) * (beats per minute / 60 seconds) = beats
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
 
-          // Only process notes after countdown period
+          // Only process notes after countdown period (if this is initial start)
           // Calculate dynamic countdown beats based on time signature
           const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
-          const countdownBeats = beatsPerMeasure * 2; // 2 measures countdown
+          const countdownBeats = isInitialStart ? (beatsPerMeasure * 2) : 0; // 2 measures countdown only for initial start
           if (currentTimeInBeats >= countdownBeats) {
             const activeNotes = new Set();
             const activeNoteIds = new Set();
@@ -773,8 +773,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
           // CRITICAL: Check if beatCallback is still firing after music should have ended
 
-          // Handle countdown phase for practice mode
-          if (isPracticeMode) {
+          // Handle countdown phase for practice mode (only on initial start)
+          if (isPracticeMode && isInitialStart) {
             const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
             const countdownTotalBeats = beatsPerMeasure * 2; // 2 measures countdown
 
@@ -790,6 +790,10 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
               setIsCountingDown(false);
               setCountdownBeats(0);
             }
+          } else if (isPracticeMode && !isInitialStart) {
+            // For continuous transitions, ensure countdown is disabled
+            setIsCountingDown(false);
+            setCountdownBeats(0);
           }
 
           // Beat info for debugging display
@@ -805,7 +809,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
           const countdownTotalBeats = beatsPerMeasure * 2; // 2 measures countdown
           const shouldTriggerMetronome = isPracticeMode ?
-            (beatNumber < countdownTotalBeats || isMetronomeActiveRef.current) : // Countdown always plays, then only if metronome active
+            ((isInitialStart && beatNumber < countdownTotalBeats) || isMetronomeActiveRef.current) : // Countdown only on initial start, then only if metronome active
             isMetronomeActiveRef.current; // Non-practice mode only if metronome active
 
 
@@ -910,8 +914,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         }
       });
 
-      // Start visual cursor
-      startVisualCursor(false, 1);
+      // Start visual cursor (not practice mode, so isInitialStart doesn't matter)
+      startVisualCursor(false, 1, null, null, false);
 
     } catch {
       setIsPlaying(false);
@@ -951,7 +955,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
   // Start continuous practice that alternates between displays
   const startContinuousPractice = useCallback(async () => {
-    // Verify both visual objects are ready
+    // Verify both visual objects are ready (no synth requirement for practice mode)
     if (!visualObjectRef.current || !visualObjectRef2.current) {
       console.error('Both visual objects must be ready for continuous practice flow');
       return;
@@ -961,6 +965,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     continuousPracticeActiveRef.current = true;
     setCurrentPlayingDisplay(1);
     currentPlayingDisplayRef.current = 1;
+
+    // Track whether this is the initial start of the practice session
+    let isFirstCall = true;
 
     const practiceNextDisplay = async (displayNumber) => {
       // Check if continuous practice was stopped
@@ -987,7 +994,12 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           practiceNextDisplay(nextDisplay);
         };
 
-        startVisualCursor(true, displayNumber, visualObj, continuousTransitionCallback);
+        // Pass isInitialStart = true only for the very first call of the practice session
+        const isInitialStart = isFirstCall;
+        if (isFirstCall) {
+          isFirstCall = false; // Mark that we've made the first call
+        }
+        startVisualCursor(true, displayNumber, visualObj, continuousTransitionCallback, isInitialStart);
 
       } catch (error) {
         console.error(`Error in continuous practice flow for display ${displayNumber}:`, error);
@@ -1156,7 +1168,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           playNextDisplay(nextDisplay);
         };
 
-        startVisualCursor(false, displayNumber, visualObj, continuousTransitionCallback);
+        startVisualCursor(false, displayNumber, visualObj, continuousTransitionCallback, false);
 
       } catch (error) {
         console.error(`Error in continuous flow for display ${displayNumber}:`, error);
