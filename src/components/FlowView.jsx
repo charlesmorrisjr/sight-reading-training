@@ -325,6 +325,72 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     }
   }, [settings, onResetScoring, onResetPostPracticeResults, user?.id, user?.isGuest, resetAllNoteHighlighting]);
 
+  // Update note tracking map for a specific display
+  const updateNoteTrackingForDisplay = useCallback((displayNumber, newNoteMetadata) => {
+    setNoteTrackingMap(prevMap => {
+      const newMap = new Map(prevMap);
+
+      // Remove all existing notes for this display
+      for (const [noteId, note] of newMap) {
+        if (note.displayNumber === displayNumber) {
+          newMap.delete(noteId);
+        }
+      }
+
+      // Add new notes for this display
+      newNoteMetadata.forEach(note => {
+        const noteId = displayNumber === 2 ? `ex2_${note.id}` : note.id;
+        newMap.set(noteId, {
+          ...note,
+          id: noteId,
+          status: 'unplayed',
+          displayNumber: displayNumber
+        });
+      });
+
+      return newMap;
+    });
+  }, []);
+
+  // Generate new exercise for a specific display (1 or 2)
+  const generateSingleExercise = useCallback(async (displayNumber) => {
+    try {
+      // Generate new 4-measure exercise
+      const settingsFor4Measures = { ...settings, measures: 4 };
+      const result = generateRandomABC(settingsFor4Measures);
+
+      // Update the appropriate display's notation and metadata
+      if (displayNumber === 1) {
+        setAbcNotation(result.abcNotation);
+        setNoteMetadata(result.noteMetadata);
+      } else {
+        setAbcNotation2(result.abcNotation);
+        setNoteMetadata2(result.noteMetadata);
+      }
+
+      // Update note tracking map for this display
+      updateNoteTrackingForDisplay(displayNumber, result.noteMetadata);
+
+      // Increment exercises_generated counter
+      if (user?.id) {
+        try {
+          if (user.isGuest) {
+            incrementGuestExercisesGenerated();
+          } else {
+            await incrementExercisesGenerated(user.id);
+          }
+        } catch {
+          // Don't fail exercise generation if counter update fails
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`Error generating exercise for display ${displayNumber}:`, error);
+      return null;
+    }
+  }, [settings, user?.id, user?.isGuest, updateNoteTrackingForDisplay]);
+
   // Minimal synth initialization for visual-only mode (display 1)
   const initializeSynth1 = useCallback(async () => {
     if (!visualObjectRef.current) {
@@ -988,10 +1054,41 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           return;
         }
 
-        // For continuous practice mode, pass callback function to handle transitions
-        const continuousTransitionCallback = (currentDisplay) => {
-          const nextDisplay = currentDisplay === 1 ? 2 : 1;
-          practiceNextDisplay(nextDisplay);
+        // For continuous practice mode, pass callback function to handle transitions with exercise generation
+        const continuousTransitionCallback = async (currentDisplay) => {
+          try {
+            // Generate new exercise for the display that just finished
+            console.log(`🔄 DYNAMIC GENERATION: Generating new exercise for display ${currentDisplay} before switching`);
+            await generateSingleExercise(currentDisplay);
+
+            // Wait for the visual object to be updated and ready
+            const waitForVisualObject = () => {
+              return new Promise((resolve) => {
+                const checkVisualObject = () => {
+                  const visualObj = currentDisplay === 1 ? visualObjectRef.current : visualObjectRef2.current;
+                  const isReady = currentDisplay === 1 ? isVisualsReady : isVisualsReady2;
+
+                  if (visualObj && isReady) {
+                    resolve();
+                  } else {
+                    setTimeout(checkVisualObject, 50); // Check every 50ms
+                  }
+                };
+                checkVisualObject();
+              });
+            };
+
+            await waitForVisualObject();
+
+            // Now switch to the next display
+            const nextDisplay = currentDisplay === 1 ? 2 : 1;
+            practiceNextDisplay(nextDisplay);
+          } catch (error) {
+            console.error(`Error generating new exercise for display ${currentDisplay}:`, error);
+            // Continue with original exercise if generation fails
+            const nextDisplay = currentDisplay === 1 ? 2 : 1;
+            practiceNextDisplay(nextDisplay);
+          }
         };
 
         // Pass isInitialStart = true only for the very first call of the practice session
@@ -1009,7 +1106,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     // Start with first display
     practiceNextDisplay(1);
-  }, [startVisualCursor, stopContinuousPractice]);
+  }, [startVisualCursor, stopContinuousPractice, generateSingleExercise, isVisualsReady, isVisualsReady2]);
 
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
