@@ -63,6 +63,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   const continuousPracticeActiveRef = useRef(false);
   const currentPlayingDisplayRef = useRef(null);
 
+  // Track background generation state to prevent race conditions
+  const backgroundGenerationActiveRef = useRef(new Set());
+
   // Ref to store metronome trigger function
   const metronomeTriggerRef = useRef(null);
 
@@ -390,6 +393,48 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       return null;
     }
   }, [settings, user?.id, user?.isGuest, updateNoteTrackingForDisplay]);
+
+  // Generate exercise in background for the next display (non-blocking)
+  const generateNextExerciseInBackground = useCallback(async (nextDisplayNumber) => {
+    try {
+      // Prevent duplicate generation for the same display
+      if (backgroundGenerationActiveRef.current.has(nextDisplayNumber)) {
+        console.log(`⏭️ BACKGROUND GENERATION: Already generating for display ${nextDisplayNumber}, skipping`);
+        return;
+      }
+
+      // Check if practice is still active before starting generation
+      if (!continuousPracticeActiveRef.current) {
+        console.log(`⏹️ BACKGROUND GENERATION: Practice stopped, skipping generation for display ${nextDisplayNumber}`);
+        return;
+      }
+
+      console.log(`🔄 BACKGROUND GENERATION: Generating exercise for next display ${nextDisplayNumber}`);
+      backgroundGenerationActiveRef.current.add(nextDisplayNumber);
+
+      // Generate new exercise asynchronously without blocking current playback
+      setTimeout(async () => {
+        try {
+          // Double-check practice is still active
+          if (!continuousPracticeActiveRef.current) {
+            console.log(`⏹️ BACKGROUND GENERATION: Practice stopped during generation, aborting for display ${nextDisplayNumber}`);
+            backgroundGenerationActiveRef.current.delete(nextDisplayNumber);
+            return;
+          }
+
+          await generateSingleExercise(nextDisplayNumber);
+          console.log(`✅ BACKGROUND GENERATION: Exercise ready for display ${nextDisplayNumber}`);
+        } catch (error) {
+          console.error(`❌ BACKGROUND GENERATION: Failed for display ${nextDisplayNumber}:`, error);
+        } finally {
+          backgroundGenerationActiveRef.current.delete(nextDisplayNumber);
+        }
+      }, 0); // Run asynchronously in next tick
+    } catch (error) {
+      console.error(`Error initiating background generation for display ${nextDisplayNumber}:`, error);
+      backgroundGenerationActiveRef.current.delete(nextDisplayNumber);
+    }
+  }, [generateSingleExercise]);
 
   // Minimal synth initialization for visual-only mode (display 1)
   const initializeSynth1 = useCallback(async () => {
@@ -1017,6 +1062,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       }
       existingCursor.remove();
     }
+
+    // Clear background generation tracking
+    backgroundGenerationActiveRef.current.clear();
   }, []);
 
   // Start continuous practice that alternates between displays
@@ -1054,41 +1102,19 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           return;
         }
 
-        // For continuous practice mode, pass callback function to handle transitions with exercise generation
-        const continuousTransitionCallback = async (currentDisplay) => {
-          try {
-            // Generate new exercise for the display that just finished
-            console.log(`🔄 DYNAMIC GENERATION: Generating new exercise for display ${currentDisplay} before switching`);
-            await generateSingleExercise(currentDisplay);
+        // For continuous practice mode, pass callback function to handle instant transitions
+        const continuousTransitionCallback = (currentDisplay) => {
+          console.log(`🔄 INSTANT TRANSITION: Switching from display ${currentDisplay} to next`);
 
-            // Wait for the visual object to be updated and ready
-            const waitForVisualObject = () => {
-              return new Promise((resolve) => {
-                const checkVisualObject = () => {
-                  const visualObj = currentDisplay === 1 ? visualObjectRef.current : visualObjectRef2.current;
-                  const isReady = currentDisplay === 1 ? isVisualsReady : isVisualsReady2;
+          // Switch to next display immediately (no blocking generation)
+          const nextDisplay = currentDisplay === 1 ? 2 : 1;
 
-                  if (visualObj && isReady) {
-                    resolve();
-                  } else {
-                    setTimeout(checkVisualObject, 50); // Check every 50ms
-                  }
-                };
-                checkVisualObject();
-              });
-            };
+          // Start background generation for the display we're switching away from
+          // This ensures it's ready for the next cycle
+          generateNextExerciseInBackground(currentDisplay);
 
-            await waitForVisualObject();
-
-            // Now switch to the next display
-            const nextDisplay = currentDisplay === 1 ? 2 : 1;
-            practiceNextDisplay(nextDisplay);
-          } catch (error) {
-            console.error(`Error generating new exercise for display ${currentDisplay}:`, error);
-            // Continue with original exercise if generation fails
-            const nextDisplay = currentDisplay === 1 ? 2 : 1;
-            practiceNextDisplay(nextDisplay);
-          }
+          // Switch to next display immediately
+          practiceNextDisplay(nextDisplay);
         };
 
         // Pass isInitialStart = true only for the very first call of the practice session
@@ -1098,6 +1124,10 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         }
         startVisualCursor(true, displayNumber, visualObj, continuousTransitionCallback, isInitialStart);
 
+        // Start generating next exercise in background immediately when current exercise begins
+        const nextDisplayForGeneration = displayNumber === 1 ? 2 : 1;
+        generateNextExerciseInBackground(nextDisplayForGeneration);
+
       } catch (error) {
         console.error(`Error in continuous practice flow for display ${displayNumber}:`, error);
         stopContinuousPractice();
@@ -1106,7 +1136,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     // Start with first display
     practiceNextDisplay(1);
-  }, [startVisualCursor, stopContinuousPractice, generateSingleExercise, isVisualsReady, isVisualsReady2]);
+  }, [startVisualCursor, stopContinuousPractice, generateNextExerciseInBackground]);
 
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
