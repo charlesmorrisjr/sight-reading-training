@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
-import { FaMusic, FaPlay, FaStop, FaKeyboard, FaRedo, FaClock } from 'react-icons/fa';
+import { FaMusic, FaKeyboard, FaRedo, FaClock, FaStop } from 'react-icons/fa';
 import HamburgerMenu from './HamburgerMenu';
 import MusicDisplay from './MusicDisplay';
 import DarkModeToggle from './DarkModeToggle';
@@ -25,20 +25,14 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Audio/synth state
-  const [isPlaying, setIsPlaying] = useState(false);
+  // Practice state
   const [isPracticing, setIsPracticing] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
 
-  // Continuous playback state
+  // Continuous practice state
   const [currentPlayingDisplay, setCurrentPlayingDisplay] = useState(null); // 1, 2, or null
-  const [continuousPlaybackActive, setContinuousPlaybackActive] = useState(false);
   const [continuousPracticeActive, setContinuousPracticeActive] = useState(false);
   const [isVisualsReady, setIsVisualsReady] = useState(false);
   const [isVisualsReady2, setIsVisualsReady2] = useState(false);
-  const audioContextRef = useRef(null);
-  const synthRef1 = useRef(null);  // Synth for display 1
-  const synthRef2 = useRef(null);  // Synth for display 2
   const visualObjectRef = useRef(null);
   const visualObjectRef2 = useRef(null);
 
@@ -56,10 +50,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   const [noteTrackingMap, setNoteTrackingMap] = useState(new Map());
   const currentNoteIdsRef = useRef(new Set());
 
-  // Refs to track current playing state without causing re-renders
-  const isPlayingRef = useRef(false);
+  // Refs to track current practice state without causing re-renders
   const isPracticingRef = useRef(false);
-  const continuousPlaybackActiveRef = useRef(false);
   const continuousPracticeActiveRef = useRef(false);
   const currentPlayingDisplayRef = useRef(null);
 
@@ -436,114 +428,17 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     }
   }, [generateSingleExercise]);
 
-  // Minimal synth initialization for visual-only mode (display 1)
-  const initializeSynth1 = useCallback(async () => {
-    if (!visualObjectRef.current) {
-      return false;
-    }
-
-    try {
-      setIsInitializing(true);
-
-      // Create minimal audio context for compatibility
-      if (!audioContextRef.current) {
-        // @ts-ignore - webkitAudioContext fallback for older browsers
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioContextRef.current = new AudioContextClass();
-      }
-
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-
-      // Create synth for visual object compatibility only
-      synthRef1.current = new ABCJS.synth.CreateSynth();
-      await synthRef1.current.init({
-        audioContext: audioContextRef.current,
-        visualObj: visualObjectRef.current,
-        options: {
-          soundFontUrl: "https://paulrosen.github.io/midi-js-soundfonts/MusyngKite/"
-        }
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Synth1 initialization failed:', error);
-      return false;
-    } finally {
-      setIsInitializing(false);
-    }
-  }, []);
-
-  // Minimal synth initialization for visual-only mode (display 2)
-  const initializeSynth2 = useCallback(async () => {
-    if (!visualObjectRef2.current) {
-      return false;
-    }
-
-    try {
-      setIsInitializing(true);
-
-      // Create minimal audio context for compatibility
-      if (!audioContextRef.current) {
-        // @ts-ignore - webkitAudioContext fallback for older browsers
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioContextRef.current = new AudioContextClass();
-      }
-
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-
-      // Create synth for visual object compatibility only
-      synthRef2.current = new ABCJS.synth.CreateSynth();
-      await synthRef2.current.init({
-        audioContext: audioContextRef.current,
-        visualObj: visualObjectRef2.current,
-        options: {
-          soundFontUrl: "https://paulrosen.github.io/midi-js-soundfonts/MusyngKite/"
-        }
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Synth2 initialization failed:', error);
-      return false;
-    } finally {
-      setIsInitializing(false);
-    }
-  }, []);
-
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback(async (visualObj) => {
     visualObjectRef.current = visualObj;
     setIsVisualsReady(true);
-
-    // Initialize minimal synth for visual compatibility
-    try {
-      await initializeSynth1();
-    } catch (error) {
-      console.error('Failed to initialize synth 1:', error);
-    }
-
-    // Only reset playing state if we're not currently in practice mode
-    if (!isPracticingRef.current) {
-      setIsPlaying(false);
-    }
-  }, [initializeSynth1]);
+  }, []);
 
   // Handle when visual objects are ready from second MusicDisplay
   const handleVisualsReady2 = useCallback(async (visualObj) => {
     visualObjectRef2.current = visualObj;
     setIsVisualsReady2(true);
-
-    // Initialize minimal synth for visual compatibility
-    try {
-      await initializeSynth2();
-    } catch (error) {
-      console.error('Failed to initialize synth 2:', error);
-    }
-  }, [initializeSynth2]);
+  }, []);
 
   // abcjs TimingCallbacks-based cursor that syncs perfectly with music
   const startVisualCursor = useCallback((isPracticeMode = false, displayNumber = 1, visualObj = null, continuousCallback = null, isInitialStart = false) => {
@@ -581,7 +476,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     // Create the cursor line
     const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     cursorLine.setAttribute('class', 'playback-cursor');
-    cursorLine.setAttribute('stroke', isPracticeMode ? '#f59e0b' : '#3b82f6'); // Orange for practice, blue for play
+    cursorLine.setAttribute('stroke', '#f59e0b'); // Orange for practice
     cursorLine.setAttribute('stroke-width', '12');
     cursorLine.setAttribute('stroke-linecap', 'round');
     cursorLine.setAttribute('opacity', '0.3');
@@ -590,7 +485,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     // Add cursor to SVG
     svgContainer.appendChild(cursorLine);
 
-    // Create CursorControl for note highlighting
+    // Create CursorControl for note highlighting in practice mode
     if (isPracticeMode) {
       cursorControlRef.current = createCursorControl(isPracticeMode);
       console.log('🎯 Created CursorControl for practice mode');
@@ -609,13 +504,12 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         eventCallback: (event) => {
 
         if (!event) {
-          // Music has ended - handle different playback modes
-          console.log(`🏁 VISUAL CURSOR: Music ended for display ${displayNumber}, mode: ${isPracticeMode ? 'practice' : 'play'}, continuousPlay: ${continuousPlaybackActiveRef.current}, continuousPractice: ${continuousPracticeActiveRef.current}`);
+          // Music has ended - handle different practice modes
+          console.log(`🏁 VISUAL CURSOR: Music ended for display ${displayNumber}, mode: practice, continuousPractice: ${continuousPracticeActiveRef.current}`);
 
-          // Handle continuous flow (both playback and practice)
-          const isContinuousMode = (continuousPlaybackActiveRef.current && !isPracticeMode) || (continuousPracticeActiveRef.current && isPracticeMode);
-          if (isContinuousMode && continuousCallback) {
-            console.log(`🔄 CONTINUOUS FLOW: Display ${displayNumber} finished, switching to next (${isPracticeMode ? 'practice' : 'play'} mode)`);
+          // Handle continuous practice flow
+          if (continuousPracticeActiveRef.current && continuousCallback) {
+            console.log(`🔄 CONTINUOUS FLOW: Display ${displayNumber} finished, switching to next (practice mode)`);
 
             // Clean up current cursor
             if (cursorLine && cursorLine.parentNode) {
@@ -633,11 +527,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             }, 50); // Tiny delay to ensure cleanup completes
 
             return; // Exit early for continuous flow
-          }
-
-          // Handle regular playback ending
-          if (!isPracticeMode) {
-            setIsPlaying(false);
           }
 
           // Call onPracticeEnd if we were in practice mode with note tracking statistics
@@ -688,12 +577,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
           // Clean up all note highlights when practice ends using robust cleanup
           resetAllNoteHighlighting();
-
-          // Only stop synth for regular playback (not continuous)
-          if (!isPracticeMode && synthRef1.current && !continuousPlaybackActiveRef.current) {
-            console.log('🔇 SYNTH STOP MONITOR: startVisualCursor eventCallback stopping synth 1 (regular playback)');
-            synthRef1.current.stop();
-          }
 
           // Stop TimingCallbacks to prevent infinite beatCallback execution
           if (timingCallbacks) {
@@ -981,66 +864,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
   }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
 
-  // Handle play button click
-  const handlePlayClick = useCallback(async () => {
-    if (isPlaying) {
-      if (synthRef1.current) {
-        console.log('🔇 SYNTH STOP MONITOR: handlePlayClick stopping synth 1');
-        console.log('🔇 STOP CONTEXT:', {
-          caller: 'handlePlayClick',
-          reason: 'user stopped regular playback',
-          stack: new Error().stack?.split('\n').slice(1, 4).join('\n')
-        });
-        synthRef1.current.stop();
-      }
-      // Stop and remove any existing cursor
-      const existingCursor = document.querySelector('.playback-cursor');
-      if (existingCursor) {
-        if (existingCursor.stopAnimation) {
-          existingCursor.stopAnimation();
-        }
-        if (existingCursor.timingCallbacks) {
-          existingCursor.timingCallbacks.stop();
-        }
-        existingCursor.remove();
-      }
-      setIsPlaying(false);
-      return;
-    }
-
-    if (!visualObjectRef.current || !synthRef1.current) {
-      return;
-    }
-
-    try {
-      setIsPlaying(true);
-
-      // Start playbook with pre-initialized synth for display 1
-      synthRef1.current.start(undefined, {
-        end: () => {
-          setIsPlaying(false);
-        }
-      });
-
-      // Start visual cursor (not practice mode, so isInitialStart doesn't matter)
-      startVisualCursor(false, 1, null, null, false);
-
-    } catch {
-      setIsPlaying(false);
-      // Stop and remove any existing cursor on error
-      const existingCursor = document.querySelector('.playback-cursor');
-      if (existingCursor) {
-        if (existingCursor.stopAnimation) {
-          existingCursor.stopAnimation();
-        }
-        if (existingCursor.timingCallbacks) {
-          existingCursor.timingCallbacks.stop();
-        }
-        existingCursor.remove();
-      }
-    }
-  }, [isPlaying, startVisualCursor]);
-
   // Stop continuous practice
   const stopContinuousPractice = useCallback(() => {
     setContinuousPracticeActive(false);
@@ -1234,87 +1057,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     }
   }, [isPracticing, startContinuousPractice, isMetronomeActive, onMetronomeToggle, resetAllNoteHighlighting]);
 
-  // Stop continuous playback
-  const stopContinuousPlayback = useCallback(() => {
-    setContinuousPlaybackActive(false);
-    continuousPlaybackActiveRef.current = false;
-    setCurrentPlayingDisplay(null);
-    currentPlayingDisplayRef.current = null;
-
-    // Clean up visual cursors
-    const existingCursor = document.querySelector('.playback-cursor');
-    if (existingCursor) {
-      if (existingCursor.stopAnimation) {
-        existingCursor.stopAnimation();
-      }
-      if (existingCursor.timingCallbacks) {
-        existingCursor.timingCallbacks.stop();
-      }
-      existingCursor.remove();
-    }
-  }, []);
-
-  // Start continuous playback that alternates between displays
-  const startContinuousPlayback = useCallback(async () => {
-    // Verify both visual objects are ready
-    if (!visualObjectRef.current || !visualObjectRef2.current) {
-      console.error('Both visual objects must be ready for continuous flow');
-      return;
-    }
-
-    // Verify both synths are ready
-    if (!synthRef1.current || !synthRef2.current) {
-      console.error('Both synths must be ready for continuous flow');
-      return;
-    }
-
-    setContinuousPlaybackActive(true);
-    continuousPlaybackActiveRef.current = true;
-    setCurrentPlayingDisplay(1);
-    currentPlayingDisplayRef.current = 1;
-
-    const playNextDisplay = async (displayNumber) => {
-      // Check if continuous playback was stopped
-      if (!continuousPlaybackActiveRef.current) {
-        return;
-      }
-
-      setCurrentPlayingDisplay(displayNumber);
-      currentPlayingDisplayRef.current = displayNumber;
-
-      // Get the appropriate resources for the current display
-      const currentSynth = displayNumber === 1 ? synthRef1.current : synthRef2.current;
-      const visualObj = displayNumber === 1 ? visualObjectRef.current : visualObjectRef2.current;
-
-      try {
-        if (!currentSynth || !visualObj) {
-          console.error(`Display ${displayNumber} not ready for continuous flow`);
-          stopContinuousPlayback();
-          return;
-        }
-
-        // Store display info for visual cursor callback
-        currentSynth._displayNumber = displayNumber;
-        currentSynth._continuousMode = true;
-
-        // For continuous mode, pass callback function to handle transitions
-        const continuousTransitionCallback = (currentDisplay) => {
-          const nextDisplay = currentDisplay === 1 ? 2 : 1;
-          playNextDisplay(nextDisplay);
-        };
-
-        startVisualCursor(false, displayNumber, visualObj, continuousTransitionCallback, false);
-
-      } catch (error) {
-        console.error(`Error in continuous flow for display ${displayNumber}:`, error);
-        stopContinuousPlayback();
-      }
-    };
-
-    // Start with first display
-    playNextDisplay(1);
-  }, [startVisualCursor, stopContinuousPlayback]);
-
   React.useEffect(() => {
     handleGenerateNew();
   }, [handleGenerateNew]);
@@ -1336,11 +1078,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   }, [user?.id, user?.isGuest]); // Depend on user properties
 
   // Keep refs synchronized with state to avoid stale closure issues
-  // Fixes problem with visual cursor disappearing when notes were highlighted
-  React.useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
-
   React.useEffect(() => {
     isPracticingRef.current = isPracticing;
   }, [isPracticing]);
@@ -1350,11 +1087,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     isMetronomeActiveRef.current = isMetronomeActive;
   }, [isMetronomeActive]);
 
-  // Keep continuous playback refs synchronized with state
-  React.useEffect(() => {
-    continuousPlaybackActiveRef.current = continuousPlaybackActive;
-  }, [continuousPlaybackActive]);
-
+  // Keep continuous practice refs synchronized with state
   React.useEffect(() => {
     currentPlayingDisplayRef.current = currentPlayingDisplay;
   }, [currentPlayingDisplay]);
@@ -1362,15 +1095,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   React.useEffect(() => {
     continuousPracticeActiveRef.current = continuousPracticeActive;
   }, [continuousPracticeActive]);
-
-  React.useEffect(() => {
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-
-    };
-  }, []);
 
   // Enhanced scoring logic using note tracking system to prevent duplicate counting
   const previousPressedNotesRef = useRef(new Set());
@@ -1594,60 +1318,17 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             {/* Generate New Button */}
             <button
               onClick={handleGenerateNew}
-              disabled={isGenerating || isPlaying || isPracticing || continuousPracticeActive}
+              disabled={isGenerating || isPracticing || continuousPracticeActive}
               className="btn btn-lg px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               <FaRedo className="mr-2" />
               {isGenerating ? 'Generating...' : 'Generate New'}
             </button>
 
-            {/* Play Button */}
-            <button
-              onClick={handlePlayClick}
-              disabled={!isVisualsReady || !isVisualsReady2 || isGenerating || isPracticing || isInitializing || continuousPlaybackActive || continuousPracticeActive}
-              className="btn btn-lg px-8 py-4 bg-green-600 hover:bg-green-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              <FaPlay className={`mr-2 ${isPlaying ? 'hidden' : ''}`} />
-              <FaStop className={`mr-2 ${!isPlaying ? 'hidden' : ''}`} />
-              {isInitializing ? 'Loading...' : (isPlaying ? 'Stop' : 'Play Exercise 1')}
-            </button>
-
-            {/* Continuous Play Button */}
-            <button
-              onClick={() => {
-                console.log('🎯 Play Flow Button: Clicked');
-                console.log('🎯 Play Flow Button: Current state:', {
-                  continuousPlaybackActive,
-                  isVisualsReady,
-                  isVisualsReady2,
-                  synthRef1Ready: !!synthRef1.current,
-                  synthRef2Ready: !!synthRef2.current,
-                  isGenerating,
-                  isPracticing,
-                  isInitializing,
-                  isPlaying
-                });
-
-                if (continuousPlaybackActive) {
-                  console.log('🛑 Play Flow Button: Calling stopContinuousPlayback');
-                  stopContinuousPlayback();
-                } else {
-                  console.log('🚀 Play Flow Button: Calling startContinuousPlayback');
-                  startContinuousPlayback();
-                }
-              }}
-              disabled={!isVisualsReady || !isVisualsReady2 || isGenerating || isPracticing || isInitializing || isPlaying || continuousPracticeActive}
-              className="btn btn-lg px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              <FaPlay className={`mr-2 ${continuousPlaybackActive ? 'hidden' : ''}`} />
-              <FaStop className={`mr-2 ${!continuousPlaybackActive ? 'hidden' : ''}`} />
-              {continuousPlaybackActive ? 'Stop Flow' : 'Play Flow'}
-            </button>
-
             {/* Practice Button */}
             <button
               onClick={handlePracticeClick}
-              disabled={!isVisualsReady || !isVisualsReady2 || isGenerating || isPlaying || continuousPlaybackActive}
+              disabled={!isVisualsReady || !isVisualsReady2 || isGenerating}
               className="btn btn-lg px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white transition-all duration-300 transform hover:scale-105 shadow-lg border-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               <FaKeyboard className={`mr-2 ${isPracticing || continuousPracticeActive ? 'hidden' : ''}`} />
@@ -1721,32 +1402,41 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             )}
           </div>
 
-          {/* Practice Status */}
+          {/* Practice Statistics */}
           {isPracticing && (
-            <div className="text-center space-y-2">
-              <div className="flex justify-center space-x-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Practice Session</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                     {correctNotesCount}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Correct
-                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Correct</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                     {wrongNotesCount}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Wrong
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Wrong</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {Math.round((correctNotesCount / Math.max(correctNotesCount + wrongNotesCount, 1)) * 100)}%
                   </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Accuracy</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                    {currentPlayingDisplay ? `Ex ${currentPlayingDisplay}` : 'Ready'}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Current</div>
                 </div>
               </div>
-
-              {/* Debug info */}
               {beatInfo && (
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {beatInfo}
+                <div className="mt-4 text-center">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {beatInfo}
+                  </div>
                 </div>
               )}
             </div>
