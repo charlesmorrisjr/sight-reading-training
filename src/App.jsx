@@ -1108,6 +1108,18 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
             {/* Control Buttons */}
             <div className="flex items-center space-x-4">
+              {/* Countdown Display */}
+              {isCountingDown && countdownBeats > 0 && (
+                <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-orange-100 dark:bg-orange-900 border border-orange-200 dark:border-orange-700">
+                  <span className="text-sm text-orange-700 dark:text-orange-300 font-medium">
+                    Starting in:
+                  </span>
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 animate-pulse">
+                    {countdownBeats}
+                  </div>
+                </div>
+              )}
+
               {/* Tempo Button */}
               <button
                 onClick={onTempoClick}
@@ -1183,17 +1195,6 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         </div>
       </header>
 
-      {/* Countdown Display */}
-      {isCountingDown && (
-        <div className="bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 px-4 py-8 text-center animate-pulse">
-          <div className="text-6xl font-bold text-orange-800 dark:text-orange-200 mb-2">
-            {countdownBeats}
-          </div>
-          <div className="text-lg font-medium text-orange-700 dark:text-orange-300">
-            Practice starts in {countdownBeats} beat{countdownBeats !== 1 ? 's' : ''}
-          </div>
-        </div>
-      )}
 
       {/* MIDI Debug Display - for testing */}
       <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 px-4 py-2 text-center">
