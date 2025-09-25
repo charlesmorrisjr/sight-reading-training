@@ -676,15 +676,12 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             setIsCountingDown(false);
             setCountdownBeats(0);
 
-            // CRITICAL FIX: Stop metronome immediately to prevent internal timing fallback
-            if (isMetronomeActiveRef.current) {
-              isMetronomeActiveRef.current = false;
-
-              // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
-              if (onMetronomeToggle) {
-                onMetronomeToggle();
-              }
+            // CRITICAL FIX: Stop metronome immediately to prevent internal timing fallback (following App.jsx pattern)
+            if (isMetronomeActive && onMetronomeToggle) {
+              onMetronomeToggle(); // This will update the parent state
             }
+            // Also update the ref for immediate consistency
+            isMetronomeActiveRef.current = false;
           }
           setBeatInfo(''); // Clear beat info when music ends
           currentNotesRef.current = new Set(); // Clear current notes when music ends
@@ -982,7 +979,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       }
     }
 
-  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting]);
+  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
 
   // Handle play button click
   const handlePlayClick = useCallback(async () => {
@@ -1065,7 +1062,14 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     // Clear background generation tracking
     backgroundGenerationActiveRef.current.clear();
-  }, []);
+
+    // Stop metronome when continuous practice ends (following App.jsx pattern)
+    if (isMetronomeActive && onMetronomeToggle) {
+      onMetronomeToggle(); // This will update the parent state
+    }
+    // Also update the ref for immediate consistency
+    isMetronomeActiveRef.current = false;
+  }, [onMetronomeToggle, isMetronomeActive]);
 
   // Start continuous practice that alternates between displays
   const startContinuousPractice = useCallback(async () => {
@@ -1155,15 +1159,12 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         existingCursor.remove();
       }
 
-      // CRITICAL FIX: Stop metronome when manually stopping practice
-      if (isMetronomeActiveRef.current) {
-        isMetronomeActiveRef.current = false;
-
-        // Also trigger metronome toggle to ensure MetronomeButton internal timing stops
-        if (onMetronomeToggle) {
-          onMetronomeToggle();
-        }
+      // CRITICAL FIX: Stop metronome when manually stopping practice (following App.jsx pattern)
+      if (isMetronomeActive && onMetronomeToggle) {
+        onMetronomeToggle(); // This will update the parent state
       }
+      // Also update the ref for immediate consistency
+      isMetronomeActiveRef.current = false;
 
       // Stop continuous practice if it's active
       if (continuousPracticeActiveRef.current) {
@@ -1220,6 +1221,13 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         }
         existingCursor.remove();
       }
+
+      // Stop metronome on error (following App.jsx pattern)
+      if (isMetronomeActive && onMetronomeToggle) {
+        onMetronomeToggle(); // This will update the parent state
+      }
+      // Also update the ref for immediate consistency
+      isMetronomeActiveRef.current = false;
 
       // Clean up all note highlights on error using robust cleanup
       resetAllNoteHighlighting();

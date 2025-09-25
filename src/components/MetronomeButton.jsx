@@ -161,6 +161,13 @@ const MetronomeButton = ({
     }
   }, [tempo, isActive, startMetronome, stopMetronome, useExternalTiming]);
 
+  // Stop metronome when isActive prop changes to false
+  useEffect(() => {
+    if (!isActive) {
+      stopMetronome();
+    }
+  }, [isActive, stopMetronome]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
