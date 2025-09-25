@@ -1274,6 +1274,18 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
             {/* Controls */}
             <div className="flex items-center space-x-4">
+              {/* Countdown Display */}
+              {isCountingDown && countdownBeats > 0 && (
+                <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-orange-100 dark:bg-orange-900 border border-orange-200 dark:border-orange-700">
+                  <span className="text-sm text-orange-700 dark:text-orange-300 font-medium">
+                    Starting in:
+                  </span>
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 animate-pulse">
+                    {countdownBeats}
+                  </div>
+                </div>
+              )}
+
               {/* Tempo Control */}
               <button
                 onClick={onTempoClick}
@@ -1337,17 +1349,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             </button>
           </div>
 
-          {/* Countdown Display */}
-          {isCountingDown && countdownBeats > 0 && (
-            <div className="text-center">
-              <div className="text-6xl font-bold text-orange-500 animate-pulse">
-                {countdownBeats}
-              </div>
-              <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
-                Get ready...
-              </p>
-            </div>
-          )}
 
           {/* Music Displays */}
           <div className="space-y-6">
