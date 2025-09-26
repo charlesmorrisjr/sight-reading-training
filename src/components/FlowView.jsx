@@ -225,9 +225,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       return;
     }
 
-    // Remove any existing highlighting classes
-    domElement.classList.remove('abcjs-note_selected', 'abcjs-note-incorrect', 'abcjs-note-played', 'abcjs-note-corrected');
-
     // Add the appropriate highlighting class
     domElement.classList.add(className);
 
