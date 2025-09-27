@@ -46,8 +46,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   // Current notes tracking for debugging display - use ref to avoid stale closure
   const currentNotesRef = useRef(new Set());
 
-  // Note tracking system - map of note ID to note status
-  const [noteTrackingMap, setNoteTrackingMap] = useState(new Map());
+  // Note tracking system - separate maps for each exercise
+  const [noteTrackingMap1, setNoteTrackingMap1] = useState(new Map());
+  const [noteTrackingMap2, setNoteTrackingMap2] = useState(new Map());
   const currentNoteIdsRef = useRef(new Set());
 
   // Refs to track current practice state without causing re-renders
@@ -104,8 +105,16 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       allHighlightedElementsRef.current.clear();
       currentCursorElementsRef.current.clear();
 
-      // Reset note tracking map statuses to 'unplayed'
-      setNoteTrackingMap(prevMap => {
+      // Reset note tracking map statuses to 'unplayed' for both exercises
+      setNoteTrackingMap1(prevMap => {
+        const newMap = new Map();
+        prevMap.forEach((note, id) => {
+          newMap.set(id, { ...note, status: 'unplayed' });
+        });
+        return newMap;
+      });
+
+      setNoteTrackingMap2(prevMap => {
         const newMap = new Map();
         prevMap.forEach((note, id) => {
           newMap.set(id, { ...note, status: 'unplayed' });
@@ -261,30 +270,30 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       setAbcNotation2(result2.abcNotation);
       setNoteMetadata2(result2.noteMetadata);
 
-      // Initialize note tracking map with 'unplayed' status for both exercises
-      const initialTrackingMap = new Map();
+      // Initialize separate note tracking maps for each exercise
+      const initialTrackingMap1 = new Map();
+      const initialTrackingMap2 = new Map();
 
       // Add notes from first exercise
       result1.noteMetadata.forEach(note => {
-        initialTrackingMap.set(note.id, {
+        initialTrackingMap1.set(note.id, {
           ...note,
           status: 'unplayed', // unplayed | correct | incorrect
           displayNumber: 1
         });
       });
 
-      // Add notes from second exercise with unique IDs
+      // Add notes from second exercise (no unique ID prefix needed since they're in separate maps)
       result2.noteMetadata.forEach(note => {
-        const uniqueId = `ex2_${note.id}`;
-        initialTrackingMap.set(uniqueId, {
+        initialTrackingMap2.set(note.id, {
           ...note,
-          id: uniqueId,
           status: 'unplayed',
           displayNumber: 2
         });
       });
 
-      setNoteTrackingMap(initialTrackingMap);
+      setNoteTrackingMap1(initialTrackingMap1);
+      setNoteTrackingMap2(initialTrackingMap2);
 
       // Reset post-practice highlighting when generating new exercise
       if (onResetPostPracticeResults) {
@@ -319,29 +328,29 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
   // Update note tracking map for a specific display
   const updateNoteTrackingForDisplay = useCallback((displayNumber, newNoteMetadata) => {
-    setNoteTrackingMap(prevMap => {
-      const newMap = new Map(prevMap);
-
-      // Remove all existing notes for this display
-      for (const [noteId, note] of newMap) {
-        if (note.displayNumber === displayNumber) {
-          newMap.delete(noteId);
-        }
-      }
-
-      // Add new notes for this display
+    if (displayNumber === 1) {
+      // Update tracking map for Exercise 1
+      const newMap = new Map();
       newNoteMetadata.forEach(note => {
-        const noteId = displayNumber === 2 ? `ex2_${note.id}` : note.id;
-        newMap.set(noteId, {
+        newMap.set(note.id, {
           ...note,
-          id: noteId,
           status: 'unplayed',
-          displayNumber: displayNumber
+          displayNumber: 1
         });
       });
-
-      return newMap;
-    });
+      setNoteTrackingMap1(newMap);
+    } else if (displayNumber === 2) {
+      // Update tracking map for Exercise 2
+      const newMap = new Map();
+      newNoteMetadata.forEach(note => {
+        newMap.set(note.id, {
+          ...note,
+          status: 'unplayed',
+          displayNumber: 2
+        });
+      });
+      setNoteTrackingMap2(newMap);
+    }
   }, []);
 
   // Generate new exercise for a specific display (1 or 2)
@@ -528,14 +537,16 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
           // Call onPracticeEnd if we were in practice mode with note tracking statistics
           if (isPracticingRef.current && onPracticeEnd) {
-            // Calculate final scores from note tracking map
+            // Calculate final scores from the appropriate tracking map for the current display
             let correctCount = 0;
             let wrongCount = 0;
             let unplayedCount = 0;
             const correctNotesList = [];
             const wrongNotesList = [];
 
-            noteTrackingMap.forEach((note) => {
+            // Use the tracking map for the display that just finished
+            const currentTrackingMap = displayNumber === 1 ? noteTrackingMap1 : noteTrackingMap2;
+            currentTrackingMap.forEach((note) => {
               if (note.status === 'correct') {
                 correctCount++;
                 correctNotesList.push(note.expectedNote || note.abcNotation);
@@ -551,7 +562,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
               correctCount,
               wrongCount,
               unplayedCount,
-              totalNotes: noteTrackingMap.size,
+              totalNotes: currentTrackingMap.size,
               correctNotes: correctNotesList,
               wrongNotes: wrongNotesList
             });
@@ -655,11 +666,12 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             const activeNotes = new Set();
             const activeNoteIds = new Set();
 
-            // Find notes that should be active at the current time from both exercises
+            // Find notes that should be active at the current time from ONLY the current display
             // Note metadata uses eighth-note units, so we convert to quarter-note beats for comparison
 
-            // Process first exercise notes
-            noteMetadata.forEach(noteData => {
+            // Process notes from the current display only
+            const currentNoteMetadata = displayNumber === 1 ? noteMetadata : noteMetadata2;
+            currentNoteMetadata.forEach(noteData => {
               // Convert measure-relative timing to absolute timing in eighth-note units
               const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
               const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
@@ -674,28 +686,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
               if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
                 activeNotes.add(noteData.expectedNote);
-                activeNoteIds.add(noteData.id);
-              }
-            });
-
-            // Process second exercise notes (offset by 4 measures)
-            noteMetadata2.forEach(noteData => {
-              // Convert measure-relative timing to absolute timing in eighth-note units
-              const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
-              // Add 4 measures offset for second exercise (4 * 8 = 32 eighth-note units)
-              const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure) + 32;
-              const absoluteEndTime = absoluteStartTime + noteData.duration;
-
-              // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
-              const absoluteStartBeat = absoluteStartTime / 2;
-              const absoluteEndBeat = absoluteEndTime / 2;
-
-              // Adjust for countdown offset
-              const adjustedCurrentTime = currentTimeInBeats - countdownBeats;
-
-              if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
-                activeNotes.add(noteData.expectedNote);
-                activeNoteIds.add(`ex2_${noteData.id}`); // Use the same unique ID format from handleGenerateNew
+                activeNoteIds.add(noteData.id); // Use original note ID since we're processing one display at a time
               }
             });
 
@@ -722,7 +713,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
               });
             } else {
               // Fallback: Use coordinate-based approach to find DOM elements at cursor position
-              const svgContainer = document.querySelector('.music-notation svg');
+              // Note: svgContainer is already scoped to the current display's SVG
               if (svgContainer && event.left !== undefined && event.top !== undefined) {
                 const noteElements = svgContainer.querySelectorAll('.abcjs-note');
                 const tolerance = 30; // pixels
@@ -859,7 +850,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       }
     }
 
-  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
+  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap1, noteTrackingMap2, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
 
   // Stop continuous practice
   const stopContinuousPractice = useCallback(() => {
@@ -1129,11 +1120,15 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       previousPressedNotesRef.current = new Set(); // Reset: all held notes now "new" for this position
     }
 
+    // Get the appropriate tracking map based on current playing display
+    const currentTrackingMap = currentPlayingDisplayRef.current === 1 ? noteTrackingMap1 : noteTrackingMap2;
+    const setCurrentTrackingMap = currentPlayingDisplayRef.current === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
+
     // Skip scoring if locked (already scored at this cursor position)
     if (scoringLockedRef.current) {
       // Allow processing if we're trying to correct an incorrect note
       const hasIncorrectNotes = Array.from(currentActiveNoteIds).some(noteId => {
-        const trackedNote = noteTrackingMap.get(noteId);
+        const trackedNote = currentTrackingMap.get(noteId);
         return trackedNote && trackedNote.status === 'incorrect';
       });
 
@@ -1170,7 +1165,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       // Find the first unplayed or incorrect note that matches (priority-based matching)
       // This prevents one key press from matching multiple note IDs
       for (const noteId of currentActiveNoteIds) {
-        const trackedNote = noteTrackingMap.get(noteId);
+        const trackedNote = currentTrackingMap.get(noteId);
 
         if (trackedNote && (trackedNote.status === 'unplayed' || trackedNote.status === 'incorrect')) {
           // Check if the pressed note matches this tracked note
@@ -1183,7 +1178,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             const highlightType = isCorrection ? 'corrected' : 'correct';
 
             // Mark note with appropriate status and update tracking
-            setNoteTrackingMap(prevMap => {
+            setCurrentTrackingMap(prevMap => {
               const newMap = new Map(prevMap);
               newMap.set(noteId, { ...trackedNote, status: newStatus });
               return newMap;
@@ -1205,10 +1200,10 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       if (!noteProcessed && !expectedNotes.has(pressedNote)) {
         // Completely wrong note - highlight the first unplayed note at current position as incorrect
         for (const noteId of currentActiveNoteIds) {
-          const trackedNote = noteTrackingMap.get(noteId);
+          const trackedNote = currentTrackingMap.get(noteId);
           if (trackedNote && trackedNote.status === 'unplayed') {
             // Mark note as incorrect and update tracking
-            setNoteTrackingMap(prevMap => {
+            setCurrentTrackingMap(prevMap => {
               const newMap = new Map(prevMap);
               newMap.set(noteId, { ...trackedNote, status: 'incorrect' });
               return newMap;
@@ -1228,13 +1223,21 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById]);
+  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById]);
 
   // Reset note tracking when practice mode starts
   React.useEffect(() => {
     if (isPracticing && onResetScoring) {
-      // Reset note tracking map to 'unplayed' status
-      setNoteTrackingMap(prevMap => {
+      // Reset both note tracking maps to 'unplayed' status
+      setNoteTrackingMap1(prevMap => {
+        const newMap = new Map();
+        prevMap.forEach((note, id) => {
+          newMap.set(id, { ...note, status: 'unplayed' });
+        });
+        return newMap;
+      });
+
+      setNoteTrackingMap2(prevMap => {
         const newMap = new Map();
         prevMap.forEach((note, id) => {
           newMap.set(id, { ...note, status: 'unplayed' });
