@@ -711,36 +711,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
                   }
                 }
               });
-            } else {
-              // Fallback: Use coordinate-based approach to find DOM elements at cursor position
-              // Note: svgContainer is already scoped to the current display's SVG
-              if (svgContainer && event.left !== undefined && event.top !== undefined) {
-                const noteElements = svgContainer.querySelectorAll('.abcjs-note');
-                const tolerance = 30; // pixels
-
-                noteElements.forEach((noteElement) => {
-                  const rect = noteElement.getBoundingClientRect();
-                  const svgRect = svgContainer.getBoundingClientRect();
-
-                  // Convert to SVG coordinates
-                  const noteX = rect.left - svgRect.left;
-                  const noteY = rect.top - svgRect.top;
-
-                  // Check if note is near cursor position
-                  const distance = Math.sqrt(Math.pow(noteX - event.left, 2) + Math.pow(noteY - event.top, 2));
-
-                  if (distance < tolerance) {
-                    // Map this element to the first unassigned active note ID
-                    const activeNoteIdsArray = Array.from(activeNoteIds);
-                    for (const noteId of activeNoteIdsArray) {
-                      if (!currentCursorElementsRef.current.has(noteId)) {
-                        currentCursorElementsRef.current.set(noteId, noteElement);
-                        break;
-                      }
-                    }
-                  }
-                });
-              }
             }
           }
         }
