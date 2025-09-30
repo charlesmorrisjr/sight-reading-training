@@ -11,7 +11,7 @@ import { incrementExercisesGenerated, updateLastPracticed } from '../services/da
 import { generateRandomABC } from '../utils/musicGenerator';
 import { incrementGuestExercisesGenerated } from '../services/settingsService';
 
-const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, user }) => {
+const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), midiNoteStates = new Map(), onUpdateCursorPosition, correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, user }) => {
   const navigate = useNavigate();
 
   // Current ABC notation and note metadata for first display
@@ -1088,6 +1088,11 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       scoringLockedRef.current = false;
       previousActiveNoteIdsRef.current = new Set(currentActiveNoteIds);
       previousPressedNotesRef.current = new Set(); // Reset: all held notes now "new" for this position
+
+      // Notify parent component about cursor position change for MIDI note lifecycle tracking
+      if (onUpdateCursorPosition) {
+        onUpdateCursorPosition(Array.from(currentActiveNoteIds));
+      }
     }
 
     // Get the appropriate tracking map based on current playing display
@@ -1130,6 +1135,17 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         return;
       }
 
+      // LEGATO FIX: Check MIDI note lifecycle to determine if this should be scored
+      const noteState = midiNoteStates.get(pressedNote);
+      if (noteState) {
+        // If note is held from previous position and wasn't released/re-pressed, skip scoring
+        if (noteState.heldFromPreviousPosition && !noteState.wasReleasedAndRepressed) {
+          console.log(`Skipping scoring for held note ${pressedNote} from previous position`);
+          processedNotesInThisCycle.add(pressedNote); // Mark as processed to prevent re-evaluation
+          return;
+        }
+      }
+
       let noteProcessed = false;
 
       // Find the first unplayed or incorrect note that matches (priority-based matching)
@@ -1167,33 +1183,41 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       }
 
       // If note wasn't processed as correct, check if it's a wrong note
+      // LEGATO FIX: Only count as wrong if note was released and re-pressed or is completely new
       if (!noteProcessed && !expectedNotes.has(pressedNote)) {
-        // Completely wrong note - highlight the first unplayed note at current position as incorrect
-        for (const noteId of currentActiveNoteIds) {
-          const trackedNote = currentTrackingMap.get(noteId);
-          if (trackedNote && trackedNote.status === 'unplayed') {
-            // Mark note as incorrect and update tracking
-            setCurrentTrackingMap(prevMap => {
-              const newMap = new Map(prevMap);
-              newMap.set(noteId, { ...trackedNote, status: 'incorrect' });
-              return newMap;
-            });
+        const shouldCountAsWrong = !noteState ||
+          !noteState.heldFromPreviousPosition ||
+          noteState.wasReleasedAndRepressed;
 
-            // Highlight the note red for incorrect input
-            highlightNoteById(noteId, 'incorrect');
-            break; // Only mark one note as incorrect per wrong press
+        if (shouldCountAsWrong) {
+          // Completely wrong note - highlight the first unplayed note at current position as incorrect
+          for (const noteId of currentActiveNoteIds) {
+            const trackedNote = currentTrackingMap.get(noteId);
+            if (trackedNote && trackedNote.status === 'unplayed') {
+              // Mark note as incorrect and update tracking
+              setCurrentTrackingMap(prevMap => {
+                const newMap = new Map(prevMap);
+                newMap.set(noteId, { ...trackedNote, status: 'incorrect' });
+                return newMap;
+              });
+
+              // Highlight the note red for incorrect input
+              highlightNoteById(noteId, 'incorrect');
+              break; // Only mark one note as incorrect per wrong press
+            }
           }
+
+          onWrongNote(pressedNote);
+          scoringLockedRef.current = true; // Lock scoring after wrong note
         }
 
-        onWrongNote(pressedNote);
-        processedNotesInThisCycle.add(pressedNote); // Mark as processed
-        scoringLockedRef.current = true; // Lock scoring after wrong note
+        processedNotesInThisCycle.add(pressedNote); // Mark as processed regardless
       }
     });
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById]);
+  }, [pressedMidiNotes, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition]);
 
   // Reset note tracking when practice mode starts
   React.useEffect(() => {

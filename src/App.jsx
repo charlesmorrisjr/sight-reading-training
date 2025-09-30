@@ -1263,6 +1263,9 @@ function AppContent() {
   // MIDI state - track currently pressed notes
   const [pressedMidiNotes, setPressedMidiNotes] = useState(new Set());
 
+  // MIDI note lifecycle tracking for legato detection
+  const [midiNoteStates, setMidiNoteStates] = useState(new Map());
+
   // Scoring state - track correct and wrong notes during practice
   const [correctNotesCount, setCorrectNotesCount] = useState(0);
   const [wrongNotesCount, setWrongNotesCount] = useState(0);
@@ -1413,6 +1416,27 @@ function AppContent() {
     openSaveModal();
   }, [openSaveModal]);
 
+  // Handle cursor position change - mark currently held notes as "held from previous position"
+  const handleCursorPositionChange = useCallback(() => {
+    setMidiNoteStates(prevStates => {
+      const newStates = new Map(prevStates);
+
+      // Mark all currently pressed notes as "held from previous position"
+      // This happens when the cursor moves to a new position
+      newStates.forEach((noteState, noteName) => {
+        if (noteState.isCurrentlyPressed) {
+          newStates.set(noteName, {
+            ...noteState,
+            heldFromPreviousPosition: true,
+            wasReleasedAndRepressed: false
+          });
+        }
+      });
+
+      return newStates;
+    });
+  }, []);
+
   // Handle actual save with exercise name
   const handleSaveExerciseWithName = useCallback(async (exerciseName) => {
     try {
@@ -1476,9 +1500,11 @@ function AppContent() {
     }
   }, [settings, user]);
 
-  // MIDI event handler
+  // MIDI event handler with full lifecycle tracking
   const handleMidiEvent = useCallback((midiEvent) => {
-    // Debugging MIDI events
+    const currentTime = Date.now();
+
+    // Update pressed notes Set
     setPressedMidiNotes(prevNotes => {
       const newNotes = new Set(prevNotes);
       if (midiEvent.type === 'noteon') {
@@ -1487,6 +1513,42 @@ function AppContent() {
         newNotes.delete(midiEvent.note);
       }
       return newNotes;
+    });
+
+    // Update MIDI note lifecycle states
+    setMidiNoteStates(prevStates => {
+      const newStates = new Map(prevStates);
+      const noteName = midiEvent.note;
+
+      if (midiEvent.type === 'noteon') {
+        const existingState = newStates.get(noteName);
+
+        // Check if this is a re-press (note was released and pressed again)
+        const wasReleasedAndRepressed = existingState
+          ? existingState.lastReleaseTime !== null && currentTime > existingState.lastReleaseTime
+          : false;
+
+        newStates.set(noteName, {
+          isCurrentlyPressed: true,
+          lastPressTime: currentTime,
+          lastReleaseTime: existingState?.lastReleaseTime || null,
+          heldFromPreviousPosition: existingState?.heldFromPreviousPosition || false,
+          wasReleasedAndRepressed: wasReleasedAndRepressed
+        });
+      } else if (midiEvent.type === 'noteoff') {
+        const existingState = newStates.get(noteName);
+
+        if (existingState) {
+          newStates.set(noteName, {
+            ...existingState,
+            isCurrentlyPressed: false,
+            lastReleaseTime: currentTime,
+            wasReleasedAndRepressed: false // Reset when released
+          });
+        }
+      }
+
+      return newStates;
     });
   }, []);
 
@@ -1668,6 +1730,8 @@ function AppContent() {
                     onSettingsChange={handleSettingsChange}
                     onTempoClick={openTempoModal}
                     pressedMidiNotes={pressedMidiNotes}
+                    midiNoteStates={midiNoteStates}
+                    onUpdateCursorPosition={handleCursorPositionChange}
                     correctNotesCount={correctNotesCount}
                     wrongNotesCount={wrongNotesCount}
                     onCorrectNote={incrementCorrectNotes}
