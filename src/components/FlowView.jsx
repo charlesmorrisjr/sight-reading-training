@@ -698,6 +698,10 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             currentNotesRef.current = activeNotes;
             currentNoteIdsRef.current = activeNoteIds;
 
+            // CRITICAL: Trigger React effect to check for missed notes
+            // Refs don't trigger re-renders, so we use state to force effect to run
+            setCursorMoveTimestamp(Date.now());
+
             // CRITICAL: Save current cursor elements BEFORE clearing (for deferred highlighting)
             // This must happen here (before clear) because React effects run AFTER this callback
             previousCursorElementsRef.current = new Map(currentCursorElementsRef.current);
@@ -1081,48 +1085,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   // Store previous cursor position's DOM elements for deferred highlighting
   const previousCursorElementsRef = useRef(new Map());
 
-  // Finalize wrongs and misses when cursor leaves a position
-  const finalizeWrongsAndMisses = useCallback((previousNoteIds, previousCursorElements) => {
-    if (previousNoteIds.size === 0) {
-      return; // No previous position to finalize
-    }
-
-    // Get the appropriate tracking map for the previous position
-    const currentTrackingMap = currentPlayingDisplayRef.current === 1 ? noteTrackingMap1 : noteTrackingMap2;
-    const setCurrentTrackingMap = currentPlayingDisplayRef.current === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
-
-    // 1. Mark all unplayed notes at previous position as missed
-    previousNoteIds.forEach(noteId => {
-      const note = currentTrackingMap.get(noteId);
-      if (note && note.status === 'unplayed') {
-        // Mark as incorrect/missed
-        setCurrentTrackingMap(prevMap => {
-          const newMap = new Map(prevMap);
-          newMap.set(noteId, { ...note, status: 'incorrect' });
-          return newMap;
-        });
-
-        // Highlight red using previous cursor elements (deferred highlighting)
-        const domElement = previousCursorElements.get(noteId);
-        if (domElement && domElement.classList) {
-          domElement.classList.add('abcjs-note-incorrect');
-          console.log(`❌MISSED: ${note.expectedNote} id=${noteId} (highlighted)`);
-        } else {
-          console.log(`❌MISSED: ${note.expectedNote} id=${noteId} (no DOM element)`);
-        }
-
-        // Increment wrong counter for missed note
-        onWrongNote(note.expectedNote);
-      }
-    });
-
-    // 2. Score all candidate wrong notes that were pressed
-    candidateWrongNotesRef.current.forEach(wrongKey => {
-      // Increment wrong counter for each wrong key pressed
-      onWrongNote(wrongKey);
-      console.log(`❌WRONG: ${wrongKey} (finalized)`);
-    });
-  }, [noteTrackingMap1, noteTrackingMap2, highlightNoteById, onWrongNote]);
+  // State to trigger React effect when cursor moves (refs don't trigger re-renders)
+  const [cursorMoveTimestamp, setCursorMoveTimestamp] = useState(0);
 
   React.useEffect(() => {
     // Only perform scoring during practice mode
@@ -1147,13 +1111,56 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       return true;
     }
 
-    // If cursor moved to new notes, unlock scoring for the new position
+    // Get the appropriate tracking map based on current playing display
+    const currentTrackingMap = currentPlayingDisplayRef.current === 1 ? noteTrackingMap1 : noteTrackingMap2;
+    const setCurrentTrackingMap = currentPlayingDisplayRef.current === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
+
+    // FIRST: Check if cursor moved to new notes (runs ALWAYS, even with zero key presses)
     if (noteIdsChanged) {
       console.log(`🎯POS: ids=[${Array.from(currentActiveNoteIds).join(',')}]`);
+      console.log(`📋CHECK: prev=${previousActiveNoteIdsRef.current.size} notes`);
 
-      // DEFERRED DETECTION: Finalize wrongs and misses from PREVIOUS position
-      // Note: previousCursorElementsRef is already saved in ABCJS cursor callback (before clear)
-      finalizeWrongsAndMisses(previousActiveNoteIdsRef.current, previousCursorElementsRef.current);
+      // DEFERRED DETECTION: Check for missed notes from PREVIOUS position
+      let missedCount = 0;
+      previousActiveNoteIdsRef.current.forEach(noteId => {
+        const note = currentTrackingMap.get(noteId);
+        console.log(`  ${noteId}: ${note ? note.status : 'NOT_FOUND'}`);
+
+        if (note && note.status === 'unplayed') {
+          missedCount++;
+          // Mark as incorrect/missed
+          setCurrentTrackingMap(prevMap => {
+            const newMap = new Map(prevMap);
+            newMap.set(noteId, { ...note, status: 'incorrect' });
+            return newMap;
+          });
+
+          // Highlight red - try both current and previous cursor element refs
+          const domElement = currentCursorElementsRef.current.get(noteId);
+          const prevElement = previousCursorElementsRef.current.get(noteId);
+
+          if (domElement && domElement.classList) {
+            domElement.classList.add('abcjs-note-incorrect');
+            console.log(`  ❌MISS ${note.expectedNote}: curr=YES prev=${!!prevElement}`);
+          } else if (prevElement && prevElement.classList) {
+            prevElement.classList.add('abcjs-note-incorrect');
+            console.log(`  ❌MISS ${note.expectedNote}: curr=NO prev=YES`);
+          } else {
+            console.log(`  ❌MISS ${note.expectedNote}: curr=NO prev=NO`);
+          }
+
+          // Increment wrong counter for missed note
+          onWrongNote(note.expectedNote);
+        }
+      });
+
+      console.log(`📊MISSED: ${missedCount} notes`);
+
+      // Score all candidate wrong notes that were pressed
+      candidateWrongNotesRef.current.forEach(wrongKey => {
+        onWrongNote(wrongKey);
+        console.log(`❌WRONG: ${wrongKey} (finalized)`);
+      });
 
       // Clear candidate wrongs for new position
       candidateWrongNotesRef.current.clear();
@@ -1168,9 +1175,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       }
     }
 
-    // Get the appropriate tracking map based on current playing display
-    const currentTrackingMap = currentPlayingDisplayRef.current === 1 ? noteTrackingMap1 : noteTrackingMap2;
-    const setCurrentTrackingMap = currentPlayingDisplayRef.current === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
+    // SECOND: Continue with key press scoring logic (only if keys were pressed)
 
     // Skip scoring if locked (already scored at this cursor position)
     if (scoringLockedRef.current) {
@@ -1273,7 +1278,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition]);
+  }, [pressedMidiNotes, cursorMoveTimestamp, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition]);
 
   // Reset note tracking when practice mode starts
   React.useEffect(() => {
