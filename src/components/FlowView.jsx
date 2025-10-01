@@ -666,63 +666,77 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
           const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
           const countdownBeats = isInitialStart ? (beatsPerMeasure * 2) : 0; // 2 measures countdown only for initial start
           if (currentTimeInBeats >= countdownBeats) {
-            const activeNotes = new Set();
-            const activeNoteIds = new Set();
+            // Adjust for countdown offset
+            const adjustedCurrentTime = currentTimeInBeats - countdownBeats;
 
-            // Find notes that should be active at the current time from ONLY the current display
-            // Note metadata uses eighth-note units, so we convert to quarter-note beats for comparison
+            // Detect cursor position change: only update expected notes when cursor moves to new beat
+            const currentCursorBeat = Math.floor(adjustedCurrentTime);
+            const cursorMoved = currentCursorBeat !== previousCursorBeatRef.current;
 
-            // Process notes from the current display only
-            const currentNoteMetadata = displayNumber === 1 ? noteMetadata : noteMetadata2;
-            currentNoteMetadata.forEach(noteData => {
-              // Convert measure-relative timing to absolute timing in eighth-note units
-              const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
-              const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
-              const absoluteEndTime = absoluteStartTime + noteData.duration;
+            if (cursorMoved) {
+              previousCursorBeatRef.current = currentCursorBeat;
 
-              // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
-              const absoluteStartBeat = absoluteStartTime / 2;
-              const absoluteEndBeat = absoluteEndTime / 2;
+              const allActiveNoteIds = new Set();  // All note IDs currently sounding (including sustained)
+              const newNotes = new Set();          // Only notes that START at current position
+              const newNoteIds = new Set();        // Only note IDs that START at current position
 
-              // Adjust for countdown offset
-              const adjustedCurrentTime = currentTimeInBeats - countdownBeats;
+              // Process notes from the current display only
+              const currentNoteMetadata = displayNumber === 1 ? noteMetadata : noteMetadata2;
+              currentNoteMetadata.forEach(noteData => {
+                // Convert measure-relative timing to absolute timing in eighth-note units
+                const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
+                const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
+                const absoluteEndTime = absoluteStartTime + noteData.duration;
 
-              if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
-                // console.log("Current Notes:", noteData.expectedNote, noteData.id);
-                activeNotes.add(noteData.expectedNote);
-                activeNoteIds.add(noteData.id); // Use original note ID since we're processing one display at a time
-              }
-            });
+                // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
+                const absoluteStartBeat = absoluteStartTime / 2;
+                const absoluteEndBeat = absoluteEndTime / 2;
 
-            // Update current notes refs
-            currentNotesRef.current = activeNotes;
-            currentNoteIdsRef.current = activeNoteIds;
+                // Check if note is currently sounding (for sustained note detection)
+                if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
+                  allActiveNoteIds.add(noteData.id);
+                }
 
-            // CRITICAL: Trigger React effect to check for missed notes
-            // Refs don't trigger re-renders, so we use state to force effect to run
-            setCursorMoveTimestamp(Date.now());
-
-            // CRITICAL: Save current cursor elements BEFORE clearing (for deferred highlighting)
-            // This must happen here (before clear) because React effects run AFTER this callback
-            previousCursorElementsRef.current = new Map(currentCursorElementsRef.current);
-
-            // Capture DOM elements at current cursor position for highlighting
-            currentCursorElementsRef.current.clear();
-
-            // Try to map DOM elements to active note IDs using ABCJS event elements
-            if (event.elements && Array.isArray(event.elements)) {
-              event.elements.forEach((element, index) => {
-                if (Array.isArray(element) && element.length > 0) {
-                  const domElement = element[0]; // This is the actual DOM element
-
-                  // Map this DOM element to corresponding note IDs
-                  // Since we can't directly correlate elements to note IDs, we'll use position-based mapping
-                  const activeNoteIdsArray = Array.from(activeNoteIds);
-                  if (activeNoteIdsArray[index]) {
-                    currentCursorElementsRef.current.set(activeNoteIdsArray[index], domElement);
-                  }
+                // Check if note STARTS at current cursor beat (for expected notes)
+                if (Math.floor(absoluteStartBeat) === currentCursorBeat) {
+                  newNotes.add(noteData.expectedNote);
+                  newNoteIds.add(noteData.id);
                 }
               });
+
+              // currentNotesRef = expected notes to play (NEW notes only)
+              currentNotesRef.current = newNotes;
+              // currentNoteIdsRef = ALL currently sounding note IDs (for sustained note skip logic)
+              currentNoteIdsRef.current = allActiveNoteIds;
+
+              console.log(`🎼BEAT ${currentCursorBeat}: exp=[${Array.from(newNotes).join(',')}] all=[${Array.from(allActiveNoteIds).join(',')}]`);
+
+              // CRITICAL: Trigger React effect to check for missed notes
+              // Refs don't trigger re-renders, so we use state to force effect to run
+              setCursorMoveTimestamp(Date.now());
+
+              // CRITICAL: Save current cursor elements BEFORE clearing (for deferred highlighting)
+              // This must happen here (before clear) because React effects run AFTER this callback
+              previousCursorElementsRef.current = new Map(currentCursorElementsRef.current);
+
+              // Capture DOM elements at current cursor position for highlighting
+              currentCursorElementsRef.current.clear();
+
+              // Try to map DOM elements to active note IDs using ABCJS event elements
+              if (event.elements && Array.isArray(event.elements)) {
+                event.elements.forEach((element, index) => {
+                  if (Array.isArray(element) && element.length > 0) {
+                    const domElement = element[0]; // This is the actual DOM element
+
+                    // Map this DOM element to corresponding note IDs
+                    // Since we can't directly correlate elements to note IDs, we'll use position-based mapping
+                    const allActiveNoteIdsArray = Array.from(allActiveNoteIds);
+                    if (allActiveNoteIdsArray[index]) {
+                      currentCursorElementsRef.current.set(allActiveNoteIdsArray[index], domElement);
+                    }
+                  }
+                });
+              }
             }
           }
         }
@@ -1085,6 +1099,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   // Store previous cursor position's DOM elements for deferred highlighting
   const previousCursorElementsRef = useRef(new Map());
 
+  // Track previous cursor beat position to detect new notes vs sustained notes
+  const previousCursorBeatRef = useRef(-1);
+
   // State to trigger React effect when cursor moves (refs don't trigger re-renders)
   const [cursorMoveTimestamp, setCursorMoveTimestamp] = useState(0);
 
@@ -1123,6 +1140,12 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       // DEFERRED DETECTION: Check for missed notes from PREVIOUS position
       let missedCount = 0;
       previousActiveNoteIdsRef.current.forEach(noteId => {
+        // Skip notes still active in current position (sustained notes like whole notes)
+        if (currentActiveNoteIds.has(noteId)) {
+          console.log(`  ${noteId}: SKIP (still active)`);
+          return; // Don't check yet - note is still sustaining
+        }
+
         const note = currentTrackingMap.get(noteId);
         console.log(`  ${noteId}: ${note ? note.status : 'NOT_FOUND'}`);
 
