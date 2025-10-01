@@ -1417,9 +1417,11 @@ function AppContent() {
   }, [openSaveModal]);
 
   // Handle cursor position change - mark currently held notes as "held from previous position"
-  const handleCursorPositionChange = useCallback(() => {
+  const handleCursorPositionChange = useCallback((activeNoteIds) => {
+    console.log(`📍CURSOR: ids=[${activeNoteIds?.join(',') || 'none'}]`);
     setMidiNoteStates(prevStates => {
       const newStates = new Map(prevStates);
+      const markedNotes = [];
 
       // Mark all currently pressed notes as "held from previous position"
       // This happens when the cursor moves to a new position
@@ -1427,11 +1429,16 @@ function AppContent() {
         if (noteState.isCurrentlyPressed) {
           newStates.set(noteName, {
             ...noteState,
-            heldFromPreviousPosition: true,
-            wasReleasedAndRepressed: false
+            heldFromPreviousPosition: true
+            // Don't reset wasReleasedAndRepressed - preserve it to detect re-presses
           });
+          markedNotes.push(noteName);
         }
       });
+
+      if (markedNotes.length > 0) {
+        console.log(`📍MARKED: [${markedNotes.join(',')}]`);
+      }
 
       return newStates;
     });
@@ -1528,17 +1535,21 @@ function AppContent() {
           ? existingState.lastReleaseTime !== null && currentTime > existingState.lastReleaseTime
           : false;
 
-        newStates.set(noteName, {
+        const newState = {
           isCurrentlyPressed: true,
           lastPressTime: currentTime,
           lastReleaseTime: existingState?.lastReleaseTime || null,
           heldFromPreviousPosition: existingState?.heldFromPreviousPosition || false,
           wasReleasedAndRepressed: wasReleasedAndRepressed
-        });
+        };
+
+        console.log(`🎹ON ${noteName}: held=${newState.heldFromPreviousPosition} repress=${wasReleasedAndRepressed}`);
+        newStates.set(noteName, newState);
       } else if (midiEvent.type === 'noteoff') {
         const existingState = newStates.get(noteName);
 
         if (existingState) {
+          console.log(`🎹OFF ${noteName}`);
           newStates.set(noteName, {
             ...existingState,
             isCurrentlyPressed: false,
