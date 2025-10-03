@@ -277,6 +277,47 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     return null;
   }, []);
 
+  // Helper function to get the specific DOM element to highlight for a note
+  // Handles both single notes and individual noteheads within chords
+  const getElementToHighlight = useCallback((domElement, noteId, noteMetadata) => {
+    if (!domElement || !noteMetadata) {
+      return domElement;
+    }
+
+    // Check if this is a chord (contains multiple noteheads)
+    const noteheads = domElement.querySelectorAll('.abcjs-notehead');
+
+    if (noteheads.length <= 1) {
+      // Single note - return the whole element
+      return domElement;
+    }
+
+    // This is a chord - find the specific notehead for this note
+    const currentTrackingMap = currentPlayingDisplayRef.current === 1
+      ? noteTrackingMap1
+      : noteTrackingMap2;
+
+    const currentActiveNoteIds = currentNoteIdsRef.current;
+
+    // Get all notes in this chord (same voice, same beat), sorted by pitch (low to high)
+    const chordNotes = Array.from(currentActiveNoteIds)
+      .map(id => currentTrackingMap.get(id))
+      .filter(note => note && note.voiceIndex === noteMetadata.voiceIndex)
+      .sort((a, b) => a.midiPitch - b.midiPitch);
+
+    // Find this note's position in the chord (0 = lowest note, 1 = next, etc.)
+    const noteIndex = chordNotes.findIndex(note => note.id === noteId);
+
+    if (noteIndex !== -1 && noteIndex < noteheads.length) {
+      // Return the specific notehead at this position
+      console.log(`🎵 Chord: ${noteMetadata.expectedNote} is at position ${noteIndex}/${noteheads.length}`);
+      return noteheads[noteIndex];
+    }
+
+    console.warn(`Could not find notehead position for ${noteId} in chord`);
+    return null;
+  }, [noteTrackingMap1, noteTrackingMap2]);
+
   // Helper function to highlight a specific note ID using cursor position mapping
   const highlightNoteById = useCallback((noteId, highlightType, noteMetadata = null) => {
     // Try to get DOM element from cursor position mapping first
@@ -308,16 +349,24 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       return;
     }
 
-    // Add the appropriate highlighting class
-    domElement.classList.add(className);
+    // Get the specific element to highlight (handles both single notes and chord noteheads)
+    const elementToHighlight = getElementToHighlight(domElement, noteId, noteMetadata);
+
+    if (!elementToHighlight || !elementToHighlight.classList) {
+      console.warn(`Could not get element to highlight for ${noteId}`);
+      return;
+    }
+
+    // Apply the highlighting class
+    elementToHighlight.classList.add(className);
 
     // Store reference for cleanup
     if (highlightType === 'correct' || highlightType === 'corrected') {
-      allHighlightedElementsRef.current.add(domElement);
+      allHighlightedElementsRef.current.add(elementToHighlight);
     }
 
-    console.log(`Successfully highlighted note ID ${noteId} as ${highlightType} at cursor position`);
-  }, [findNoteElementByMetadata]);
+    console.log(`Successfully highlighted note ID ${noteId} (${noteMetadata?.expectedNote || 'unknown'}) as ${highlightType}`);
+  }, [findNoteElementByMetadata, getElementToHighlight]);
 
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
