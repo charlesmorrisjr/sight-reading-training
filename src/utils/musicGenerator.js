@@ -62,11 +62,11 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
     const isLowercase = noteName.charAt(0) === noteName.charAt(0).toLowerCase();
     
     if (commas > 0) {
-      octave = 4 - commas;
+      octave = 5 - commas;        // Lower octave
     } else if (isLowercase) {
-      octave = 5 + apostrophes;
+      octave = 6 + apostrophes;   // Higher octave
     } else {
-      octave = 4;
+      octave = 5;                 // Middle octave
     }
     
     const baseMidi = noteMap[baseNote] || 0;
