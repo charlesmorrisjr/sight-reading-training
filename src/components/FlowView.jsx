@@ -84,6 +84,16 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     metronomeTriggerRef.current = triggerFunction;
   }, []);
 
+  // Reset cursor tracking refs to prevent stale note IDs from previous exercises
+  const resetCursorTracking = useCallback(() => {
+    previousActiveNoteIdsRef.current = new Set();
+    previousCursorBeatRef.current = -1;
+    candidateWrongNotesRef.current.clear();
+    scoringLockedRef.current = false;
+    previousPressedNotesRef.current = new Set();
+    console.log('🔄 Reset cursor tracking refs');
+  }, []);
+
   // Robust cleanup function that doesn't rely on stored DOM references
   const resetAllNoteHighlighting = useCallback(() => {
     try {
@@ -211,13 +221,68 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     return noteNames[noteIndex] + octave;
   }, []);
 
+  // Helper function to find note DOM element by metadata (fallback for bass clef notes)
+  const findNoteElementByMetadata = useCallback((noteMetadata) => {
+    const svgContainer = document.querySelector('.music-notation svg');
+    if (!svgContainer) return null;
+
+    // Build selector using ABCJS classes: voice, measure, and note type
+    const voiceClass = `.abcjs-v${noteMetadata.voiceIndex}`;
+    const measureClass = `.abcjs-m${noteMetadata.measureIndex}`;
+
+    // Query all notes in the same voice and measure
+    const selector = `${voiceClass}${measureClass}.abcjs-note`;
+    const candidateElements = svgContainer.querySelectorAll(selector);
+
+    if (candidateElements.length === 0) return null;
+
+    // If only one candidate, return it
+    if (candidateElements.length === 1) return candidateElements[0];
+
+    // Multiple candidates: try various matching strategies
+    const notePositionInMeasure = Math.floor(noteMetadata.startTime / 2);
+
+    // Strategy 1: Match by position class (.abcjs-n{position})
+    for (const element of candidateElements) {
+      if (element.classList.contains(`abcjs-n${notePositionInMeasure}`)) {
+        return element;
+      }
+    }
+
+    // Strategy 2: Match by duration class (helps narrow down when multiple notes at different beats)
+    const durationInEighths = noteMetadata.duration;
+    const durationClass = `abcjs-d${durationInEighths}`;
+
+    const matchingDuration = Array.from(candidateElements).filter(el =>
+      el.classList.contains(durationClass)
+    );
+
+    // If only one note with this duration in this measure/voice, use it
+    if (matchingDuration.length === 1) {
+      return matchingDuration[0];
+    }
+
+    // CRITICAL: Don't return wrong note - return null if we can't find exact match
+    // Prevents highlighting notes ahead of cursor when position matching fails
+    console.warn(`⚠️ No exact match for note ${noteMetadata.id} (${noteMetadata.expectedNote}) at m${noteMetadata.measureIndex} pos${notePositionInMeasure} - found ${candidateElements.length} candidates`);
+    return null;
+  }, []);
+
   // Helper function to highlight a specific note ID using cursor position mapping
-  const highlightNoteById = useCallback((noteId, highlightType) => {
-    // Only highlight notes that are at the current cursor position
-    const domElement = currentCursorElementsRef.current.get(noteId);
+  const highlightNoteById = useCallback((noteId, highlightType, noteMetadata = null) => {
+    // Try to get DOM element from cursor position mapping first
+    let domElement = currentCursorElementsRef.current.get(noteId);
+
+    // Fallback: Query DOM directly using metadata (for bass clef notes)
+    if ((!domElement || !domElement.classList) && noteMetadata) {
+      domElement = findNoteElementByMetadata(noteMetadata);
+      if (domElement) {
+        console.log(`🔍Fallback query found element for ${noteId}`);
+      }
+    }
 
     if (!domElement || !domElement.classList) {
-      console.log(`No DOM element found for note ID ${noteId} at current cursor position`);
+      console.log(`No DOM element found for note ID ${noteId} (tried cursor ref and DOM query)`);
       return;
     }
 
@@ -243,7 +308,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     }
 
     console.log(`Successfully highlighted note ID ${noteId} as ${highlightType} at cursor position`);
-  }, []);
+  }, [findNoteElementByMetadata]);
 
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
@@ -259,14 +324,14 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Generate first 4-measure exercise
+      // Generate first 4-measure exercise with scoped ID 'ex1'
       const settingsFor4Measures = { ...settings, measures: 4 };
-      const result1 = generateRandomABC(settingsFor4Measures);
+      const result1 = generateRandomABC(settingsFor4Measures, 'ex1');
       setAbcNotation(result1.abcNotation);
       setNoteMetadata(result1.noteMetadata);
 
-      // Generate second 4-measure exercise
-      const result2 = generateRandomABC(settingsFor4Measures);
+      // Generate second 4-measure exercise with scoped ID 'ex2'
+      const result2 = generateRandomABC(settingsFor4Measures, 'ex2');
       setAbcNotation2(result2.abcNotation);
       setNoteMetadata2(result2.noteMetadata);
 
@@ -303,6 +368,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       // Clear all note highlights for fresh start using robust cleanup
       resetAllNoteHighlighting();
 
+      // Reset cursor tracking to prevent stale note IDs
+      resetCursorTracking();
+
       // Increment exercises_generated counter based on user type
       if (user?.id) {
         try {
@@ -324,7 +392,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     } finally {
       setIsGenerating(false);
     }
-  }, [settings, onResetScoring, onResetPostPracticeResults, user?.id, user?.isGuest, resetAllNoteHighlighting]);
+  }, [settings, onResetScoring, onResetPostPracticeResults, user?.id, user?.isGuest, resetAllNoteHighlighting, resetCursorTracking]);
 
   // Update note tracking map for a specific display
   const updateNoteTrackingForDisplay = useCallback((displayNumber, newNoteMetadata) => {
@@ -356,9 +424,10 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   // Generate new exercise for a specific display (1 or 2)
   const generateSingleExercise = useCallback(async (displayNumber) => {
     try {
-      // Generate new 4-measure exercise
+      // Generate new 4-measure exercise with appropriate scoped ID
       const settingsFor4Measures = { ...settings, measures: 4 };
-      const result = generateRandomABC(settingsFor4Measures);
+      const exerciseId = displayNumber === 1 ? 'ex1' : 'ex2';
+      const result = generateRandomABC(settingsFor4Measures, exerciseId);
 
       // Update the appropriate display's notation and metadata
       if (displayNumber === 1) {
@@ -723,6 +792,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
               currentCursorElementsRef.current.clear();
 
               // Try to map DOM elements to active note IDs using ABCJS event elements
+              // console.log(`📦ELEMENTS: length=${event.elements?.length || 0}`);
+
               if (event.elements && Array.isArray(event.elements)) {
                 event.elements.forEach((element, index) => {
                   if (Array.isArray(element) && element.length > 0) {
@@ -732,11 +803,34 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
                     // Since we can't directly correlate elements to note IDs, we'll use position-based mapping
                     const allActiveNoteIdsArray = Array.from(allActiveNoteIds);
                     if (allActiveNoteIdsArray[index]) {
-                      currentCursorElementsRef.current.set(allActiveNoteIdsArray[index], domElement);
+                      const noteId = allActiveNoteIdsArray[index];
+                      // const noteInfo = currentNoteMetadata.find(n => n.id === noteId);
+                      // const voice = noteInfo ? (noteInfo.voiceIndex === 0 ? 'treble' : 'bass') : 'unknown';
+
+                      currentCursorElementsRef.current.set(noteId, domElement);
+                      // console.log(`  MAP[${index}]: ${noteId} (${voice}) → ${noteInfo?.expectedNote || '?'}`);
                     }
                   }
                 });
               }
+
+              // Fallback: Query DOM directly for notes missing from event.elements (typically bass clef)
+              allActiveNoteIds.forEach(noteId => {
+                if (!currentCursorElementsRef.current.has(noteId)) {
+                  const noteInfo = currentNoteMetadata.find(n => n.id === noteId);
+                  // const voice = noteInfo ? (noteInfo.voiceIndex === 0 ? 'treble' : 'bass') : 'unknown';
+
+                  if (noteInfo) {
+                    const domElement = findNoteElementByMetadata(noteInfo);
+                    if (domElement) {
+                      currentCursorElementsRef.current.set(noteId, domElement);
+                      // console.log(`  🔍QUERY: ${noteId} (${voice}) ${noteInfo.expectedNote} → FOUND`);
+                    } else {
+                      // console.log(`  ⚠️MISSING: ${noteId} (${voice}) ${noteInfo.expectedNote} → NOT FOUND`);
+                    }
+                  }
+                }
+              });
             }
           }
         }
@@ -855,6 +949,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     setCurrentPlayingDisplay(null);
     currentPlayingDisplayRef.current = null;
 
+    // Reset cursor tracking when stopping continuous practice
+    resetCursorTracking();
+
     // Clean up visual cursors
     const existingCursor = document.querySelector('.playback-cursor');
     if (existingCursor) {
@@ -876,7 +973,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     }
     // Also update the ref for immediate consistency
     isMetronomeActiveRef.current = false;
-  }, [onMetronomeToggle, isMetronomeActive]);
+  }, [onMetronomeToggle, isMetronomeActive, resetCursorTracking]);
 
   // Start continuous practice that alternates between displays
   const startContinuousPractice = useCallback(async () => {
@@ -903,6 +1000,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       setCurrentPlayingDisplay(displayNumber);
       currentPlayingDisplayRef.current = displayNumber;
 
+      // Reset cursor tracking when switching to new exercise/display
+      resetCursorTracking();
+
       // Get the appropriate visual object for the current display
       const visualObj = displayNumber === 1 ? visualObjectRef.current : visualObjectRef2.current;
 
@@ -915,7 +1015,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
         // For continuous practice mode, pass callback function to handle instant transitions
         const continuousTransitionCallback = (currentDisplay) => {
-          console.log(`🔄 INSTANT TRANSITION: Switching from display ${currentDisplay} to next`);
+          // console.log(`🔄 INSTANT TRANSITION: Switching from display ${currentDisplay} to next`);
 
           // Switch to next display immediately (no blocking generation)
           const nextDisplay = currentDisplay === 1 ? 2 : 1;
@@ -947,7 +1047,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     // Start with first display
     practiceNextDisplay(1);
-  }, [startVisualCursor, stopContinuousPractice, generateNextExerciseInBackground]);
+  }, [startVisualCursor, stopContinuousPractice, generateNextExerciseInBackground, resetCursorTracking]);
 
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
@@ -979,6 +1079,9 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
         continuousPracticeActiveRef.current = false;
         setCurrentPlayingDisplay(null);
         currentPlayingDisplayRef.current = null;
+
+        // Reset cursor tracking when stopping practice
+        resetCursorTracking();
       }
 
       // Clean up all note highlights when manually stopping practice using robust cleanup
@@ -1045,7 +1148,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       // Clean up all note highlights on error using robust cleanup
       resetAllNoteHighlighting();
     }
-  }, [isPracticing, startContinuousPractice, isMetronomeActive, onMetronomeToggle, resetAllNoteHighlighting]);
+  }, [isPracticing, startContinuousPractice, isMetronomeActive, onMetronomeToggle, resetAllNoteHighlighting, resetCursorTracking]);
 
   React.useEffect(() => {
     handleGenerateNew();
@@ -1135,21 +1238,50 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     // FIRST: Check if cursor moved to new notes (runs ALWAYS, even with zero key presses)
     if (noteIdsChanged) {
       console.log(`🎯POS: ids=[${Array.from(currentActiveNoteIds).join(',')}]`);
-      console.log(`📋CHECK: prev=${previousActiveNoteIdsRef.current.size} notes`);
+      // console.log(`📋CHECK: prev=${previousActiveNoteIdsRef.current.size} notes`);
+
+      // CRITICAL: Detect and clear stale note IDs from previous exercise/session
+      // With scoped IDs, we can simply check if the exercise prefix matches
+      const previousNoteIds = previousActiveNoteIdsRef.current;
+      if (previousNoteIds.size > 0) {
+        // Get the expected exercise prefix based on current playing display
+        const expectedPrefix = currentPlayingDisplayRef.current === 1 ? 'ex1_' : 'ex2_';
+
+        // Check if any previous note has a different prefix (from different exercise)
+        const hasStaleNotes = Array.from(previousNoteIds).some(noteId =>
+          !noteId.startsWith(expectedPrefix)
+        );
+
+        // If we have stale notes from a different exercise, clear them
+        if (hasStaleNotes) {
+          console.log(`🔄 CLEAR STALE: ${previousNoteIds.size} notes from previous exercise`);
+          previousActiveNoteIdsRef.current = new Set();
+          return; // Skip this effect run - next cursor movement will have clean state
+        }
+      }
 
       // DEFERRED DETECTION: Check for missed notes from PREVIOUS position
       let missedCount = 0;
       previousActiveNoteIdsRef.current.forEach(noteId => {
         // Skip notes still active in current position (sustained notes like whole notes)
         if (currentActiveNoteIds.has(noteId)) {
-          console.log(`  ${noteId}: SKIP (still active)`);
+          // console.log(`  ${noteId}: SKIP (still active)`);
           return; // Don't check yet - note is still sustaining
         }
 
         const note = currentTrackingMap.get(noteId);
-        console.log(`  ${noteId}: ${note ? note.status : 'NOT_FOUND'}`);
 
-        if (note && note.status === 'unplayed') {
+        // CRITICAL: Skip notes that don't belong to current display
+        // This prevents checking stale note IDs from previous exercise
+        if (!note) {
+          console.log(`  ${noteId}: SKIP (wrong display)`);
+          return; // Note not in current tracking map = from previous display
+        }
+
+        const voice = note.voiceIndex === 0 ? 'T' : 'B';
+        console.log(`  ${noteId} (${voice}): ${note.status}`);
+
+        if (note.status === 'unplayed') {
           missedCount++;
           // Mark as incorrect/missed
           setCurrentTrackingMap(prevMap => {
@@ -1158,18 +1290,27 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             return newMap;
           });
 
-          // Highlight red - try both current and previous cursor element refs
-          const domElement = currentCursorElementsRef.current.get(noteId);
-          const prevElement = previousCursorElementsRef.current.get(noteId);
+          // Highlight red - try three methods: current ref, previous ref, or DOM query
+          let domElement = currentCursorElementsRef.current.get(noteId);
+          let prevElement = previousCursorElementsRef.current.get(noteId);
+          let queryElement = null;
+
+          // Third fallback: Query DOM directly (for bass clef notes)
+          if (!domElement && !prevElement) {
+            queryElement = findNoteElementByMetadata(note);
+          }
 
           if (domElement && domElement.classList) {
             domElement.classList.add('abcjs-note-incorrect');
-            console.log(`  ❌MISS ${note.expectedNote}: curr=YES prev=${!!prevElement}`);
+            console.log(`  ❌MISS ${note.expectedNote} (${voice}): curr=YES`);
           } else if (prevElement && prevElement.classList) {
             prevElement.classList.add('abcjs-note-incorrect');
-            console.log(`  ❌MISS ${note.expectedNote}: curr=NO prev=YES`);
+            console.log(`  ❌MISS ${note.expectedNote} (${voice}): prev=YES`);
+          } else if (queryElement && queryElement.classList) {
+            queryElement.classList.add('abcjs-note-incorrect');
+            console.log(`  ❌MISS ${note.expectedNote} (${voice}): query=YES`);
           } else {
-            console.log(`  ❌MISS ${note.expectedNote}: curr=NO prev=NO`);
+            console.log(`  ❌MISS ${note.expectedNote} (${voice}): ALL FAILED`);
           }
 
           // Increment wrong counter for missed note
@@ -1277,7 +1418,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             });
 
             // Highlight the note with appropriate color (green for correct, dark yellow for corrected)
-            highlightNoteById(noteId, highlightType);
+            highlightNoteById(noteId, highlightType, trackedNote);
 
             onCorrectNote(pressedNote);
             noteProcessed = true;
@@ -1301,7 +1442,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, cursorMoveTimestamp, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition]);
+  }, [pressedMidiNotes, cursorMoveTimestamp, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition, findNoteElementByMetadata]);
 
   // Reset note tracking when practice mode starts
   React.useEffect(() => {

@@ -26,16 +26,29 @@
  * @param {string} timeSignature - Time signature (e.g., '4/4')
  * @returns {Array} Array of note metadata objects
  */
-function parseAbcForNoteMetadata(abcString, timeSignature) {
-  
+
+// Module-scoped counter - persists across all exercise generations to prevent ID collisions
+// NOTE: This is kept for backward compatibility but is only used when exerciseId is not provided
+let globalNoteIdCounter = 0;
+
+function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
+
   const noteMetadata = [];
-  let globalNoteIdCounter = 0;
 
   try {
 
+  // Local counter that resets for each exercise
+  let localNoteIdCounter = 0;
+
   // Helper functions
   function generateNoteId() {
-    return `note_${globalNoteIdCounter++}`;
+    // If exerciseId is provided, use scoped IDs (e.g., "ex1_note_0")
+    // Otherwise, fall back to global counter for backward compatibility
+    if (exerciseId) {
+      return `${exerciseId}_note_${localNoteIdCounter++}`;
+    } else {
+      return `note_${globalNoteIdCounter++}`;
+    }
   }
 
   function noteNameToMidiPitch(noteName) {
@@ -238,7 +251,7 @@ function parseAbcForNoteMetadata(abcString, timeSignature) {
   }
 }
 
-export function generateRandomABC(options) {
+export function generateRandomABC(options, exerciseId = null) {
   // Default if not provided in settings
   const {
     measures = 8,
@@ -326,7 +339,7 @@ export function generateRandomABC(options) {
   }
 
   // Parse the complete ABC notation to create metadata for both voices
-  const noteMetadata = parseAbcForNoteMetadata(abc, timeSignature);
+  const noteMetadata = parseAbcForNoteMetadata(abc, timeSignature, exerciseId);
 
   // Log the ABC notation to the console for debugging
   console.log('Generated ABC:', abc);
