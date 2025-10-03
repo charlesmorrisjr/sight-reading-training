@@ -223,18 +223,15 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
   // Helper function to find note DOM element by metadata (fallback for bass clef notes)
   const findNoteElementByMetadata = useCallback((noteMetadata) => {
-    // Determine which display this note belongs to based on note ID
+    // Determine which exercise this note belongs to based on note ID
     const displayNumber = noteMetadata.id.startsWith('ex1_') ? 1 : 2;
 
-    // Find the correct display container using data-display attribute
-    const displayContainer = document.querySelector(`[data-display="${displayNumber}"]`);
-    if (!displayContainer) {
-      console.warn(`⚠️ Display ${displayNumber} not found for note ${noteMetadata.id}`);
+    // Use the SVG ID for direct, fast access
+    const svgContainer = document.getElementById(`exercise-${displayNumber}-svg`);
+    if (!svgContainer) {
+      console.warn(`⚠️ SVG not found for exercise ${displayNumber}, note ${noteMetadata.id}`);
       return null;
     }
-
-    const svgContainer = displayContainer.querySelector('.music-notation svg');
-    if (!svgContainer) return null;
 
     // Build selector using ABCJS classes: voice, measure, and note type
     const voiceClass = `.abcjs-v${noteMetadata.voiceIndex}`;
@@ -1602,6 +1599,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
                   abcNotation={abcNotation}
                   onVisualsReady={handleVisualsReady}
                   showPostPracticeResults={showPostPracticeResults}
+                  svgId="exercise-1-svg"
                 />
               </div>
             )}
@@ -1627,6 +1625,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
                   abcNotation={abcNotation2}
                   onVisualsReady={handleVisualsReady2}
                   showPostPracticeResults={showPostPracticeResults}
+                  svgId="exercise-2-svg"
                 />
               </div>
             )}

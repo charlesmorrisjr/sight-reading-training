@@ -10,7 +10,8 @@ const MusicDisplay = ({
   pressedMidiNotes = new Set(),
   enableRealtimeHighlighting = true,
   noteTrackingMap = new Map(),
-  showPostPracticeResults = false
+  showPostPracticeResults = false,
+  svgId
 }) => {
   const containerRef = useRef(null);
   const renderRef = useRef(null);
@@ -225,6 +226,15 @@ const MusicDisplay = ({
       // Pass the visual objects to parent for synth functionality
       if (onVisualsReady && visualObjs && visualObjs.length > 0) {
         onVisualsReady(visualObjs[0]);
+      }
+
+      // ADD THESE LINES (after line 228):
+      // Apply unique ID to the SVG for targeted DOM queries
+      if (svgId) {
+        const svg = renderRef.current.querySelector('svg');
+        if (svg) {
+          svg.id = svgId;
+        }
       }
 
       // Reset cursor control when new music is rendered
