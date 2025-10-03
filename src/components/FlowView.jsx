@@ -223,7 +223,17 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
   // Helper function to find note DOM element by metadata (fallback for bass clef notes)
   const findNoteElementByMetadata = useCallback((noteMetadata) => {
-    const svgContainer = document.querySelector('.music-notation svg');
+    // Determine which display this note belongs to based on note ID
+    const displayNumber = noteMetadata.id.startsWith('ex1_') ? 1 : 2;
+
+    // Find the correct display container using data-display attribute
+    const displayContainer = document.querySelector(`[data-display="${displayNumber}"]`);
+    if (!displayContainer) {
+      console.warn(`⚠️ Display ${displayNumber} not found for note ${noteMetadata.id}`);
+      return null;
+    }
+
+    const svgContainer = displayContainer.querySelector('.music-notation svg');
     if (!svgContainer) return null;
 
     // Build selector using ABCJS classes: voice, measure, and note type
@@ -1240,21 +1250,21 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       console.log(`🎯POS: ids=[${Array.from(currentActiveNoteIds).join(',')}]`);
       // console.log(`📋CHECK: prev=${previousActiveNoteIdsRef.current.size} notes`);
 
-      // CRITICAL: Detect and clear stale note IDs from previous exercise/session
-      // With scoped IDs, we can simply check if the exercise prefix matches
+      // CRITICAL: Clear all previous notes when switching exercises
+      // With scoped IDs, we can detect exercise changes by checking the prefix
       const previousNoteIds = previousActiveNoteIdsRef.current;
-      if (previousNoteIds.size > 0) {
-        // Get the expected exercise prefix based on current playing display
-        const expectedPrefix = currentPlayingDisplayRef.current === 1 ? 'ex1_' : 'ex2_';
+      if (previousNoteIds.size > 0 && currentActiveNoteIds.size > 0) {
+        // Get first note ID from previous and current sets to check exercise
+        const firstPrevId = Array.from(previousNoteIds)[0];
+        const firstCurrentId = Array.from(currentActiveNoteIds)[0];
 
-        // Check if any previous note has a different prefix (from different exercise)
-        const hasStaleNotes = Array.from(previousNoteIds).some(noteId =>
-          !noteId.startsWith(expectedPrefix)
-        );
+        // Extract exercise prefix (ex1_ or ex2_)
+        const prevExercise = firstPrevId.split('_')[0];
+        const currentExercise = firstCurrentId.split('_')[0];
 
-        // If we have stale notes from a different exercise, clear them
-        if (hasStaleNotes) {
-          console.log(`🔄 CLEAR STALE: ${previousNoteIds.size} notes from previous exercise`);
+        // If exercise changed, clear ALL previous notes
+        if (prevExercise !== currentExercise) {
+          console.log(`🔄 CLEAR ALL: ${previousNoteIds.size} notes from ${prevExercise} (now on ${currentExercise})`);
           previousActiveNoteIdsRef.current = new Set();
           return; // Skip this effect run - next cursor movement will have clean state
         }
