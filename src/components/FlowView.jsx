@@ -91,6 +91,8 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     candidateWrongNotesRef.current.clear();
     scoringLockedRef.current = false;
     previousPressedNotesRef.current = new Set();
+    currentNoteIdsRef.current = new Set(); // Clear current active note IDs
+    previousCursorElementsRef.current.clear(); // Clear previous DOM element mappings
     console.log('🔄 Reset cursor tracking refs');
   }, []);
 
