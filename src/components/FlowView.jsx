@@ -1628,24 +1628,10 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
 
 
           {/* Music Displays */}
-          <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
             {/* First Exercise */}
             {abcNotation && (
               <div className="music-display-container" data-display="1">
-                <div className="text-center mb-2">
-                  <h3 className={`text-lg font-semibold flex items-center justify-center space-x-2 ${
-                    currentPlayingDisplay === 1
-                      ? 'text-orange-600 dark:text-orange-400'
-                      : 'text-gray-700 dark:text-gray-300'
-                  }`}>
-                    <span>Exercise 1</span>
-                    {currentPlayingDisplay === 1 && (
-                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full dark:bg-orange-900 dark:text-orange-300 animate-pulse">
-                        Playing
-                      </span>
-                    )}
-                  </h3>
-                </div>
                 <MusicDisplay
                   abcNotation={abcNotation}
                   onVisualsReady={handleVisualsReady}
@@ -1658,20 +1644,6 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             {/* Second Exercise */}
             {abcNotation2 && (
               <div className="music-display-container" data-display="2">
-                <div className="text-center mb-2">
-                  <h3 className={`text-lg font-semibold flex items-center justify-center space-x-2 ${
-                    currentPlayingDisplay === 2
-                      ? 'text-orange-600 dark:text-orange-400'
-                      : 'text-gray-700 dark:text-gray-300'
-                  }`}>
-                    <span>Exercise 2</span>
-                    {currentPlayingDisplay === 2 && (
-                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full dark:bg-orange-900 dark:text-orange-300 animate-pulse">
-                        Playing
-                      </span>
-                    )}
-                  </h3>
-                </div>
                 <MusicDisplay
                   abcNotation={abcNotation2}
                   onVisualsReady={handleVisualsReady2}
