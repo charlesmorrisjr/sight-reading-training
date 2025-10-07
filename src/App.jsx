@@ -1518,18 +1518,18 @@ function AppContent() {
     // Play audio using Tone.js piano sampler
     if (pianoSamplerRef.current) {
       if (midiEvent.type === 'noteon') {
-        // Start audio context if needed (required for user interaction)
-        if (Tone.context.state !== 'running') {
-          Tone.context.resume();
+        // Start audio context if suspended (use non-blocking approach)
+        if (Tone.context.state === 'suspended') {
+          Tone.context.resume().catch(err => console.error('Audio context resume error:', err));
         }
 
-        // Trigger note attack with velocity
+        // Trigger note attack with velocity (use immediate time for lowest latency)
         const velocity = midiEvent.velocity || 0.8;
-        pianoSamplerRef.current.triggerAttack(midiEvent.note, Tone.now(), velocity);
+        pianoSamplerRef.current.triggerAttack(midiEvent.note, undefined, velocity);
         console.log(`🎵 Playing: ${midiEvent.note}`);
       } else if (midiEvent.type === 'noteoff') {
-        // Release note
-        pianoSamplerRef.current.triggerRelease(midiEvent.note, Tone.now());
+        // Release note immediately
+        pianoSamplerRef.current.triggerRelease(midiEvent.note);
       }
     }
 
@@ -1592,6 +1592,28 @@ function AppContent() {
 
   // Initialize Tone.js piano sampler for MIDI keyboard playback
   React.useEffect(() => {
+    // Create new audio context with low latency settings
+    // latencyHint must be set at creation time (read-only property)
+    const audioContext = new AudioContext({ latencyHint: "interactive" });
+    Tone.setContext(audioContext);
+
+    // Optimize for lowest possible latency
+    Tone.context.lookAhead = 0; // Disable lookahead scheduling (instant response)
+
+    // Pre-start audio context on first user interaction to avoid latency
+    const startAudioContext = () => {
+      if (Tone.context.state === 'suspended') {
+        Tone.context.resume().then(() => {
+          console.log('🎹 Audio context started - ready for MIDI input');
+        });
+      }
+      // Remove listener after first interaction
+      document.removeEventListener('click', startAudioContext);
+      document.removeEventListener('keydown', startAudioContext);
+    };
+    document.addEventListener('click', startAudioContext);
+    document.addEventListener('keydown', startAudioContext);
+
     // Create piano sampler with Salamander Grand Piano samples
     pianoSamplerRef.current = new Tone.Sampler({
       urls: {
@@ -1627,7 +1649,10 @@ function AppContent() {
         C8: "C8.mp3"
       },
       release: 1,
-      baseUrl: "https://tonejs.github.io/audio/salamander/"
+      baseUrl: "https://tonejs.github.io/audio/salamander/",
+      onload: () => {
+        console.log('🎹 All piano samples loaded - ready for playback');
+      }
     }).toDestination();
 
     console.log('🎹 Tone.js piano sampler initialized');
