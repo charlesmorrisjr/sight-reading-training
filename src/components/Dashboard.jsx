@@ -100,25 +100,9 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
             <div className="hero-content text-center py-12 px-8">
               <div className="max-w-xl mx-auto">
                 <h1 className="text-4xl font-bold mb-4">Welcome back, {user?.name}!</h1>
-                <p className="text-blue-100 mb-10">
+                <p className="text-blue-100">
                   Ready to improve your sight reading skills? Let's continue your musical journey.
                 </p>
-
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <button
-                    className="btn btn-white btn-lg px-8 py-4 text-blue-600 hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                    onClick={() => navigate('/practice')}
-                  >
-                    Start Practice
-                  </button>
-
-                  <button
-                    className="btn btn-lg px-8 py-4 bg-black text-white hover:bg-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg border-0"
-                    onClick={() => navigate('/flow')}
-                  >
-                    Flow Mode
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -160,77 +144,66 @@ const Dashboard = ({ settings, onSettingsChange, onLoadExercise }) => {
             </div>
           </div>
 
-          {/* Exercise Categories
-          <div className="card bg-white shadow-lg animate-scale-in">
-            <div className="card-body">
-              <h2 className="card-title text-2xl mb-6 flex items-center">
-                <FaMusic className="mr-3 text-blue-600" />
-                Exercise Categories
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button 
-                  className="btn btn-outline btn-lg h-auto p-6 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-300"
-                  onClick={() => handleCategoryClick('intervals')}
-                >
-                  <div className="flex items-center w-full">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-                      <img src={twoNotesRedIcon} alt="Music icon" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-base">Intervals</div>
-                      <div className="text-sm text-gray-500">Steps, Skips, Leaps</div>
-                    </div>
+          {/* Practice Mode Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-scale-in">
+            {/* Flow Mode Card */}
+            <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300">
+              <div className="card-body p-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 flex items-center">
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mr-3">
+                    <FaChartArea className="text-purple-600 dark:text-purple-400 text-lg" />
                   </div>
-                </button>
+                  Flow Mode
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Continuous practice with progressive difficulty levels
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    className="btn btn-outline btn-primary btn-lg w-full"
+                    onClick={() => navigate('/levels')}
+                  >
+                    Select Level
+                  </button>
+                  <button
+                    className="btn btn-primary btn-lg w-full"
+                    onClick={() => navigate('/flow')}
+                  >
+                    Start Practice
+                  </button>
+                </div>
+              </div>
+            </div>
 
-                <button 
-                  className="btn btn-outline btn-lg h-auto p-6 text-left hover:bg-green-50 hover:border-green-300 transition-all duration-300"
-                  onClick={() => handleCategoryClick('chords')}
-                >
-                  <div className="flex items-center w-full">
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
-                      <img src={fourNotesIcon} alt="Music icon" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-base">Chords</div>
-                      <div className="text-sm text-gray-500">Shapes & Arpeggios</div>
-                    </div>
+            {/* Exercise Mode Card */}
+            <div className="card bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300">
+              <div className="card-body p-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 flex items-center">
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mr-3">
+                    <FaKeyboard className="text-green-600 dark:text-green-400 text-lg" />
                   </div>
-                </button>
-
-                <button 
-                  className="btn btn-outline btn-lg h-auto p-6 text-left hover:bg-purple-50 hover:border-purple-300 transition-all duration-300"
-                  onClick={() => handleCategoryClick('melodic')}
-                >
-                  <div className="flex items-center w-full">
-                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
-                      <img src={threeNotesIcon} alt="Music icon" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-base">Melodic Patterns</div>
-                      <div className="text-sm text-gray-500">Scales, Sequences</div>
-                    </div>
-                  </div>
-                </button>
-
-                <button 
-                  className="btn btn-outline btn-lg h-auto p-6 text-left hover:bg-orange-50 hover:border-orange-300 transition-all duration-300"
-                  onClick={() => handleCategoryClick('clefs')}
-                >
-                  <div className="flex items-center w-full">
-                    <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4">
-                      <img src={clefNotesIcon} alt="Music icon" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-base">Free Practice</div>
-                      <div className="text-sm text-gray-500">Practice Anything</div>
-                    </div>
-                  </div>
-                </button>
+                  Exercise Mode
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Customize your practice with specific settings
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    className="btn btn-outline btn-primary btn-lg w-full"
+                    onClick={() => navigate('/free-practice')}
+                  >
+                    Change Settings
+                  </button>
+                  <button
+                    className="btn btn-primary btn-lg w-full"
+                    onClick={() => navigate('/practice')}
+                  >
+                    Start Practice
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-          */}
 
           {/* Saved Exercises */}
           <SavedExercisesCard 
