@@ -1649,6 +1649,7 @@ function AppContent() {
         C8: "C8.mp3"
       },
       release: 1,
+      volume: -4, // Reduce volume by 4dB
       baseUrl: "https://tonejs.github.io/audio/salamander/",
       onload: () => {
         console.log('🎹 All piano samples loaded - ready for playback');
