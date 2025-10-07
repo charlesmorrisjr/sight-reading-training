@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
+import * as Tone from 'tone';
 import { FaMusic, FaPlay, FaStop, FaKeyboard, FaRedo, FaClock } from 'react-icons/fa';
 import HamburgerMenu from './components/HamburgerMenu';
 import MusicDisplay from './components/MusicDisplay';
@@ -1266,6 +1267,9 @@ function AppContent() {
   // MIDI note lifecycle tracking for legato detection
   const [midiNoteStates, setMidiNoteStates] = useState(new Map());
 
+  // Tone.js piano sampler for MIDI keyboard playback
+  const pianoSamplerRef = useRef(null);
+
   // Scoring state - track correct and wrong notes during practice
   const [correctNotesCount, setCorrectNotesCount] = useState(0);
   const [wrongNotesCount, setWrongNotesCount] = useState(0);
@@ -1507,9 +1511,27 @@ function AppContent() {
     }
   }, [settings, user]);
 
-  // MIDI event handler with full lifecycle tracking
+  // MIDI event handler with full lifecycle tracking and audio playback
   const handleMidiEvent = useCallback((midiEvent) => {
     const currentTime = Date.now();
+
+    // Play audio using Tone.js piano sampler
+    if (pianoSamplerRef.current) {
+      if (midiEvent.type === 'noteon') {
+        // Start audio context if needed (required for user interaction)
+        if (Tone.context.state !== 'running') {
+          Tone.context.resume();
+        }
+
+        // Trigger note attack with velocity
+        const velocity = midiEvent.velocity || 0.8;
+        pianoSamplerRef.current.triggerAttack(midiEvent.note, Tone.now(), velocity);
+        console.log(`🎵 Playing: ${midiEvent.note}`);
+      } else if (midiEvent.type === 'noteoff') {
+        // Release note
+        pianoSamplerRef.current.triggerRelease(midiEvent.note, Tone.now());
+      }
+    }
 
     // Update pressed notes Set
     setPressedMidiNotes(prevNotes => {
@@ -1567,7 +1589,58 @@ function AppContent() {
   React.useEffect(() => {
     initializeMIDI(handleMidiEvent);
   }, [handleMidiEvent]);
+/*
+  // Initialize Tone.js piano sampler for MIDI keyboard playback
+  React.useEffect(() => {
+    // Create piano sampler with Salamander Grand Piano samples
+    pianoSamplerRef.current = new Tone.Sampler({
+      urls: {
+        A0: "A0.mp3",
+        C1: "C1.mp3",
+        "D#1": "Ds1.mp3",
+        "F#1": "Fs1.mp3",
+        A1: "A1.mp3",
+        C2: "C2.mp3",
+        "D#2": "Ds2.mp3",
+        "F#2": "Fs2.mp3",
+        A2: "A2.mp3",
+        C3: "C3.mp3",
+        "D#3": "Ds3.mp3",
+        "F#3": "Fs3.mp3",
+        A3: "A3.mp3",
+        C4: "C4.mp3",
+        "D#4": "Ds4.mp3",
+        "F#4": "Fs4.mp3",
+        A4: "A4.mp3",
+        C5: "C5.mp3",
+        "D#5": "Ds5.mp3",
+        "F#5": "Fs5.mp3",
+        A5: "A5.mp3",
+        C6: "C6.mp3",
+        "D#6": "Ds6.mp3",
+        "F#6": "Fs6.mp3",
+        A6: "A6.mp3",
+        C7: "C7.mp3",
+        "D#7": "Ds7.mp3",
+        "F#7": "Fs7.mp3",
+        A7: "A7.mp3",
+        C8: "C8.mp3"
+      },
+      release: 1,
+      baseUrl: "https://tonejs.github.io/audio/salamander/"
+    }).toDestination();
 
+    console.log('🎹 Tone.js piano sampler initialized');
+
+    // Cleanup on unmount
+    return () => {
+      if (pianoSamplerRef.current) {
+        pianoSamplerRef.current.dispose();
+        console.log('🎹 Tone.js piano sampler disposed');
+      }
+    };
+  }, []);
+*/
   // Load settings when user changes
   React.useEffect(() => {
     const loadSettings = async () => {
