@@ -1589,7 +1589,7 @@ function AppContent() {
   React.useEffect(() => {
     initializeMIDI(handleMidiEvent);
   }, [handleMidiEvent]);
-/*
+
   // Initialize Tone.js piano sampler for MIDI keyboard playback
   React.useEffect(() => {
     // Create piano sampler with Salamander Grand Piano samples
@@ -1640,7 +1640,7 @@ function AppContent() {
       }
     };
   }, []);
-*/
+
   // Load settings when user changes
   React.useEffect(() => {
     const loadSettings = async () => {
