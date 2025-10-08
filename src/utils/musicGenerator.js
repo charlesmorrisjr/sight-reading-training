@@ -19,6 +19,7 @@
  * @param {Object} options.noteRange - Optional note range constraints
  * @param {Object} options.noteRange.treble - Treble clef range (e.g., { min: 'C4', max: 'C5' })
  * @param {Object} options.noteRange.bass - Bass clef range (e.g., { min: 'C3', max: 'C4' })
+ * @param {boolean} options.alternatingHands - If true, only one hand plays at a time (alternates by measure)
  * @returns {Object} Object containing ABC notation string and note metadata
  *   - abcNotation: {string} ABC notation string
  *   - noteMetadata: {Array} Array of note objects with timing and pitch information
@@ -255,6 +256,17 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
 }
 
 /**
+ * Generate a rest measure (used for alternating hands mode)
+ * @param {number} totalBeatsPerMeasure - Total beats in the measure
+ * @returns {string} ABC notation for a rest measure
+ */
+function generateRestMeasure(totalBeatsPerMeasure) {
+  // In ABC notation, 'z' represents a rest
+  // The number after 'z' indicates the duration in eighth note units
+  return `z${totalBeatsPerMeasure}|`;
+}
+
+/**
  * Convert standard note notation to note index for melody generation
  * @param {string} noteStr - Note in standard notation (e.g., 'C4', 'G5', 'A3')
  * @returns {number} Note index for internal use (-3 to 10+ range)
@@ -310,7 +322,8 @@ export function generateRandomABC(options, exerciseId = null) {
     rightHand4NoteChords = ['major'],
     leftHandBrokenChords = ['1-3-5-3'],
     swapHandPatterns = false,
-    noteRange = null  // Optional: { treble: { min: 'C4', max: 'C5' }, bass: { min: 'C3', max: 'C4' } }
+    noteRange = null,  // Optional: { treble: { min: 'C4', max: 'C5' }, bass: { min: 'C3', max: 'C4' } }
+    alternatingHands = false  // If true, only one hand plays at a time (alternates by measure)
   } = options;
 
   // Parse time signature
@@ -368,9 +381,26 @@ export function generateRandomABC(options, exerciseId = null) {
     const trebleSource = swapHandPatterns ? 'left' : 'right';
     const bassSource = swapHandPatterns ? 'right' : 'left';
 
-    // Generate measures using helper functions
-    const trebleMeasure = generatePatternForClef('treble', treblePattern, trebleSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, trebleRangeIndices);
-    const bassMeasure = generatePatternForClef('bass', bassPattern, bassSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, bassRangeIndices);
+    let trebleMeasure, bassMeasure;
+
+    // Handle alternating hands mode
+    if (alternatingHands) {
+      // Even measures (0, 2, 4...): Right hand plays, left hand rests
+      // Odd measures (1, 3, 5...): Left hand plays, right hand rests
+      if (i % 2 === 0) {
+        // Right hand (treble) plays
+        trebleMeasure = generatePatternForClef('treble', treblePattern, trebleSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, trebleRangeIndices);
+        bassMeasure = generateRestMeasure(totalBeatsPerMeasure);
+      } else {
+        // Left hand (bass) plays
+        trebleMeasure = generateRestMeasure(totalBeatsPerMeasure);
+        bassMeasure = generatePatternForClef('bass', bassPattern, bassSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, bassRangeIndices);
+      }
+    } else {
+      // Normal mode: both hands play together
+      trebleMeasure = generatePatternForClef('treble', treblePattern, trebleSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, trebleRangeIndices);
+      bassMeasure = generatePatternForClef('bass', bassPattern, bassSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, bassRangeIndices);
+    }
 
     trebleMeasures.push(trebleMeasure);
     bassMeasures.push(bassMeasure);
