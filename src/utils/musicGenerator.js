@@ -16,6 +16,9 @@
  * @param {string[]} options.rightHandPatterns - Selected right hand pattern IDs
  * @param {string[]} options.rightHandIntervals - Selected right hand interval types ('2nd', '3rd', etc.)
  * @param {string[]} options.rightHand4NoteChords - Selected right hand 4-note chord types ('major', '7th')
+ * @param {Object} options.noteRange - Optional note range constraints
+ * @param {Object} options.noteRange.treble - Treble clef range (e.g., { min: 'C4', max: 'C5' })
+ * @param {Object} options.noteRange.bass - Bass clef range (e.g., { min: 'C3', max: 'C4' })
  * @returns {Object} Object containing ABC notation string and note metadata
  *   - abcNotation: {string} ABC notation string
  *   - noteMetadata: {Array} Array of note objects with timing and pitch information
@@ -251,6 +254,46 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
   }
 }
 
+/**
+ * Convert standard note notation to note index for melody generation
+ * @param {string} noteStr - Note in standard notation (e.g., 'C4', 'G5', 'A3')
+ * @returns {number} Note index for internal use (-3 to 10+ range)
+ */
+function standardNoteToIndex(noteStr) {
+  const noteMap = { 'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6 };
+  const noteName = noteStr.charAt(0).toUpperCase();
+  const octave = parseInt(noteStr.charAt(1));
+
+  const baseIndex = noteMap[noteName];
+  // Middle C (C4) is at index 0
+  // Octave adjustments: each octave = 7 notes
+  const octaveOffset = (octave - 4) * 7;
+
+  return baseIndex + octaveOffset;
+}
+
+/**
+ * Get note range constraints as indices for a given clef
+ * @param {Object} noteRange - Note range object with treble/bass properties
+ * @param {string} clef - 'treble' or 'bass'
+ * @returns {Object} Object with minIndex and maxIndex, or null if no range specified
+ */
+function getNoteRangeIndices(noteRange, clef) {
+  if (!noteRange || !noteRange[clef]) {
+    return null;
+  }
+
+  const range = noteRange[clef];
+  if (!range.min || !range.max) {
+    return null;
+  }
+
+  return {
+    minIndex: standardNoteToIndex(range.min),
+    maxIndex: standardNoteToIndex(range.max)
+  };
+}
+
 export function generateRandomABC(options, exerciseId = null) {
   // Default if not provided in settings
   const {
@@ -266,7 +309,8 @@ export function generateRandomABC(options, exerciseId = null) {
     rightHandIntervals = ['2nd'],
     rightHand4NoteChords = ['major'],
     leftHandBrokenChords = ['1-3-5-3'],
-    swapHandPatterns = false
+    swapHandPatterns = false,
+    noteRange = null  // Optional: { treble: { min: 'C4', max: 'C5' }, bass: { min: 'C3', max: 'C4' } }
   } = options;
 
   // Parse time signature
@@ -296,6 +340,10 @@ export function generateRandomABC(options, exerciseId = null) {
   // Generate chord progression for the piece
   const chordProgression = generateChordProgression(measures, key, chordProgressions);
   
+  // Get note range indices for each clef
+  const trebleRangeIndices = getNoteRangeIndices(noteRange, 'treble');
+  const bassRangeIndices = getNoteRangeIndices(noteRange, 'bass');
+
   // Pattern configuration object for helper functions
   const patternConfig = {
     intervals,
@@ -303,26 +351,27 @@ export function generateRandomABC(options, exerciseId = null) {
     key,
     rightHandIntervals,
     rightHand4NoteChords,
-    leftHandBrokenChords
+    leftHandBrokenChords,
+    noteRange
   };
-  
+
   // Generate measures for both clefs
   let trebleMeasures = [];
   let bassMeasures = [];
-  
+
   for (let i = 0; i < measures; i++) {
     const currentChord = chordProgression[i];
-    
+
     // Determine which patterns to use for each clef based on swap setting
     const treblePattern = swapHandPatterns ? leftHandPatterns[0] : rightHandPatterns[0];
     const bassPattern = swapHandPatterns ? rightHandPatterns[0] : leftHandPatterns[0];
     const trebleSource = swapHandPatterns ? 'left' : 'right';
     const bassSource = swapHandPatterns ? 'right' : 'left';
-    
+
     // Generate measures using helper functions
-    const trebleMeasure = generatePatternForClef('treble', treblePattern, trebleSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns);
-    const bassMeasure = generatePatternForClef('bass', bassPattern, bassSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns);
-    
+    const trebleMeasure = generatePatternForClef('treble', treblePattern, trebleSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, trebleRangeIndices);
+    const bassMeasure = generatePatternForClef('bass', bassPattern, bassSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, bassRangeIndices);
+
     trebleMeasures.push(trebleMeasure);
     bassMeasures.push(bassMeasure);
   }
@@ -713,9 +762,10 @@ function generateChordProgression(numMeasures, key, selectedProgressions = null)
  * @param {Array} intervals - Available intervals
  * @param {Array} availableDurations - Available durations
  * @param {string} key - Musical key
+ * @param {Object} rangeIndices - Optional range constraints { minIndex, maxIndex }
  * @returns {string} Generated ABC measure
  */
-function generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, availableDurations, key) {
+function generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, rangeIndices = null) {
   const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
   let lastNoteIndex = 0;
   let octaveLower = false;
@@ -725,11 +775,15 @@ function generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, ava
   // Get harmonic note indices if chord is provided
   const harmonicIndices = currentChord ? getHarmonicNoteIndices(currentChord, key) : null;
 
+  // Determine bounds - use rangeIndices if provided, otherwise use default treble range
+  const minBound = rangeIndices ? rangeIndices.minIndex : -3;
+  const maxBound = rangeIndices ? rangeIndices.maxIndex : 10;
+
   // Fill measure with random notes
   while (beatsUsed < totalBeatsPerMeasure) {
     let candidateIndex;
     let interval = 0;
-    
+
     // 10% chance to use harmonic note, 90% chance to use interval-based movement
     if (harmonicIndices && Math.random() < 0.1) {
       const harmonicIndex = harmonicIndices[Math.floor(Math.random() * harmonicIndices.length)];
@@ -739,12 +793,12 @@ function generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, ava
       interval = Math.random() < 0.5 ? -interval : interval;
       candidateIndex = lastNoteIndex + interval;
     }
-  
-    // Clamp to bounds (treble clef range)
-    if (candidateIndex > 10) {
+
+    // Clamp to bounds (use custom range if provided)
+    if (candidateIndex > maxBound) {
       candidateIndex = lastNoteIndex - Math.abs(interval || 1);
     }
-    if (candidateIndex < -3) {
+    if (candidateIndex < minBound) {
       candidateIndex = lastNoteIndex + Math.abs(interval || 1);
     }
     lastNoteIndex = candidateIndex;
@@ -795,7 +849,7 @@ function generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, ava
   return measure + '|';
 }
 
-function generateRightHandPattern(pattern, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, rightHandIntervals, rightHand4NoteChords) {
+function generateRightHandPattern(pattern, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, rightHandIntervals, rightHand4NoteChords, rangeIndices = null) {
   switch (pattern) {
     case 'octaves':
       return generateRightHandOctaves(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key);
@@ -810,8 +864,8 @@ function generateRightHandPattern(pattern, currentChord, totalBeatsPerMeasure, i
       return generateRightHand4NoteChords(0, -3, 0, null, null, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, selectedChordType);
     }
     default: // 'single-notes' and others
-      // Generate simple single note melody
-      return generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, availableDurations, key);
+      // Generate simple single note melody with optional range constraints
+      return generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, rangeIndices);
   }
 }
 
@@ -849,19 +903,20 @@ function generateLeftHandPattern(pattern, currentChord, totalBeatsPerMeasure, le
  * @param {number} totalBeatsPerMeasure - Total beats in measure
  * @param {Object} patternConfig - Configuration object with intervals, durations, etc.
  * @param {boolean} swapHandPatterns - Whether patterns are swapped
+ * @param {Object} rangeIndices - Optional range constraints { minIndex, maxIndex }
  * @returns {string} Generated ABC measure with appropriate octave
  */
-function generatePatternForClef(clef, patternType, patternSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns) {
+function generatePatternForClef(clef, patternType, patternSource, currentChord, totalBeatsPerMeasure, patternConfig, swapHandPatterns, rangeIndices = null) {
   const { intervals, availableDurations, key, rightHandIntervals, rightHand4NoteChords, leftHandBrokenChords } = patternConfig;
-  
+
   let measure;
-  
+
   if (patternSource === 'right') {
-    measure = generateRightHandPattern(patternType, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, rightHandIntervals, rightHand4NoteChords);
+    measure = generateRightHandPattern(patternType, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, rightHandIntervals, rightHand4NoteChords, rangeIndices);
   } else {
     measure = generateLeftHandPattern(patternType, currentChord, totalBeatsPerMeasure, leftHandBrokenChords);
   }
-  
+
   // Apply octave adjustment if patterns are swapped
   if (swapHandPatterns) {
     if (clef === 'treble' && patternSource === 'left') {
@@ -872,7 +927,7 @@ function generatePatternForClef(clef, patternType, patternSource, currentChord, 
       measure = adjustMeasureOctave(measure, -1);
     }
   }
-  
+
   return measure;
 }
 
