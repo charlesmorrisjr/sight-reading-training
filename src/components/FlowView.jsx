@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as ABCJS from 'abcjs';
 import { FaMusic, FaKeyboard, FaRedo, FaClock, FaStop } from 'react-icons/fa';
 import HamburgerMenu from './HamburgerMenu';
@@ -10,9 +10,34 @@ import MetronomeButton from './MetronomeButton';
 import { incrementExercisesGenerated, updateLastPracticed } from '../services/database';
 import { generateRandomABC } from '../utils/musicGenerator';
 import { incrementGuestExercisesGenerated } from '../services/settingsService';
+import { getLevelSettings, saveUserLevelOverrides } from '../services/levelSettingsService';
 
-const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes = new Set(), midiNoteStates = new Map(), onUpdateCursorPosition, correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, user }) => {
+const FlowView = ({ onTempoClick, pressedMidiNotes = new Set(), midiNoteStates = new Map(), onUpdateCursorPosition, correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, user }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Get level from URL query parameter
+  const levelNumber = parseInt(searchParams.get('level')) || null;
+
+  // Load level settings (will be null if no level specified or invalid level)
+  const [settings, setSettings] = useState(null);
+
+  // Load level settings on mount or when level changes
+  useEffect(() => {
+    if (levelNumber) {
+      const levelSettings = getLevelSettings(levelNumber);
+      if (levelSettings) {
+        setSettings(levelSettings);
+        console.log(`✅ Loaded Level ${levelNumber} settings:`, levelSettings);
+      } else {
+        console.error(`❌ Invalid level number: ${levelNumber}`);
+        navigate('/levels'); // Redirect back to levels page if invalid
+      }
+    } else {
+      console.warn('⚠️ No level specified, redirecting to levels page');
+      navigate('/levels'); // Redirect to levels page if no level specified
+    }
+  }, [levelNumber, navigate]);
 
   // Current ABC notation and note metadata for first display
   const [abcNotation, setAbcNotation] = useState('');
@@ -83,6 +108,18 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   const handleMetronomeTrigger = useCallback((triggerFunction) => {
     metronomeTriggerRef.current = triggerFunction;
   }, []);
+
+  // Handle settings changes from hamburger menu (save as level overrides)
+  const handleSettingsChange = useCallback((newSettings) => {
+    if (!levelNumber) return;
+
+    // Update local state
+    setSettings(newSettings);
+
+    // Save as user override for this level
+    saveUserLevelOverrides(levelNumber, newSettings);
+    console.log(`💾 Saved Level ${levelNumber} overrides:`, newSettings);
+  }, [levelNumber]);
 
   // Reset cursor tracking refs to prevent stale note IDs from previous exercises
   const resetCursorTracking = useCallback(() => {
@@ -576,6 +613,12 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
   // abcjs TimingCallbacks-based cursor that syncs perfectly with music
   const startVisualCursor = useCallback((isPracticeMode = false, displayNumber = 1, visualObj = null, continuousCallback = null, isInitialStart = false) => {
 
+    // Guard: Don't start if settings not loaded yet
+    if (!settings) {
+      console.warn('⚠️ Settings not loaded, cannot start visual cursor');
+      return;
+    }
+
     // Cursor padding constants
     const CURSOR_TOP_PADDING = 5;
     const CURSOR_BOTTOM_PADDING = 25;
@@ -998,7 +1041,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
       }
     }
 
-  }, [settings.tempo, settings.timeSignature, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap1, noteTrackingMap2, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
+  }, [settings, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap1, noteTrackingMap2, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
 
   // Stop continuous practice
   const stopContinuousPractice = useCallback(() => {
@@ -1530,6 +1573,18 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
     }
   }, [isPracticing, onResetScoring]);
 
+  // Show loading state if settings not yet loaded
+  if (!settings) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading level settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col">
       {/* Header */}
@@ -1540,11 +1595,11 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
             {/* App Title */}
             <button
               className="flex items-center space-x-3 cursor-pointer"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/levels')}
             >
               <FaMusic className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               <div className="text-left">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Flow Mode</h1>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Flow Mode - Level {levelNumber}</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Sight Reading Training</p>
               </div>
             </button>
@@ -1590,7 +1645,7 @@ const FlowView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNotes =
               {/* Settings Menu */}
               <HamburgerMenu
                 settings={settings}
-                onSettingsChange={onSettingsChange}
+                onSettingsChange={handleSettingsChange}
               />
             </div>
           </div>
