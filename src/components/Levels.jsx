@@ -166,25 +166,34 @@ const Levels = ({ selectedLevel, onLevelChange }) => {
                   <p className="text-gray-700 leading-relaxed">
                     {levelExplanations[currentLevel].description}
                   </p>
-                  <div className="mt-6 flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <FaMusic className="text-blue-500" />
-                      <span className="text-sm text-gray-600">
-                        Level {currentLevel} Practice
-                      </span>
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <FaMusic className="text-blue-500" />
+                        <span className="text-sm text-gray-600">
+                          Level {currentLevel} Practice
+                        </span>
+                      </div>
+                      <div className="flex space-x-1">
+                        {[...Array(10)].map((_, index) => (
+                          <div
+                            key={index}
+                            className={`w-2 h-2 rounded-full ${
+                              index < currentLevel
+                                ? 'bg-blue-500'
+                                : 'bg-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex space-x-1">
-                      {[...Array(10)].map((_, index) => (
-                        <div
-                          key={index}
-                          className={`w-2 h-2 rounded-full ${
-                            index < currentLevel 
-                              ? 'bg-blue-500' 
-                              : 'bg-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => navigate(`/flow?level=${currentLevel}`)}
+                      aria-label={`Start Flow Practice for Level ${currentLevel}`}
+                    >
+                      Start Flow Practice
+                    </button>
                   </div>
                 </div>
               </div>
