@@ -1836,8 +1836,6 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <FlowView
-                    settings={settings}
-                    onSettingsChange={handleSettingsChange}
                     onTempoClick={openTempoModal}
                     pressedMidiNotes={pressedMidiNotes}
                     midiNoteStates={midiNoteStates}

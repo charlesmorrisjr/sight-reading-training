@@ -523,6 +523,12 @@ export const CHORD_PROGRESSIONS = [
  */
 export const AVAILABLE_LEFT_HAND_PATTERNS = [
   {
+    id: 'single-notes',
+    label: 'Single Notes',
+    description: 'Single note bass line',
+    supportedTimeSignatures: ['4/4', '3/4', '2/4', '6/8', '12/8', '2/2']
+  },
+  {
     id: 'block-chords',
     label: 'Block Chords',
     description: 'Whole note chords in the bass',
@@ -905,10 +911,16 @@ function generateRightHandPattern(pattern, currentChord, totalBeatsPerMeasure, i
  * @param {Array} currentChord - Current chord notes
  * @param {number} totalBeatsPerMeasure - Total beats in measure
  * @param {Array} leftHandBrokenChords - Left hand broken chord settings
+ * @param {Array} intervals - Available intervals for single notes
+ * @param {Array} availableDurations - Available note durations
+ * @param {string} key - Musical key
+ * @param {Object} rangeIndices - Optional range constraints { minIndex, maxIndex }
  * @returns {string} Generated ABC measure
  */
-function generateLeftHandPattern(pattern, currentChord, totalBeatsPerMeasure, leftHandBrokenChords) {
+function generateLeftHandPattern(pattern, currentChord, totalBeatsPerMeasure, leftHandBrokenChords, intervals, availableDurations, key, rangeIndices = null) {
   switch (pattern) {
+    case 'single-notes':
+      return generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, rangeIndices);
     case 'alberti-bass':
       return generateAlbertiBass(currentChord, totalBeatsPerMeasure);
     case 'octaves':
@@ -944,7 +956,7 @@ function generatePatternForClef(clef, patternType, patternSource, currentChord, 
   if (patternSource === 'right') {
     measure = generateRightHandPattern(patternType, currentChord, totalBeatsPerMeasure, intervals, availableDurations, key, rightHandIntervals, rightHand4NoteChords, rangeIndices);
   } else {
-    measure = generateLeftHandPattern(patternType, currentChord, totalBeatsPerMeasure, leftHandBrokenChords);
+    measure = generateLeftHandPattern(patternType, currentChord, totalBeatsPerMeasure, leftHandBrokenChords, intervals, availableDurations, key, rangeIndices);
   }
 
   // Apply octave adjustment if patterns are swapped
