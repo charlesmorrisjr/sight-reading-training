@@ -202,15 +202,45 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
           position++;
         }
       }
+      // Handle rests (z or Z in ABC notation)
+      else if (/[zZ]/.test(char)) {
+        let restEnd = position + 1;
+
+        // Get duration
+        let duration = 1; // Default to eighth note
+        const durationMatch = measureText.substring(restEnd).match(/^(\d+)/);
+        if (durationMatch) {
+          duration = parseInt(durationMatch[1]);
+          restEnd += durationMatch[1].length;
+        }
+
+        // Create metadata for rest
+        const noteId = generateNoteId();
+        const metadata = {
+          id: noteId,
+          expectedNote: 'REST',           // Special marker for rests
+          midiPitch: null,                // No MIDI pitch for rests
+          isRest: true,                   // Flag to identify rests
+          startTime: beatsUsed,
+          duration: duration,
+          measureIndex: measureIndex,
+          voiceIndex: voiceIndex,
+          abcNotation: char + (duration > 1 ? duration.toString() : '')
+        };
+        noteMetadata.push(metadata);
+
+        beatsUsed += duration;
+        position = restEnd;
+      }
       // Handle individual notes
       else if (/[A-Ga-g]/.test(char)) {
         let noteEnd = position + 1;
-        
+
         // Include accidentals and octave markers
         while (noteEnd < measureText.length && /[',#b]/.test(measureText[noteEnd])) {
           noteEnd++;
         }
-        
+
         // Get duration
         let duration = 1; // Default to eighth note
         const durationMatch = measureText.substring(noteEnd).match(/^(\d+)/);
@@ -218,9 +248,9 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
           duration = parseInt(durationMatch[1]);
           noteEnd += durationMatch[1].length;
         }
-        
+
         const noteName = measureText.substring(position, noteEnd - (durationMatch ? durationMatch[1].length : 0));
-        
+
         if (noteName) {
           const noteId = generateNoteId();
           const metadata = {
@@ -235,7 +265,7 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
           };
           noteMetadata.push(metadata);
         }
-        
+
         beatsUsed += duration;
         position = noteEnd;
       }

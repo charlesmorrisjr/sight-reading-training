@@ -852,6 +852,9 @@ const FlowView = ({ onTempoClick, pressedMidiNotes = new Set(), midiNoteStates =
 
               // Process notes from the current display only
               const currentNoteMetadata = displayNumber === 1 ? noteMetadata : noteMetadata2;
+              const currentTrackingMap = displayNumber === 1 ? noteTrackingMap1 : noteTrackingMap2;
+              const setCurrentTrackingMap = displayNumber === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
+
               currentNoteMetadata.forEach(noteData => {
                 // Convert measure-relative timing to absolute timing in eighth-note units
                 const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
@@ -869,8 +872,26 @@ const FlowView = ({ onTempoClick, pressedMidiNotes = new Set(), midiNoteStates =
 
                 // Check if note STARTS at current cursor beat (for expected notes)
                 if (Math.floor(absoluteStartBeat) === currentCursorBeat) {
-                  newNotes.add(noteData.expectedNote);
-                  newNoteIds.add(noteData.id);
+                  // Handle rests differently - don't add to expected notes, but do add ID
+                  if (noteData.isRest) {
+                    newNoteIds.add(noteData.id);
+                    // Automatically mark rest as correct (no MIDI input required)
+                    const trackedNote = currentTrackingMap.get(noteData.id);
+                    if (trackedNote && trackedNote.status === 'unplayed') {
+                      setCurrentTrackingMap(prevMap => {
+                        const newMap = new Map(prevMap);
+                        newMap.set(noteData.id, { ...trackedNote, status: 'correct' });
+                        return newMap;
+                      });
+                      // Highlight the rest as correct
+                      highlightNoteById(noteData.id, 'correct', trackedNote);
+                      console.log(`✅REST: ${noteData.id} auto-marked correct`);
+                    }
+                  } else {
+                    // Regular note - add to expected notes for scoring
+                    newNotes.add(noteData.expectedNote);
+                    newNoteIds.add(noteData.id);
+                  }
                 }
               });
 
