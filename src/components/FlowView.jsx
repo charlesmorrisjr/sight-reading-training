@@ -1532,9 +1532,10 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       // LEGATO FIX: Check MIDI note lifecycle to determine if this should be scored
       const noteState = midiNoteStates.get(pressedNote);
       if (noteState) {
-        // If note is held from previous position and wasn't released/re-pressed, skip scoring
-        if (noteState.heldFromPreviousPosition && !noteState.wasReleasedAndRepressed) {
-          console.log(`⏭️SKIP: ${pressedNote} held=true repress=false`);
+        // If note is held from previous position, skip scoring (requires release + re-press for each note)
+        // This enforces strict sight-reading practice - no holding keys across multiple notes
+        if (noteState.heldFromPreviousPosition) {
+          console.log(`⏭️SKIP: ${pressedNote} (held from previous position - release and re-press required)`);
           processedNotesInThisCycle.add(pressedNote); // Mark as processed to prevent re-evaluation
           return;
         }

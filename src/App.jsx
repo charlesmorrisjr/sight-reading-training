@@ -1576,7 +1576,8 @@ function AppContent() {
             ...existingState,
             isCurrentlyPressed: false,
             lastReleaseTime: currentTime,
-            wasReleasedAndRepressed: false // Reset when released
+            wasReleasedAndRepressed: false, // Reset when released
+            heldFromPreviousPosition: false // CRITICAL: Reset held flag on release
           });
         }
       }
