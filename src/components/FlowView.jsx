@@ -12,7 +12,7 @@ import { generateRandomABC } from '../utils/musicGenerator';
 import { incrementGuestExercisesGenerated } from '../services/settingsService';
 import { getLevelSettings, saveUserLevelOverrides } from '../services/levelSettingsService';
 
-const FlowView = ({ onTempoClick, pressedMidiNotes = new Set(), midiNoteStates = new Map(), onUpdateCursorPosition, correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, user }) => {
+const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), onUpdateCursorPosition, correctNotesCount = 0, wrongNotesCount = 0, onCorrectNote, onWrongNote, onResetScoring, onPracticeEnd, isMetronomeActive, onMetronomeToggle, showPostPracticeResults = false, onResetPostPracticeResults, user }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -120,6 +120,32 @@ const FlowView = ({ onTempoClick, pressedMidiNotes = new Set(), midiNoteStates =
     saveUserLevelOverrides(levelNumber, newSettings);
     console.log(`💾 Saved Level ${levelNumber} overrides:`, newSettings);
   }, [levelNumber]);
+
+  // State for FlowView's own tempo modal
+  const [tempoModalOpen, setTempoModalOpen] = useState(false);
+
+  // Handle tempo changes - update FlowView's local settings
+  const handleTempoChange = useCallback((newTempo) => {
+    if (!levelNumber || !settings) return;
+
+    // Update local settings with new tempo
+    const newSettings = { ...settings, tempo: newTempo };
+    setSettings(newSettings);
+
+    // Save as user override for this level
+    saveUserLevelOverrides(levelNumber, newSettings);
+    console.log(`🎵 Updated Level ${levelNumber} tempo to ${newTempo} BPM`);
+  }, [levelNumber, settings]);
+
+  // Open FlowView's tempo modal (ignore parent's modal)
+  const handleTempoClick = useCallback(() => {
+    setTempoModalOpen(true);
+  }, []);
+
+  // Close FlowView's tempo modal
+  const closeTempoModal = useCallback(() => {
+    setTempoModalOpen(false);
+  }, []);
 
   // Reset cursor tracking refs to prevent stale note IDs from previous exercises
   const resetCursorTracking = useCallback(() => {
@@ -1641,7 +1667,7 @@ const FlowView = ({ onTempoClick, pressedMidiNotes = new Set(), midiNoteStates =
 
               {/* Tempo Control */}
               <button
-                onClick={onTempoClick}
+                onClick={handleTempoClick}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 title="Adjust Tempo"
               >
@@ -1771,6 +1797,15 @@ const FlowView = ({ onTempoClick, pressedMidiNotes = new Set(), midiNoteStates =
           )}
         </div>
       </main>
+
+      {/* FlowView's own Tempo Modal */}
+      {tempoModalOpen && (
+        <TempoSelector
+          tempo={settings.tempo}
+          onTempoChange={handleTempoChange}
+          onClose={closeTempoModal}
+        />
+      )}
     </div>
   );
 };
