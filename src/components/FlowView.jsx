@@ -1468,14 +1468,15 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
       console.log(`📊MISSED: ${missedCount} notes`);
 
-      // Score all candidate wrong notes that were pressed
-      candidateWrongNotesRef.current.forEach(wrongKey => {
-        onWrongNote(wrongKey);
-        console.log(`❌WRONG: ${wrongKey} (finalized)`);
-      });
-
-      // Clear candidate wrongs for new position
-      candidateWrongNotesRef.current.clear();
+      // Clear deferred wrong notes without scoring them
+      // We only increment wrong counter for notes that are visually marked as incorrect (red)
+      // Deferred notes are exploratory key presses that either:
+      // 1. Match the next position (early correct press) - will be scored as correct
+      // 2. Were released before cursor moved - no visual feedback, so no penalty
+      if (candidateWrongNotesRef.current.size > 0) {
+        console.log(`🧹CLEAR: ${candidateWrongNotesRef.current.size} deferred notes (not scored)`);
+        candidateWrongNotesRef.current.clear();
+      }
 
       scoringLockedRef.current = false;
       previousActiveNoteIdsRef.current = new Set(currentActiveNoteIds);
