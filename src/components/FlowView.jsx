@@ -289,7 +289,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
   }, []);
 
   // Helper function to find note DOM element by metadata (fallback for bass clef notes)
-  const findNoteElementByMetadata = useCallback((noteMetadata, allNoteMetadata, displayNumber) => {
+  const findNoteElementByMetadata = useCallback((noteMetadata, displayNumber) => {
     console.log("Finding:", noteMetadata)
 
     // Use the SVG ID for direct, fast access
@@ -299,67 +299,24 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       return null;
     }
 
-    // Build selector using ABCJS classes: voice, measure, and note count
-    const voiceClass = `.abcjs-v${noteMetadata.voiceIndex}`;
-    const measureClass = `.abcjs-m${noteMetadata.measureIndex}`;
-    const noteIndexClass = `.abcjs-n${noteMetadata.noteIndex}`;
+    // Use ABCJS classes for exact matching
+    // abcjs-v{voice} = voice index (0=treble, 1=bass)
+    // abcjs-m{measure} = measure index
+    // abcjs-n{noteIndex} = sequential note position within measure/voice (matches musicGenerator noteIndex)
+    if (noteMetadata.noteIndex !== undefined) {
+      const selector = `.abcjs-v${noteMetadata.voiceIndex}.abcjs-m${noteMetadata.measureIndex}.abcjs-n${noteMetadata.noteIndex}.abcjs-note`;
+      const exactMatch = svgContainer.querySelector(selector);
 
-    // Query all notes in the same voice and measure
-    const selector = `${voiceClass}${measureClass}${noteIndexClass}.abcjs-note`;
-    const candidateElements = svgContainer.querySelectorAll(selector);
-
-    if (candidateElements.length === 0) return null;
-
-    // If only one candidate, return it
-    if (candidateElements.length === 1) return candidateElements[0];
-
-    // Multiple candidates: try various matching strategies
-    // const notePositionInMeasure = Math.floor(noteMetadata.startTime / 2);
-/*
-    // Strategy 1: Match by position class (.abcjs-n{position})
-    for (const element of candidateElements) {
-      if (element.classList.contains(`abcjs-n${notePositionInMeasure}`)) {
-        return element;
+      if (exactMatch) {
+        console.log(`✅ Exact ABCJS class match: ${noteMetadata.id} (${noteMetadata.expectedNote}) → v${noteMetadata.voiceIndex} m${noteMetadata.measureIndex} n${noteMetadata.noteIndex}`);
+        return exactMatch;
+      } else {
+        console.warn(`⚠️ No exact match for selector: ${selector}`);
       }
     }
-*/
-/*
-    // Strategy 2: Match by duration class (helps narrow down when multiple notes at different beats)
-    const durationInEighths = noteMetadata.duration;
-    const durationClass = `abcjs-d${durationInEighths}`;
 
-    const matchingDuration = Array.from(candidateElements).filter(el =>
-      el.classList.contains(durationClass)
-    );
-
-    // If only one note with this duration in this measure/voice, use it
-    if (matchingDuration.length === 1) {
-      return matchingDuration[0];
-    }
-*/
-
-
-    // Strategy 3: Position-based selection using note order in measure
-    // Calculate which note this is within the measure by counting notes that start before it
-    const notesInThisMeasureVoice = allNoteMetadata.filter(n =>
-      n.voiceIndex === noteMetadata.voiceIndex &&
-      n.measureIndex === noteMetadata.measureIndex
-    );
-
-    // Sort by startTime to get chronological order within the measure
-    const sortedNotes = notesInThisMeasureVoice.sort((a, b) => a.startTime - b.startTime);
-
-    // Find this note's index in the sorted list (0-based)
-    const noteIndex = sortedNotes.findIndex(n => n.id === noteMetadata.id);
-
-    if (noteIndex >= 0 && noteIndex < candidateElements.length) {
-      const selected = candidateElements[noteIndex];
-      console.log(`✅ Position-based selection: ${noteMetadata.id} at startTime=${noteMetadata.startTime} → candidate ${noteIndex}/${candidateElements.length}`);
-      return selected;
-    }
-
-    // All strategies failed
-    console.warn(`⚠️ No exact match for note ${noteMetadata.id} (${noteMetadata.expectedNote}) at m${noteMetadata.measureIndex} pos${notePositionInMeasure} - found ${candidateElements.length} candidates`);
+    // Fallback: noteIndex missing (shouldn't happen with current musicGenerator)
+    console.warn(`⚠️ noteIndex missing for ${noteMetadata.id} (${noteMetadata.expectedNote})`);
     return null;
   }, []);
 
@@ -411,11 +368,10 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
     // Fallback: Query DOM directly using metadata (for bass clef notes)
     if ((!domElement || !domElement.classList) && noteMetadata) {
-      // Determine display number and get full metadata array
+      // Determine display number
       const displayNum = noteMetadata.id.startsWith('ex1_') ? 1 : 2;
-      const fullMetadata = displayNum === 1 ? noteMetadata : noteMetadata2;
 
-      domElement = findNoteElementByMetadata(noteMetadata, fullMetadata, displayNum);
+      domElement = findNoteElementByMetadata(noteMetadata, displayNum);
       if (domElement) {
         console.log(`🔍Fallback query found element for ${noteId}`);
       }
@@ -456,7 +412,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     }
 
     console.log(`Successfully highlighted note ID ${noteId} (${noteMetadata?.expectedNote || 'unknown'}) as ${highlightType}`);
-  }, [findNoteElementByMetadata, getElementToHighlight, noteMetadata2]);
+  }, [findNoteElementByMetadata, getElementToHighlight]);
 
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
@@ -808,7 +764,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       allActiveNoteIds.forEach(noteId => {
         const noteInfo = currentNoteMetadata.find(n => n.id === noteId);
         if (noteInfo) {
-          const domElement = findNoteElementByMetadata(noteInfo, currentNoteMetadata, displayNumber);
+          const domElement = findNoteElementByMetadata(noteInfo, displayNumber);
           if (domElement) {
             currentCursorElementsRef.current.set(noteId, domElement);
           } else {
@@ -1475,8 +1431,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
           // Third fallback: Query DOM directly (for bass clef notes)
           if (!domElement && !prevElement) {
             const displayNum = currentPlayingDisplayRef.current;
-            const fullMetadata = displayNum === 1 ? noteMetadata : noteMetadata2;
-            queryElement = findNoteElementByMetadata(note, fullMetadata, displayNum);
+            queryElement = findNoteElementByMetadata(note, displayNum);
           }
 
           if (domElement && domElement.classList) {
