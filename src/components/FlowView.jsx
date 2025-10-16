@@ -822,7 +822,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       timingCallbacks = new ABCJS.TimingCallbacks(targetVisualObj, {
         qpm: settings.tempo, // Quarter notes per minute - matches settings
         beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
-        extraMeasuresAtBeginning: (isPracticeMode && isInitialStart) ? 2 : 0, // Add 2 countdown measures only for initial practice start
+        extraMeasuresAtBeginning: 0, // Disabled countdown - start music immediately
 
         // Event callback - called for each musical event (note, rest, etc.)
         eventCallback: (event) => {
@@ -929,24 +929,25 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
           // if (event) {
           // }
 
-        // For practice mode, hide cursor during countdown (only on initial start)
+        // Countdown disabled - cursor starts immediately on first note
+        // (Keeping code commented for potential future re-enablement)
+        /*
         if (isPracticeMode && isInitialStart && event.milliseconds !== undefined) {
           const tempo = settings.tempo || 120;
           const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
 
-          // Calculate dynamic countdown beats based on time signature
           const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
-          const countdownBeats = beatsPerMeasure * 2; // 2 measures countdown
+          const countdownBeats = beatsPerMeasure * 2;
 
           if (currentTimeInBeats < countdownBeats) {
-            // During countdown - hide cursor by positioning it off-screen
             cursorLine.setAttribute('x1', -100);
             cursorLine.setAttribute('y1', -100);
             cursorLine.setAttribute('x2', -100);
             cursorLine.setAttribute('y2', -100);
-            return; // Skip normal cursor positioning
+            return;
           }
         }
+        */
 
         // Use abcjs-provided positioning data for precise cursor placement
         const cursorX = (event.left + 5) || 0;    // Add 5px to the left to center the cursor
