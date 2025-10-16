@@ -15,6 +15,7 @@ dist-ssr
 *.local
 .serena
 
+working.md
 prompts.md
 solved_problems.md
 MIDI-Off Note Detection.md
