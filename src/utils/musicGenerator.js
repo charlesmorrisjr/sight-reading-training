@@ -158,7 +158,7 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
   function parseNotesInMeasure(measureText, voiceIndex, measureIndex, startingBeats) {
     let position = 0;
     let beatsUsed = startingBeats;
-    let notePositionInMeasure = 0;    // For DOM lookup later
+    let noteIndex = 0;    // For DOM lookup later
 
     while (position < measureText.length) {
       const char = measureText[position];
@@ -189,7 +189,7 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
               duration: duration,
               measureIndex: measureIndex,
               voiceIndex: voiceIndex,
-              positionInMeasure: notePositionInMeasure,  // For DOM lookup later
+              noteIndex: noteIndex,  // For DOM lookup later
               abcNotation: cleanNote + (duration > 1 ? duration.toString() : ''),
               wasScored: false
             };
@@ -199,7 +199,7 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
         
         beatsUsed += duration;
         position = chordEnd + 1;
-        notePositionInMeasure++;    // For DOM lookup later
+        noteIndex++;    // For DOM lookup later
         
         // Skip duration digits
         while (position < measureText.length && /\d/.test(measureText[position])) {
@@ -229,7 +229,7 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
           duration: duration,
           measureIndex: measureIndex,
           voiceIndex: voiceIndex,
-          positionInMeasure: notePositionInMeasure,  // For DOM lookup later
+          noteIndex: noteIndex,  // For DOM lookup later
           abcNotation: char + (duration > 1 ? duration.toString() : ''),
           wasScored: false
         };
@@ -267,7 +267,7 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
             duration: duration,
             measureIndex: measureIndex,
             voiceIndex: voiceIndex,
-            positionInMeasure: notePositionInMeasure,  // For DOM lookup later
+            noteIndex: noteIndex,  // For DOM lookup later
             abcNotation: noteName + (duration > 1 ? duration.toString() : ''),
             wasScored: false
           };
@@ -276,7 +276,7 @@ function parseAbcForNoteMetadata(abcString, timeSignature, exerciseId = null) {
 
         beatsUsed += duration;
         position = noteEnd;
-        notePositionInMeasure++;    // For DOM lookup later
+        noteIndex++;    // For DOM lookup later
       }
       else {
         position++;

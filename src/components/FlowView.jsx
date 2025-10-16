@@ -299,12 +299,13 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       return null;
     }
 
-    // Build selector using ABCJS classes: voice, measure, and note type
+    // Build selector using ABCJS classes: voice, measure, and note count
     const voiceClass = `.abcjs-v${noteMetadata.voiceIndex}`;
     const measureClass = `.abcjs-m${noteMetadata.measureIndex}`;
+    const noteIndexClass = `.abcjs-n${noteMetadata.noteIndex}`;
 
     // Query all notes in the same voice and measure
-    const selector = `${voiceClass}${measureClass}.abcjs-note`;
+    const selector = `${voiceClass}${measureClass}${noteIndexClass}.abcjs-note`;
     const candidateElements = svgContainer.querySelectorAll(selector);
 
     if (candidateElements.length === 0) return null;
@@ -313,7 +314,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     if (candidateElements.length === 1) return candidateElements[0];
 
     // Multiple candidates: try various matching strategies
-    const notePositionInMeasure = Math.floor(noteMetadata.startTime / 2);
+    // const notePositionInMeasure = Math.floor(noteMetadata.startTime / 2);
 /*
     // Strategy 1: Match by position class (.abcjs-n{position})
     for (const element of candidateElements) {
@@ -336,6 +337,8 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       return matchingDuration[0];
     }
 */
+
+
     // Strategy 3: Position-based selection using note order in measure
     // Calculate which note this is within the measure by counting notes that start before it
     const notesInThisMeasureVoice = allNoteMetadata.filter(n =>
