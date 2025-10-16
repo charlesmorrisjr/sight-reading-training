@@ -102,7 +102,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
   // Ref to track DOM elements at the current cursor position
   const currentCursorElementsRef = useRef(new Map()); // Map of noteId -> DOM element
 
-
+  // Refs for silent synth (to populate ev.midiPitches without audio playback)
+  const silentAudioContextRef = useRef(null);
+  const silentSynthRef = useRef(null);
 
   // Handle metronome external beat trigger
   const handleMetronomeTrigger = useCallback((triggerFunction) => {
@@ -287,9 +289,8 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
   }, []);
 
   // Helper function to find note DOM element by metadata (fallback for bass clef notes)
-  const findNoteElementByMetadata = useCallback((noteMetadata) => {
-    // Determine which exercise this note belongs to based on note ID
-    const displayNumber = noteMetadata.id.startsWith('ex1_') ? 1 : 2;
+  const findNoteElementByMetadata = useCallback((noteMetadata, allNoteMetadata, displayNumber) => {
+    console.log("Finding:", noteMetadata)
 
     // Use the SVG ID for direct, fast access
     const svgContainer = document.getElementById(`exercise-${displayNumber}-svg`);
@@ -313,14 +314,15 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
     // Multiple candidates: try various matching strategies
     const notePositionInMeasure = Math.floor(noteMetadata.startTime / 2);
-
+/*
     // Strategy 1: Match by position class (.abcjs-n{position})
     for (const element of candidateElements) {
       if (element.classList.contains(`abcjs-n${notePositionInMeasure}`)) {
         return element;
       }
     }
-
+*/
+/*
     // Strategy 2: Match by duration class (helps narrow down when multiple notes at different beats)
     const durationInEighths = noteMetadata.duration;
     const durationClass = `abcjs-d${durationInEighths}`;
@@ -333,9 +335,27 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     if (matchingDuration.length === 1) {
       return matchingDuration[0];
     }
+*/
+    // Strategy 3: Position-based selection using note order in measure
+    // Calculate which note this is within the measure by counting notes that start before it
+    const notesInThisMeasureVoice = allNoteMetadata.filter(n =>
+      n.voiceIndex === noteMetadata.voiceIndex &&
+      n.measureIndex === noteMetadata.measureIndex
+    );
 
-    // CRITICAL: Don't return wrong note - return null if we can't find exact match
-    // Prevents highlighting notes ahead of cursor when position matching fails
+    // Sort by startTime to get chronological order within the measure
+    const sortedNotes = notesInThisMeasureVoice.sort((a, b) => a.startTime - b.startTime);
+
+    // Find this note's index in the sorted list (0-based)
+    const noteIndex = sortedNotes.findIndex(n => n.id === noteMetadata.id);
+
+    if (noteIndex >= 0 && noteIndex < candidateElements.length) {
+      const selected = candidateElements[noteIndex];
+      console.log(`✅ Position-based selection: ${noteMetadata.id} at startTime=${noteMetadata.startTime} → candidate ${noteIndex}/${candidateElements.length}`);
+      return selected;
+    }
+
+    // All strategies failed
     console.warn(`⚠️ No exact match for note ${noteMetadata.id} (${noteMetadata.expectedNote}) at m${noteMetadata.measureIndex} pos${notePositionInMeasure} - found ${candidateElements.length} candidates`);
     return null;
   }, []);
@@ -388,7 +408,11 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
     // Fallback: Query DOM directly using metadata (for bass clef notes)
     if ((!domElement || !domElement.classList) && noteMetadata) {
-      domElement = findNoteElementByMetadata(noteMetadata);
+      // Determine display number and get full metadata array
+      const displayNum = noteMetadata.id.startsWith('ex1_') ? 1 : 2;
+      const fullMetadata = displayNum === 1 ? noteMetadata : noteMetadata2;
+
+      domElement = findNoteElementByMetadata(noteMetadata, fullMetadata, displayNum);
       if (domElement) {
         console.log(`🔍Fallback query found element for ${noteId}`);
       }
@@ -429,7 +453,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     }
 
     console.log(`Successfully highlighted note ID ${noteId} (${noteMetadata?.expectedNote || 'unknown'}) as ${highlightType}`);
-  }, [findNoteElementByMetadata, getElementToHighlight]);
+  }, [findNoteElementByMetadata, getElementToHighlight, noteMetadata2]);
 
   // Generate new exercise
   const handleGenerateNew = useCallback(async () => {
@@ -636,8 +660,8 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     setIsVisualsReady2(true);
   }, []);
 
-  // abcjs TimingCallbacks-based cursor that syncs perfectly with music
-  const startVisualCursor = useCallback((isPracticeMode = false, displayNumber = 1, visualObj = null, continuousCallback = null, isInitialStart = false) => {
+  // abcjs TimingCallbacks-based cursor with silent synth for ev.midiPitches
+  const startVisualCursor = useCallback(async (isPracticeMode = false, displayNumber = 1, visualObj = null, continuousCallback = null, isInitialStart = false) => {
 
     // Guard: Don't start if settings not loaded yet
     if (!settings) {
@@ -692,6 +716,145 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       cursorControlRef.current = createCursorControl(isPracticeMode);
       console.log('🎯 Created CursorControl for practice mode');
     }
+
+    // Define note processing function using ev.midiPitches with start time for perfect matching
+    const processNotesAtEvent = (ev) => {
+      const allActiveNoteIds = new Set();  // All note IDs currently sounding
+      const newNotes = new Set();          // Only notes that START at current position
+      const newNoteIds = new Set();        // Only note IDs that START at current position
+
+      // Extract MIDI pitches from the event
+      if (!ev.midiPitches || ev.midiPitches.length === 0) {
+        console.log(`⚠️ EVENT: No midiPitches at measure=${ev.measureNumber}`);
+        return;
+      }
+
+      console.log("MIDI",ev.midiPitches)
+
+      const eventMeasure = ev.measureNumber || 0;
+      const eventMidiPitches = ev.midiPitches.map(mp => mp.pitch);
+
+      console.log(`🎵EVENT: measure=${eventMeasure} pitches=[${eventMidiPitches.join(',')}]`);
+
+      // Process notes from the current display only
+      const currentNoteMetadata = displayNumber === 1 ? noteMetadata : noteMetadata2;
+      const currentTrackingMap = displayNumber === 1 ? noteTrackingMap1 : noteTrackingMap2;
+      const setCurrentTrackingMap = displayNumber === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
+
+      // Process each pitch object to match by MIDI pitch and measure
+      ev.midiPitches.forEach(pitchObj => {
+        const targetPitch = pitchObj.pitch;
+
+        console.log("Metadata:",currentNoteMetadata)
+
+        // Find matching note in metadata using sequential matching with wasScored
+        // Iterate through the note metadata until the first note in sequence is found that matches and was not scored yet
+        for (let i = 0; i < currentNoteMetadata.length; i++) {
+          let noteData = currentNoteMetadata[i];
+          if (noteData.measureIndex === eventMeasure && noteData.midiPitch === targetPitch && noteData.wasScored === false) {
+            console.log("Found", noteData);
+            noteData.wasScored = true;
+
+            // Handle rests differently
+            if (noteData.isRest) {
+              newNoteIds.add(noteData.id);
+              // Automatically mark rest as correct (no MIDI input required)
+              const trackedNote = currentTrackingMap.get(noteData.id);
+              if (trackedNote && trackedNote.status === 'unplayed') {
+                setCurrentTrackingMap(prevMap => {
+                  const newMap = new Map(prevMap);
+                  newMap.set(noteData.id, { ...trackedNote, status: 'correct' });
+                  return newMap;
+                });
+                // Highlight the rest as correct
+                highlightNoteById(noteData.id, 'correct', trackedNote);
+                console.log(`✅REST: ${noteData.id} auto-marked correct`);
+              }
+            } else {
+              // Regular note - add to expected notes for scoring
+              allActiveNoteIds.add(noteData.id);
+              newNotes.add(noteData.expectedNote);
+              newNoteIds.add(noteData.id);
+            }
+
+            break;
+          }
+        }
+      });
+
+      // currentNotesRef = expected notes to play (NEW notes only)
+      currentNotesRef.current = newNotes;
+      // currentNoteIdsRef = ALL currently sounding note IDs (for sustained note skip logic)
+      currentNoteIdsRef.current = allActiveNoteIds;
+
+      console.log(`🎼EVENT NOTES: exp=[${Array.from(newNotes).join(',')}] all=[${Array.from(allActiveNoteIds).join(',')}]`);
+
+      // CRITICAL: Trigger React effect to check for missed notes
+      // Refs don't trigger re-renders, so we use state to force effect to run
+      setCursorMoveTimestamp(Date.now());
+
+      // CRITICAL: Save current cursor elements BEFORE clearing (for deferred highlighting)
+      // This must happen here (before clear) because React effects run AFTER this callback
+      previousCursorElementsRef.current = new Map(currentCursorElementsRef.current);
+
+      // Capture DOM elements at current cursor position for highlighting
+      currentCursorElementsRef.current.clear();
+
+      // Always use findNoteElementByMetadata for reliable DOM element lookup
+      // (ev.elements has unreliable index mapping, so we skip it)
+      allActiveNoteIds.forEach(noteId => {
+        const noteInfo = currentNoteMetadata.find(n => n.id === noteId);
+        if (noteInfo) {
+          const domElement = findNoteElementByMetadata(noteInfo, currentNoteMetadata, displayNumber);
+          if (domElement) {
+            currentCursorElementsRef.current.set(noteId, domElement);
+          } else {
+            console.warn(`⚠️ Could not find DOM element for ${noteId} (${noteInfo.expectedNote})`);
+          }
+        }
+      });
+    };
+
+    // Initialize silent synth to populate ev.midiPitches (async)
+    const initSilentSynth = async () => {
+      try {
+        // Only init once per session
+        if (!silentAudioContextRef.current) {
+          // Create muted AudioContext
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = 0; // Completely muted
+          gainNode.connect(audioContext.destination);
+
+          // Resume if suspended (browser autoplay policy)
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+
+          silentAudioContextRef.current = audioContext;
+          console.log('✅ Created silent AudioContext for MIDI pitch data');
+        }
+
+        // Initialize synth WITHOUT calling start()
+        const synth = new ABCJS.synth.CreateSynth();
+        await synth.init({
+          audioContext: silentAudioContextRef.current,
+          visualObj: targetVisualObj,
+          options: {
+            soundFontUrl: "https://paulrosen.github.io/midi-js-soundfonts/FluidR3_GM/",
+          }
+        });
+
+        silentSynthRef.current = synth;
+        console.log('✅ Silent synth initialized (ev.midiPitches will be populated)');
+
+      } catch (error) {
+        console.error('❌ Error initializing silent synth:', error);
+      }
+    };
+
+    // Init silent synth first (async), then create TimingCallbacks
+    await initSilentSynth();
 
     // Create TimingCallbacks for precise synchronization
 
@@ -841,146 +1004,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
         cursorLine.setAttribute('x2', cursorX);
         cursorLine.setAttribute('y2', cursorBottomY);
 
-        // Note: Automatic highlighting removed - notes will only highlight when user plays correct MIDI notes
-
-        // 🎮 Calculate current active notes using ABCJS event timing
-        // This approach uses event.milliseconds for precise timing that works across all BPM values
-        // and eliminates timing lag between beat calculation and cursor display
-        if (isPracticeMode && event && event.milliseconds !== undefined) {
-          // Validate tempo to prevent division by zero or invalid values
-          let tempo = settings.tempo || 120;
-          if (tempo <= 0 || tempo > 300) {
-            tempo = 120;
-          }
-
-          // Convert ABCJS milliseconds to musical beats
-          // This formula works for any BPM: (ms / 1000 seconds) * (beats per minute / 60 seconds) = beats
-          const currentTimeInBeats = (event.milliseconds / 1000) * (tempo / 60);
-
-          // Only process notes after countdown period (if this is initial start)
-          // Calculate dynamic countdown beats based on time signature
-          const [beatsPerMeasure] = settings.timeSignature.split('/').map(Number);
-          const countdownBeats = isInitialStart ? (beatsPerMeasure * 2) : 0; // 2 measures countdown only for initial start
-          if (currentTimeInBeats >= countdownBeats) {
-            // Adjust for countdown offset
-            const adjustedCurrentTime = currentTimeInBeats - countdownBeats;
-
-            // Detect cursor position change: only update expected notes when cursor moves to new beat
-            const currentCursorBeat = Math.floor(adjustedCurrentTime);
-            const cursorMoved = currentCursorBeat !== previousCursorBeatRef.current;
-
-            if (cursorMoved) {
-              previousCursorBeatRef.current = currentCursorBeat;
-
-              const allActiveNoteIds = new Set();  // All note IDs currently sounding (including sustained)
-              const newNotes = new Set();          // Only notes that START at current position
-              const newNoteIds = new Set();        // Only note IDs that START at current position
-
-              // Process notes from the current display only
-              const currentNoteMetadata = displayNumber === 1 ? noteMetadata : noteMetadata2;
-              const currentTrackingMap = displayNumber === 1 ? noteTrackingMap1 : noteTrackingMap2;
-              const setCurrentTrackingMap = displayNumber === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
-
-              currentNoteMetadata.forEach(noteData => {
-                // Convert measure-relative timing to absolute timing in eighth-note units
-                const beatsPerMeasure = 8; // 4/4 time with L=1/8 (eighth note units)
-                const absoluteStartTime = noteData.startTime + (noteData.measureIndex * beatsPerMeasure);
-                const absoluteEndTime = absoluteStartTime + noteData.duration;
-
-                // Convert from eighth-note units to quarter-note beats for ABCJS timing comparison
-                const absoluteStartBeat = absoluteStartTime / 2;
-                const absoluteEndBeat = absoluteEndTime / 2;
-
-                // Check if note is currently sounding (for sustained note detection)
-                if (adjustedCurrentTime >= absoluteStartBeat && adjustedCurrentTime < absoluteEndBeat) {
-                  allActiveNoteIds.add(noteData.id);
-                }
-
-                // Check if note STARTS at current cursor beat (for expected notes)
-                if (Math.floor(absoluteStartBeat) === currentCursorBeat) {
-                  // Handle rests differently - don't add to expected notes, but do add ID
-                  if (noteData.isRest) {
-                    newNoteIds.add(noteData.id);
-                    // Automatically mark rest as correct (no MIDI input required)
-                    const trackedNote = currentTrackingMap.get(noteData.id);
-                    if (trackedNote && trackedNote.status === 'unplayed') {
-                      setCurrentTrackingMap(prevMap => {
-                        const newMap = new Map(prevMap);
-                        newMap.set(noteData.id, { ...trackedNote, status: 'correct' });
-                        return newMap;
-                      });
-                      // Highlight the rest as correct
-                      highlightNoteById(noteData.id, 'correct', trackedNote);
-                      console.log(`✅REST: ${noteData.id} auto-marked correct`);
-                    }
-                  } else {
-                    // Regular note - add to expected notes for scoring
-                    newNotes.add(noteData.expectedNote);
-                    newNoteIds.add(noteData.id);
-                  }
-                }
-              });
-
-              // currentNotesRef = expected notes to play (NEW notes only)
-              currentNotesRef.current = newNotes;
-              // currentNoteIdsRef = ALL currently sounding note IDs (for sustained note skip logic)
-              currentNoteIdsRef.current = allActiveNoteIds;
-
-              console.log(`🎼BEAT ${currentCursorBeat}: exp=[${Array.from(newNotes).join(',')}] all=[${Array.from(allActiveNoteIds).join(',')}]`);
-
-              // CRITICAL: Trigger React effect to check for missed notes
-              // Refs don't trigger re-renders, so we use state to force effect to run
-              setCursorMoveTimestamp(Date.now());
-
-              // CRITICAL: Save current cursor elements BEFORE clearing (for deferred highlighting)
-              // This must happen here (before clear) because React effects run AFTER this callback
-              previousCursorElementsRef.current = new Map(currentCursorElementsRef.current);
-
-              // Capture DOM elements at current cursor position for highlighting
-              currentCursorElementsRef.current.clear();
-
-              // Try to map DOM elements to active note IDs using ABCJS event elements
-              // console.log(`📦ELEMENTS: length=${event.elements?.length || 0}`);
-
-              if (event.elements && Array.isArray(event.elements)) {
-                event.elements.forEach((element, index) => {
-                  if (Array.isArray(element) && element.length > 0) {
-                    const domElement = element[0]; // This is the actual DOM element
-
-                    // Map this DOM element to corresponding note IDs
-                    // Since we can't directly correlate elements to note IDs, we'll use position-based mapping
-                    const allActiveNoteIdsArray = Array.from(allActiveNoteIds);
-                    if (allActiveNoteIdsArray[index]) {
-                      const noteId = allActiveNoteIdsArray[index];
-                      // const noteInfo = currentNoteMetadata.find(n => n.id === noteId);
-                      // const voice = noteInfo ? (noteInfo.voiceIndex === 0 ? 'treble' : 'bass') : 'unknown';
-
-                      currentCursorElementsRef.current.set(noteId, domElement);
-                      // console.log(`  MAP[${index}]: ${noteId} (${voice}) → ${noteInfo?.expectedNote || '?'}`);
-                    }
-                  }
-                });
-              }
-
-              // Fallback: Query DOM directly for notes missing from event.elements (typically bass clef)
-              allActiveNoteIds.forEach(noteId => {
-                if (!currentCursorElementsRef.current.has(noteId)) {
-                  const noteInfo = currentNoteMetadata.find(n => n.id === noteId);
-                  // const voice = noteInfo ? (noteInfo.voiceIndex === 0 ? 'treble' : 'bass') : 'unknown';
-
-                  if (noteInfo) {
-                    const domElement = findNoteElementByMetadata(noteInfo);
-                    if (domElement) {
-                      currentCursorElementsRef.current.set(noteId, domElement);
-                      // console.log(`  🔍QUERY: ${noteId} (${voice}) ${noteInfo.expectedNote} → FOUND`);
-                    } else {
-                      // console.log(`  ⚠️MISSING: ${noteId} (${voice}) ${noteInfo.expectedNote} → NOT FOUND`);
-                    }
-                  }
-                }
-              });
-            }
-          }
+        // Process notes at this event using MIDI pitches for perfect matching
+        if (isPracticeMode && event.midiPitches && Array.isArray(event.midiPitches)) {
+          processNotesAtEvent(event);
         }
       },
 
@@ -1445,7 +1471,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
           // Third fallback: Query DOM directly (for bass clef notes)
           if (!domElement && !prevElement) {
-            queryElement = findNoteElementByMetadata(note);
+            const displayNum = currentPlayingDisplayRef.current;
+            const fullMetadata = displayNum === 1 ? noteMetadata : noteMetadata2;
+            queryElement = findNoteElementByMetadata(note, fullMetadata, displayNum);
           }
 
           if (domElement && domElement.classList) {
@@ -1592,7 +1620,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, cursorMoveTimestamp, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition, findNoteElementByMetadata]);
+  }, [pressedMidiNotes, cursorMoveTimestamp, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition, findNoteElementByMetadata, noteMetadata, noteMetadata2]);
 
   // Reset note tracking when practice mode starts
   React.useEffect(() => {
