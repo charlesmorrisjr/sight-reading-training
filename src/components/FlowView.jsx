@@ -41,11 +41,15 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
   // Current ABC notation and note metadata for first display
   const [abcNotation, setAbcNotation] = useState('');
+  // eslint-disable-next-line no-unused-vars
   const [noteMetadata, setNoteMetadata] = useState([]);
+  const noteMetadataRef = useRef([]); // Ref for synchronous access to current metadata
 
   // Second display ABC notation and note metadata
   const [abcNotation2, setAbcNotation2] = useState('');
+  // eslint-disable-next-line no-unused-vars
   const [noteMetadata2, setNoteMetadata2] = useState([]);
+  const noteMetadata2Ref = useRef([]); // Ref for synchronous access to current metadata
 
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -60,6 +64,8 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
   const [isVisualsReady2, setIsVisualsReady2] = useState(false);
   const visualObjectRef = useRef(null);
   const visualObjectRef2 = useRef(null);
+  const isVisualsReadyRef = useRef(false);
+  const isVisualsReady2Ref = useRef(false);
 
   // Beat tracking state for debugging display
   const [beatInfo, setBeatInfo] = useState('');
@@ -432,11 +438,13 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       const settingsFor4Measures = { ...settings, measures: 4 };
       const result1 = generateRandomABC(settingsFor4Measures, 'ex1');
       setAbcNotation(result1.abcNotation);
+      noteMetadataRef.current = result1.noteMetadata; // Update ref immediately for synchronous access
       setNoteMetadata(result1.noteMetadata);
 
       // Generate second 4-measure exercise with scoped ID 'ex2'
       const result2 = generateRandomABC(settingsFor4Measures, 'ex2');
       setAbcNotation2(result2.abcNotation);
+      noteMetadata2Ref.current = result2.noteMetadata; // Update ref immediately for synchronous access
       setNoteMetadata2(result2.noteMetadata);
 
       // Initialize separate note tracking maps for each exercise
@@ -535,10 +543,16 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
       // Update the appropriate display's notation and metadata
       if (displayNumber === 1) {
+        isVisualsReadyRef.current = false; // Reset ref immediately for synchronous access
+        setIsVisualsReady(false); // Reset visual ready flag - will be set true when MusicDisplay renders
         setAbcNotation(result.abcNotation);
+        noteMetadataRef.current = result.noteMetadata; // Update ref immediately for synchronous access
         setNoteMetadata(result.noteMetadata);
       } else {
+        isVisualsReady2Ref.current = false; // Reset ref immediately for synchronous access
+        setIsVisualsReady2(false); // Reset visual ready flag - will be set true when MusicDisplay renders
         setAbcNotation2(result.abcNotation);
+        noteMetadata2Ref.current = result.noteMetadata; // Update ref immediately for synchronous access
         setNoteMetadata2(result.noteMetadata);
       }
 
@@ -610,12 +624,14 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
   // Handle when visual objects are ready from MusicDisplay
   const handleVisualsReady = useCallback(async (visualObj) => {
     visualObjectRef.current = visualObj;
+    isVisualsReadyRef.current = true; // Update ref immediately for synchronous access
     setIsVisualsReady(true);
   }, []);
 
   // Handle when visual objects are ready from second MusicDisplay
   const handleVisualsReady2 = useCallback(async (visualObj) => {
     visualObjectRef2.current = visualObj;
+    isVisualsReady2Ref.current = true; // Update ref immediately for synchronous access
     setIsVisualsReady2(true);
   }, []);
 
@@ -695,8 +711,8 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
       console.log(`🎵EVENT: measure=${eventMeasure} pitches=[${eventMidiPitches.join(',')}]`);
 
-      // Process notes from the current display only
-      const currentNoteMetadata = displayNumber === 1 ? noteMetadata : noteMetadata2;
+      // Process notes from the current display only (use refs for current values)
+      const currentNoteMetadata = displayNumber === 1 ? noteMetadataRef.current : noteMetadata2Ref.current;
       const currentTrackingMap = displayNumber === 1 ? noteTrackingMap1 : noteTrackingMap2;
       const setCurrentTrackingMap = displayNumber === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
 
@@ -1077,7 +1093,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       }
     }
 
-  }, [settings, onPracticeEnd, noteMetadata, noteMetadata2, noteTrackingMap1, noteTrackingMap2, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
+  }, [settings, onPracticeEnd, noteTrackingMap1, noteTrackingMap2, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
 
   // Stop continuous practice
   const stopContinuousPractice = useCallback(() => {
@@ -1128,7 +1144,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     // Track whether this is the initial start of the practice session
     let isFirstCall = true;
 
-    const practiceNextDisplay = (displayNumber) => {
+    const practiceNextDisplay = async (displayNumber) => {
       // Check if continuous practice was stopped
       if (!continuousPracticeActiveRef.current) {
         return;
@@ -1139,6 +1155,27 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
       // Reset cursor tracking when switching to new exercise/display
       resetCursorTracking();
+
+      // Wait for visual object to be ready after background generation
+      const checkVisualReady = () => {
+        return displayNumber === 1 ? isVisualsReadyRef.current : isVisualsReady2Ref.current;
+      };
+
+      // Poll until visual is ready (with timeout)
+      const maxWaitTime = 2000; // 2 seconds max
+      const pollInterval = 50; // Check every 50ms
+      let waitedTime = 0;
+
+      while (!checkVisualReady() && waitedTime < maxWaitTime) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        waitedTime += pollInterval;
+      }
+
+      if (!checkVisualReady()) {
+        console.error(`Display ${displayNumber} visual not ready after ${maxWaitTime}ms`);
+        stopContinuousPractice();
+        return;
+      }
 
       // Get the appropriate visual object for the current display
       const visualObj = displayNumber === 1 ? visualObjectRef.current : visualObjectRef2.current;
@@ -1306,6 +1343,15 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
     updatePracticeDate();
   }, [user?.id, user?.isGuest]); // Depend on user properties
+
+  // Keep visual ready refs synchronized with state
+  React.useEffect(() => {
+    isVisualsReadyRef.current = isVisualsReady;
+  }, [isVisualsReady]);
+
+  React.useEffect(() => {
+    isVisualsReady2Ref.current = isVisualsReady2;
+  }, [isVisualsReady2]);
 
   // Keep refs synchronized with state to avoid stale closure issues
   React.useEffect(() => {
@@ -1582,7 +1628,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
     // Update previous pressed notes for next comparison
     previousPressedNotesRef.current = new Set(pressedMidiNotes);
-  }, [pressedMidiNotes, cursorMoveTimestamp, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition, findNoteElementByMetadata, noteMetadata, noteMetadata2]);
+  }, [pressedMidiNotes, cursorMoveTimestamp, midiNoteStates, isPracticing, onCorrectNote, onWrongNote, noteTrackingMap1, noteTrackingMap2, midiPitchToNoteName, correctNotesCount, wrongNotesCount, highlightNoteById, onUpdateCursorPosition, findNoteElementByMetadata]);
 
   // Reset note tracking when practice mode starts
   React.useEffect(() => {
