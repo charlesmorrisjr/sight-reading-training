@@ -721,16 +721,20 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
         const targetPitch = pitchObj.pitch;
 
         console.log("Metadata:",currentNoteMetadata)
-        // console.log(pitchObj.pitch, pitchObj.start);
+        console.log(pitchObj.pitch, pitchObj.start);
 
         // Find matching note in metadata using sequential matching with wasScored
         // Iterate through the note metadata until the first note in sequence is found that matches and was not scored yet
         for (let i = 0; i < currentNoteMetadata.length; i++) {
           let noteData = currentNoteMetadata[i];
-          // console.log(noteData.startTime);
+          console.log(noteData.startTime);
           if (noteData.id.startsWith(`ex${displayNumber}_`) &&    // Is this line necessary? Check later
               noteData.measureIndex === eventMeasure &&
               noteData.midiPitch === targetPitch &&
+              // pitchObj.start considers whole notes as 1, and smaller notes are a division of that (e.g., 1/4 notes are 0.25)
+              // noteData.startTime considers whole notes as 8 and smaller notes are a division of that (e.g., 1/4 notes are 2)
+              // pitchObj.start increments to the length of the music
+              // noteData.startTime increments to the length of a measure (which depends on the time signature) and loops back to 0 after reaching the end of the measure
               noteData.startTime === (pitchObj.start * 8 % 8) &&
               noteData.wasScored === false) {
             console.log("Found", noteData);
