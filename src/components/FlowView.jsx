@@ -710,7 +710,10 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
         // Iterate through the note metadata until the first note in sequence is found that matches and was not scored yet
         for (let i = 0; i < currentNoteMetadata.length; i++) {
           let noteData = currentNoteMetadata[i];
-          if (noteData.measureIndex === eventMeasure && noteData.midiPitch === targetPitch && noteData.wasScored === false) {
+          if (noteData.id.startsWith(`ex${displayNumber}_`) &&    // Is this line necessary? Check later
+              noteData.measureIndex === eventMeasure &&
+              noteData.midiPitch === targetPitch &&
+              noteData.wasScored === false) {
             console.log("Found", noteData);
             noteData.wasScored = true;
 
@@ -1125,7 +1128,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     // Track whether this is the initial start of the practice session
     let isFirstCall = true;
 
-    const practiceNextDisplay = async (displayNumber) => {
+    const practiceNextDisplay = (displayNumber) => {
       // Check if continuous practice was stopped
       if (!continuousPracticeActiveRef.current) {
         return;
