@@ -90,6 +90,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
   // Track background generation state to prevent race conditions
   const backgroundGenerationActiveRef = useRef(new Set());
 
+  // Track if we've already triggered background generation for the next exercise
+  const hasTriggeredBackgroundGenRef = useRef(false);
+
   // Ref to store metronome trigger function
   const metronomeTriggerRef = useRef(null);
 
@@ -955,6 +958,23 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
           return;
         }
 
+          // HALFWAY POINT GENERATION: Trigger background generation for next exercise
+          // when we reach measure 2 (halfway through 4-measure exercise)
+          if (isPracticeMode &&
+              continuousPracticeActiveRef.current &&
+              !hasTriggeredBackgroundGenRef.current &&
+              event.measureNumber >= 2) {
+
+            // Determine which display to generate next
+            const nextDisplayForGeneration = displayNumber === 1 ? 2 : 1;
+
+            // Trigger generation
+            generateNextExerciseInBackground(nextDisplayForGeneration);
+
+            // Mark as triggered to prevent duplicate calls
+            hasTriggeredBackgroundGenRef.current = true;
+          }
+
           // Enhanced debugging and note tracking (commented out)
           // if (event) {
           // }
@@ -1164,6 +1184,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       setCurrentPlayingDisplay(displayNumber);
       currentPlayingDisplayRef.current = displayNumber;
 
+      // Reset background generation flag for new exercise
+      hasTriggeredBackgroundGenRef.current = false;
+
       // Reset cursor tracking when switching to new exercise/display
       resetCursorTracking();
 
@@ -1205,9 +1228,8 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
           // Switch to next display immediately (no blocking generation)
           const nextDisplay = currentDisplay === 1 ? 2 : 1;
 
-          // Start background generation for the display we're switching away from
-          // This ensures it's ready for the next cycle
-          generateNextExerciseInBackground(currentDisplay);
+          // Background generation is now triggered at halfway point (measure 2)
+          // instead of immediately on transition - see eventCallback in startVisualCursor
 
           // Switch to next display immediately
           practiceNextDisplay(nextDisplay);
@@ -1220,9 +1242,8 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
         }
         startVisualCursor(true, displayNumber, visualObj, continuousTransitionCallback, isInitialStart);
 
-        // Start generating next exercise in background immediately when current exercise begins
-        const nextDisplayForGeneration = displayNumber === 1 ? 2 : 1;
-        generateNextExerciseInBackground(nextDisplayForGeneration);
+        // Background generation is now triggered at halfway point (measure 2)
+        // instead of immediately when exercise starts - see eventCallback in startVisualCursor
 
       } catch (error) {
         console.error(`Error in continuous practice flow for display ${displayNumber}:`, error);
@@ -1232,7 +1253,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
     // Start with first display
     practiceNextDisplay(1);
-  }, [startVisualCursor, stopContinuousPractice, generateNextExerciseInBackground, resetCursorTracking]);
+  }, [startVisualCursor, stopContinuousPractice, resetCursorTracking]);
 
   // Handle practice button click - does not play audio
   const handlePracticeClick = useCallback(async () => {
