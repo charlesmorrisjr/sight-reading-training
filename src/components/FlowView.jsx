@@ -694,6 +694,10 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
     // Define note processing function using ev.midiPitches with start time for perfect matching
     const processNotesAtEvent = (ev) => {
+      // Calculate eighth notes per measure for time-signature-aware matching
+      const [beatsPerMeasure, beatUnit] = settings.timeSignature.split('/').map(Number);
+      const eighthNotesPerMeasure = (beatsPerMeasure * 8) / beatUnit;
+
       const allActiveNoteIds = new Set();  // All note IDs currently sounding
       const newNotes = new Set();          // Only notes that START at current position
       const newNoteIds = new Set();        // Only note IDs that START at current position
@@ -720,8 +724,8 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       ev.midiPitches.forEach(pitchObj => {
         const targetPitch = pitchObj.pitch;
 
-        console.log("Metadata:",currentNoteMetadata)
-        console.log(pitchObj.pitch, pitchObj.start);
+        // console.log("Metadata:",currentNoteMetadata)
+        // console.log(pitchObj.pitch, pitchObj.start);
 
         // Find matching note in metadata using sequential matching with wasScored
         // Iterate through the note metadata until the first note in sequence is found that matches and was not scored yet
@@ -735,9 +739,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
               // noteData.startTime considers whole notes as 8 and smaller notes are a division of that (e.g., 1/4 notes are 2)
               // pitchObj.start increments to the length of the music
               // noteData.startTime increments to the length of a measure (which depends on the time signature) and loops back to 0 after reaching the end of the measure
-              noteData.startTime === (pitchObj.start * 8 % 8) &&
+              noteData.startTime === (pitchObj.start * 8 % eighthNotesPerMeasure) &&
               noteData.wasScored === false) {
-            console.log("Found", noteData);
+            // console.log("Found", noteData);
             noteData.wasScored = true;
 
             // Handle rests differently
