@@ -861,8 +861,55 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
         eventCallback: (event) => {
 
         if (!event) {
-          // Music has ended - handle different practice modes
-          console.log(`🏁 VISUAL CURSOR: Music ended for display ${displayNumber}, mode: practice, continuousPractice: ${continuousPracticeActiveRef.current}`);
+          // CRITICAL FIX: Score the last active notes before ending
+          // The cursor-based scoring system requires a "next position" to trigger missed-note detection,
+          // but at the end of the exercise, there is no next position. We must explicitly check the last notes.
+          if (isPracticeMode && isPracticingRef.current) {
+            const lastActiveNoteIds = currentNoteIdsRef.current;
+            const currentTrackingMap = displayNumber === 1 ? noteTrackingMap1 : noteTrackingMap2;
+            const setCurrentTrackingMap = displayNumber === 1 ? setNoteTrackingMap1 : setNoteTrackingMap2;
+
+            lastActiveNoteIds.forEach(noteId => {
+              const note = currentTrackingMap.get(noteId);
+
+              const voice = note.voiceIndex === 0 ? 'T' : 'B';
+
+              if (note.status === 'unplayed') {
+                // Mark as incorrect/missed
+                setCurrentTrackingMap(prevMap => {
+                  const newMap = new Map(prevMap);
+                  newMap.set(noteId, { ...note, status: 'incorrect' });
+                  return newMap;
+                });
+
+                // Highlight red using the same triple-fallback approach as the main scoring logic
+                let domElement = currentCursorElementsRef.current.get(noteId);
+                let prevElement = previousCursorElementsRef.current.get(noteId);
+                let queryElement = null;
+
+                // Third fallback: Query DOM directly (for bass clef notes)
+                if (!domElement && !prevElement) {
+                  queryElement = findNoteElementByMetadata(note, displayNumber);
+                }
+
+                if (domElement && domElement.classList) {
+                  domElement.classList.add('abcjs-note-incorrect');
+                  console.log(`  ❌MISS ${note.expectedNote} (${voice}): curr=YES`);
+                } else if (prevElement && prevElement.classList) {
+                  prevElement.classList.add('abcjs-note-incorrect');
+                  console.log(`  ❌MISS ${note.expectedNote} (${voice}): prev=YES`);
+                } else if (queryElement && queryElement.classList) {
+                  queryElement.classList.add('abcjs-note-incorrect');
+                  console.log(`  ❌MISS ${note.expectedNote} (${voice}): query=YES`);
+                } else {
+                  console.log(`  ❌MISS ${note.expectedNote} (${voice}): ALL FAILED`);
+                }
+
+                // Increment wrong counter for missed note
+                onWrongNote(note.expectedNote);
+              }
+            });
+          }
 
           // Handle continuous practice flow
           if (continuousPracticeActiveRef.current && continuousCallback) {
@@ -1124,7 +1171,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
       }
     }
 
-  }, [settings, onPracticeEnd, noteTrackingMap1, noteTrackingMap2, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive]);
+  }, [settings, onPracticeEnd, noteTrackingMap1, noteTrackingMap2, onMetronomeToggle, createCursorControl, resetAllNoteHighlighting, isMetronomeActive, findNoteElementByMetadata, generateNextExerciseInBackground, highlightNoteById, onWrongNote]);
 
   // Stop continuous practice
   const stopContinuousPractice = useCallback(() => {
