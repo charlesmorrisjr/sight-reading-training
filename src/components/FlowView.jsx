@@ -93,6 +93,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
   // Track if we've already triggered background generation for the next exercise
   const hasTriggeredBackgroundGenRef = useRef(false);
 
+  // Track if we've completed the first playthrough of Exercise 1 (prevents premature Exercise 2 generation)
+  const hasCompletedFirstPlaythroughRef = useRef(false);
+
   // Ref to store metronome trigger function
   const metronomeTriggerRef = useRef(null);
 
@@ -915,6 +918,12 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
           if (continuousPracticeActiveRef.current && continuousCallback) {
             console.log(`🔄 CONTINUOUS FLOW: Display ${displayNumber} finished, switching to next (practice mode)`);
 
+            // Mark first playthrough as complete when Exercise 1 (display 1) finishes
+            // This allows Exercise 2 to be generated during subsequent playthroughs
+            if (displayNumber === 1) {
+              hasCompletedFirstPlaythroughRef.current = true;
+            }
+
             // Clean up current cursor
             if (cursorLine && cursorLine.parentNode) {
               cursorLine.remove();
@@ -1007,8 +1016,10 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
           // HALFWAY POINT GENERATION: Trigger background generation for next exercise
           // when we reach measure 2 (halfway through 4-measure exercise)
+          // Only trigger after completing the first playthrough to prevent premature generation
           if (isPracticeMode &&
               continuousPracticeActiveRef.current &&
+              hasCompletedFirstPlaythroughRef.current &&
               !hasTriggeredBackgroundGenRef.current &&
               event.measureNumber >= 2) {
 
@@ -1183,6 +1194,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     // Reset cursor tracking when stopping continuous practice
     resetCursorTracking();
 
+    // Reset first playthrough flag for next practice session
+    hasCompletedFirstPlaythroughRef.current = false;
+
     // Clean up visual cursors
     const existingCursor = document.querySelector('.playback-cursor');
     if (existingCursor) {
@@ -1218,6 +1232,9 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     continuousPracticeActiveRef.current = true;
     setCurrentPlayingDisplay(1);
     currentPlayingDisplayRef.current = 1;
+
+    // Initialize first playthrough flag - Exercise 2 will only generate after Exercise 1 completes once
+    hasCompletedFirstPlaythroughRef.current = false;
 
     // Track whether this is the initial start of the practice session
     let isFirstCall = true;
