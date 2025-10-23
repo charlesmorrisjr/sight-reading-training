@@ -857,7 +857,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
     try {
       timingCallbacks = new ABCJS.TimingCallbacks(targetVisualObj, {
         qpm: settings.tempo, // Quarter notes per minute - matches settings
-        beatSubdivisions: 4, // Get callbacks on 16th note boundaries for smoothness
+        beatSubdivisions: 8, // Get callbacks on 32th note boundaries for smoothness and to capture user MIDI input on time
         extraMeasuresAtBeginning: (isPracticeMode && isInitialStart) ? 2 : 0,
 
         // Event callback - called for each musical event (note, rest, etc.)
