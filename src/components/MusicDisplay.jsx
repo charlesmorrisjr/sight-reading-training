@@ -197,8 +197,9 @@ const MusicDisplay = ({
         wrap: {
           minSpacing: 1.8,
           maxSpacing: 2.8,
-          preferredMeasuresPerLine: preferredMeasuresPerLine
+          preferredMeasuresPerLine: preferredMeasuresPerLine,
         },
+        timeBasedLayout: { minPadding: 20, minWidth: staffWidth},   // Prevents staff width from not filling the entire width in FlowView with certain note durations
         staffwidth: staffWidth,
         // Only use responsive on smaller screens
         ...(useResponsive && { responsive: 'resize' }),
