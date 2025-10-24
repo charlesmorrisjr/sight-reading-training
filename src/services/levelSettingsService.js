@@ -130,10 +130,15 @@ export const saveUserLevelOverrides = (levelNumber, customSettings) => {
     // Get existing overrides for this level
     const existingLevelOverrides = allOverrides[levelNumber] || {};
 
-    // Merge existing overrides with new customizations
+    // Filter out noteRange from customSettings before saving
+    // noteRange should always come from level configurations, not user overrides
+    const settingsToSave = { ...customSettings };
+    delete settingsToSave.noteRange;
+
+    // Merge existing overrides with new customizations (excluding noteRange)
     const updatedLevelOverrides = {
       ...existingLevelOverrides,
-      ...customSettings
+      ...settingsToSave
     };
 
     // Update the overrides object
