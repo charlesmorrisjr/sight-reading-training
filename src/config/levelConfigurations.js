@@ -97,7 +97,7 @@ export const LEVEL_CONFIGURATIONS = {
     melodicArticulations: ['legato'],
 
     noteRange: {
-      treble: { min: 'B3', max: 'D5' },  // Expanded by 2 notes each direction
+      treble: { min: 'C4', max: 'D5' },  // Expanded by 2 notes each direction
       bass: { min: 'B2', max: 'D4' }
     },
 
@@ -137,7 +137,7 @@ export const LEVEL_CONFIGURATIONS = {
     melodicArticulations: ['legato'],
 
     noteRange: {
-      treble: { min: 'A3', max: 'E5' },
+      treble: { min: 'C4', max: 'E5' },
       bass: { min: 'A2', max: 'E4' }
     },
 
