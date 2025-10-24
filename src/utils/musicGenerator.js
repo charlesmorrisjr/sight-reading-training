@@ -874,7 +874,8 @@ function generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, ava
       candidateIndex = lastNoteIndex - Math.abs(interval || 1);
     }
     if (candidateIndex < minBound) {
-      candidateIndex = lastNoteIndex + Math.abs(interval || 1);
+      // candidateIndex = lastNoteIndex + Math.abs(interval || 1);
+      continue;   // If note is out of range, generate a new note
     }
     lastNoteIndex = candidateIndex;
 
