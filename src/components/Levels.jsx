@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMusic, FaStar } from 'react-icons/fa';
+import { getLevelMetadata } from '../config/levelConfigurations';
 
 const Levels = ({ selectedLevel, onLevelChange }) => {
   const navigate = useNavigate();
@@ -21,50 +22,6 @@ const Levels = ({ selectedLevel, onLevelChange }) => {
     } else {
       // Uncontrolled component
       setInternalSelectedLevel(currentLevel === level ? null : level);
-    }
-  };
-
-  // Placeholder explanations for each level
-  const levelExplanations = {
-    1: {
-      title: "Beginner - Single Notes",
-      description: "Practice reading individual notes in treble clef. Focus on notes within the staff with no accidentals. Perfect for absolute beginners starting their sight-reading journey."
-    },
-    2: {
-      title: "Basic - Simple Rhythms", 
-      description: "Introduce basic rhythm patterns with quarter notes and half notes. Simple melodies in C major with minimal hand position changes."
-    },
-    3: {
-      title: "Elementary - Two Hands",
-      description: "Begin coordinating both hands with simple bass clef notes. Practice basic intervals and two-note harmonies in major keys."
-    },
-    4: {
-      title: "Intermediate - Accidentals",
-      description: "Add sharps and flats to your practice. Work with key signatures up to 2 sharps/flats and more complex rhythm patterns including eighth notes."
-    },
-    5: {
-      title: "Developing - Minor Keys",
-      description: "Explore minor key signatures and natural minor scales. Practice more complex hand coordination and simple chord progressions."
-    },
-    6: {
-      title: "Progressing - Extended Rhythms",
-      description: "Master dotted rhythms, sixteenth notes, and syncopation. Work with key signatures up to 4 sharps/flats and basic modulations."
-    },
-    7: {
-      title: "Advanced - Complex Harmonies",
-      description: "Practice advanced chord progressions, seventh chords, and non-chord tones. Handle all major and minor key signatures confidently."
-    },
-    8: {
-      title: "Proficient - Multiple Voices",
-      description: "Read and play multiple independent voice parts. Master advanced rhythmic patterns and complex time signatures like 6/8 and 3/4."
-    },
-    9: {
-      title: "Expert - Chromatic Passages",
-      description: "Navigate chromatic passages, advanced modulations, and enharmonic equivalents. Practice sight-reading at moderate to fast tempos."
-    },
-    10: {
-      title: "Master - Professional Level",
-      description: "Handle any musical style and complexity. Read dense orchestral reductions, contemporary notation, and maintain accuracy at performance tempo."
     }
   };
 
@@ -150,7 +107,7 @@ const Levels = ({ selectedLevel, onLevelChange }) => {
         </div>
 
         {/* Explanation Card */}
-        {currentLevel && levelExplanations[currentLevel] && (
+        {currentLevel && getLevelMetadata(currentLevel) && (
           <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg animate-fade-in">
             <div className="card-body p-8">
               <div className="flex items-start space-x-4">
@@ -161,10 +118,10 @@ const Levels = ({ selectedLevel, onLevelChange }) => {
                 </div>
                 <div className="flex-1">
                   <h3 className="card-title text-xl mb-3">
-                    {levelExplanations[currentLevel].title}
+                    {getLevelMetadata(currentLevel)?.levelName}
                   </h3>
                   <p className="text-gray-700 leading-relaxed">
-                    {levelExplanations[currentLevel].description}
+                    {getLevelMetadata(currentLevel)?.description}
                   </p>
                   <div className="mt-6 flex items-center justify-between">
                     <div className="flex items-center space-x-4">
