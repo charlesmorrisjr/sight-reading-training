@@ -73,7 +73,7 @@ export const LEVEL_CONFIGURATIONS = {
     measures: 4,
     tempo: 80,
 
-    noteDurations: ['1/4', '1/8', '1/2'],  // Add half notes
+    noteDurations: ['1/4', '1/2'],  // Add half notes
 
     intervals: [1],
     chordProgressions: ['pop'],
@@ -113,7 +113,7 @@ export const LEVEL_CONFIGURATIONS = {
     measures: 4,
     tempo: 90,
 
-    noteDurations: ['1/4', '1/8', '1/2'],
+    noteDurations: ['1/4', '1/2'],
 
     intervals: [1, 2, 3],  // Unison, 2nds, 3rds
     chordProgressions: ['pop', '50s'],
@@ -145,15 +145,15 @@ export const LEVEL_CONFIGURATIONS = {
   },
 
   4: {
-    levelName: "Intermediate - Sharp Keys",
+    levelName: "Elementary - Eighth Notes",
     description: "Add sharps and flats, practice more complex intervals",
 
-    key: 'G',  // 1 sharp
+    key: 'C',
     timeSignature: '4/4',
     measures: 6,
-    tempo: 100,
+    tempo: 80,
 
-    noteDurations: ['1/4', '1/8', '1/2'],  // Dotted quarters will come in Level 5
+    noteDurations: ['1/4', '1/8'],  // Add eighth notes
 
     intervals: [1, 2, 3, 4],  // Add 4ths
     chordProgressions: ['pop', '50s', 'basic-cadence'],
@@ -177,7 +177,7 @@ export const LEVEL_CONFIGURATIONS = {
     melodicArticulations: ['legato'],
 
     noteRange: {
-      treble: { min: 'G3', max: 'F5' },
+      treble: { min: 'C4', max: 'F5' },
       bass: { min: 'G2', max: 'F4' }
     },
 
