@@ -1421,8 +1421,11 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
   }, [isPracticing, startContinuousPractice, isMetronomeActive, onMetronomeToggle, resetAllNoteHighlighting, resetCursorTracking]);
 
   React.useEffect(() => {
-    handleGenerateNew();
-  }, [handleGenerateNew]);
+    // Only generate music after level settings are loaded
+    if (settings) {
+      handleGenerateNew();
+    }
+  }, [handleGenerateNew, settings]);
 
   // Update last practiced date when user enters practice route
   React.useEffect(() => {
