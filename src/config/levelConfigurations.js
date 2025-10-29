@@ -22,13 +22,13 @@ export const LEVEL_CONFIGURATIONS = {
     key: 'C',
     timeSignature: '4/4',
     measures: 4,
-    tempo: 70,
+    tempo: 80,
 
     // Note durations
-    noteDurations: ['1/4', '1/8'],  // Quarter and eighth notes only
+    noteDurations: ['1/4'],
 
     // Intervals and patterns
-    intervals: [1],  // Unisons only (single notes)
+    intervals: [1, 2, 3],
     chordProgressions: ['pop'],
 
     // Left hand settings
@@ -57,7 +57,7 @@ export const LEVEL_CONFIGURATIONS = {
     // Note range constraints
     noteRange: {
       treble: { min: 'C4', max: 'C5' },  // RH: Middle C to C above
-      bass: { min: 'C3', max: 'C4' }     // LH: C below middle C to middle C
+      bass: { min: 'C3', max: 'B3' }     // LH: C below middle C to middle C
     },
 
     // UI settings
@@ -75,7 +75,7 @@ export const LEVEL_CONFIGURATIONS = {
 
     noteDurations: ['1/4', '1/2'],  // Add half notes
 
-    intervals: [1],
+    intervals: [1, 2, 3],
     chordProgressions: ['pop'],
 
     leftHandPatterns: ['single-notes'],
@@ -105,6 +105,46 @@ export const LEVEL_CONFIGURATIONS = {
   },
 
   3: {
+    levelName: "Basic - Eighth Notes",
+    description: "Begin coordinating both hands with simple bass and melody",
+
+    key: 'C',
+    timeSignature: '4/4',
+    measures: 4,
+    tempo: 80,
+
+    noteDurations: ['1/4', '1/2'],
+
+    intervals: [1, 2, 3],  // Unison, 2nds, 3rds
+    chordProgressions: ['pop', '50s'],
+
+    leftHandPatterns: ['block-chords'],  // LH plays block chords
+    leftHandBrokenChords: ['1-3-5-3'],
+
+    rightHandPatterns: ['single-notes'],  // RH plays melody
+    rightHandIntervals: ['2nd'],
+    rightHand4NoteChords: ['major'],
+
+    swapHandPatterns: false,
+    alternatingHands: false,  // Both hands together now!
+
+    chordTypes: ['major'],
+    chordInversions: ['root'],
+    chordVoicings: ['closed'],
+    chordRhythms: ['straight'],
+
+    melodicPatterns: ['melodies'],
+    melodicArticulations: ['legato'],
+
+    noteRange: {
+      treble: { min: 'C4', max: 'E5' },
+      bass: { min: 'A2', max: 'E4' }
+    },
+
+    musicScale: 1.0
+  },
+
+  4: {
     levelName: "Elementary - Two Hands",
     description: "Begin coordinating both hands with simple bass and melody",
 
@@ -144,7 +184,7 @@ export const LEVEL_CONFIGURATIONS = {
     musicScale: 1.0
   },
 
-  4: {
+  5: {
     levelName: "Elementary - Eighth Notes",
     description: "Add sharps and flats, practice more complex intervals",
 
@@ -184,7 +224,7 @@ export const LEVEL_CONFIGURATIONS = {
     musicScale: 1.0
   },
 
-  5: {
+  6: {
     levelName: "Developing - Flat Keys & 3/4",
     description: "Explore flat keys and waltz time signature",
 
@@ -217,14 +257,14 @@ export const LEVEL_CONFIGURATIONS = {
     melodicArticulations: ['legato'],
 
     noteRange: {
-      treble: { min: 'F3', max: 'G5' },
+      treble: { min: 'C4', max: 'G5' },
       bass: { min: 'F2', max: 'G4' }
     },
 
     musicScale: 1.0
   },
 
-  6: {
+  7: {
     levelName: "Progressing - Sixteenth Notes",
     description: "Master faster rhythms and multiple time signatures",
 
@@ -257,14 +297,14 @@ export const LEVEL_CONFIGURATIONS = {
     melodicArticulations: ['legato', 'staccato'],
 
     noteRange: {
-      treble: { min: 'E3', max: 'A5' },
+      treble: { min: 'C4', max: 'A5' },
       bass: { min: 'E2', max: 'A4' }
     },
 
     musicScale: 1.0
   },
 
-  7: {
+  8: {
     levelName: "Advanced - Minor Keys",
     description: "Practice advanced chord progressions and minor keys",
 
@@ -297,14 +337,14 @@ export const LEVEL_CONFIGURATIONS = {
     melodicArticulations: ['legato', 'staccato'],
 
     noteRange: {
-      treble: { min: 'D3', max: 'B5' },
+      treble: { min: 'C4', max: 'B5' },
       bass: { min: 'D2', max: 'B4' }
     },
 
     musicScale: 1.0
   },
 
-  8: {
+  9: {
     levelName: "Proficient - Complex Time",
     description: "Handle compound meters and walking bass patterns",
 
@@ -337,14 +377,14 @@ export const LEVEL_CONFIGURATIONS = {
     melodicArticulations: ['legato', 'staccato', 'accent'],
 
     noteRange: {
-      treble: { min: 'C3', max: 'C6' },  // Wider range
+      treble: { min: 'C4', max: 'C6' },  // Wider range
       bass: { min: 'C2', max: 'C5' }
     },
 
     musicScale: 1.0
   },
 
-  9: {
+  10: {
     levelName: "Expert - Advanced Keys",
     description: "Navigate chromatic passages and all key signatures",
 
@@ -377,52 +417,12 @@ export const LEVEL_CONFIGURATIONS = {
     melodicArticulations: ['legato', 'staccato', 'accent'],
 
     noteRange: {
-      treble: { min: 'A2', max: 'E6' },
+      treble: { min: 'C4', max: 'E6' },
       bass: { min: 'A1', max: 'D5' }
     },
 
     musicScale: 1.0
   },
-
-  10: {
-    levelName: "Master - Professional",
-    description: "Handle any musical style and complexity at performance tempo",
-
-    key: 'Ab',  // 4 flats
-    timeSignature: '2/2',  // Cut time
-    measures: 16,
-    tempo: 150,
-
-    noteDurations: ['1/16', '1/8', '1/4', '1/2', '1'],
-
-    intervals: [1, 2, 3, 4, 5, 6, 7, 8],
-    chordProgressions: ['pop', '50s', 'basic-cadence', 'pop-variation', 'jazz', 'alternating', 'minor-start', 'variation'],
-
-    leftHandPatterns: ['block-chords', 'broken-chords', 'alberti-bass', 'octaves', 'walking-bass'],
-    leftHandBrokenChords: ['1-3-5-3', '1-5-3-5', '1-5-3-1'],
-
-    rightHandPatterns: ['single-notes', 'intervals', '3-note-chords', 'octaves', '4-note-chords', 'arpeggios'],
-    rightHandIntervals: ['2nd', '3rd', '4th', '5th', '6th', '7th', 'octave'],
-    rightHand4NoteChords: ['major', 'minor', '7th', 'maj7', 'dim7'],
-
-    swapHandPatterns: true,
-    alternatingHands: false,
-
-    chordTypes: ['major', 'minor', 'diminished', 'augmented'],
-    chordInversions: ['root', '1st', '2nd'],
-    chordVoicings: ['closed', 'open'],
-    chordRhythms: ['straight', 'syncopated', 'swung'],
-
-    melodicPatterns: ['melodies', 'scales', 'arpeggios'],
-    melodicArticulations: ['legato', 'staccato', 'accent'],
-
-    noteRange: {
-      treble: { min: 'G2', max: 'F6' },  // Full piano range
-      bass: { min: 'G1', max: 'F5' }
-    },
-
-    musicScale: 1.0
-  }
 };
 
 /**
