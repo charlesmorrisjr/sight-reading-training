@@ -89,13 +89,6 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (data?.user && data?.session) {
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.email.split('@')[0],
-          loginMethod: 'email'
-        };
-        
         // Migrate guest settings on login as well (in case user logged in on new device)
         try {
           const migrationResult = await migrateGuestSettings(data.user.id);
@@ -106,9 +99,8 @@ export const AuthProvider = ({ children }) => {
           console.warn('Failed to migrate guest settings during login:', migrationError);
           // Don't fail login if migration fails
         }
-        
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
+
+        // Let the auth state listener handle setting user state
         return { success: true };
       }
 
@@ -150,13 +142,6 @@ export const AuthProvider = ({ children }) => {
         }
 
         // User is signed up and confirmed
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.email.split('@')[0],
-          loginMethod: 'email'
-        };
-        
         // Migrate guest settings to new user account
         try {
           const migrationResult = await migrateGuestSettings(data.user.id);
@@ -167,9 +152,8 @@ export const AuthProvider = ({ children }) => {
           console.warn('Failed to migrate guest settings:', migrationError);
           // Don't fail signup if migration fails
         }
-        
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
+
+        // Let the auth state listener handle setting user state
         return { success: true };
       }
 
