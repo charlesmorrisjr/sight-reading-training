@@ -85,6 +85,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Track if we've generated the initial exercise (prevents double generation on mount)
   const hasGeneratedInitialRef = useRef(false);
 
+  // Track previous settings to detect actual changes vs initial mount
+  const prevSettingsRef = useRef(null);
+
   // Ref to track previously highlighted note elements for cleanup
   const previouslyHighlightedElementsRef = useRef(new Set());
 
@@ -889,17 +892,24 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
     }
   }, [isPracticing, startVisualCursor, isMetronomeActive, onMetronomeToggle, resetAllNoteHighlighting]);
 
+  // Generate music on initial mount and when settings change
   React.useEffect(() => {
-    // Only generate on initial mount, not on subsequent handleGenerateNew changes
-    if (!hasGeneratedInitialRef.current) {
+    // Check if this is the initial mount or if settings actually changed
+    const isInitialMount = !hasGeneratedInitialRef.current;
+    const settingsChanged = prevSettingsRef.current !== null && prevSettingsRef.current !== settings;
+
+    if (isInitialMount) {
+      // First time mounting - generate music once
       hasGeneratedInitialRef.current = true;
+      prevSettingsRef.current = settings;
       handleGenerateNew();
-    } else {
-      // Settings changed after initial mount - regenerate music with new settings
+    } else if (settingsChanged) {
+      // Settings deliberately changed - regenerate
+      prevSettingsRef.current = settings;
       handleGenerateNew();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings]); // Depend on settings - regenerate when they change
+  }, [settings]); // Runs on mount and when settings change
 
   // Update last practiced date when user enters practice route
   React.useEffect(() => {
