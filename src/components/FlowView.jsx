@@ -1781,10 +1781,12 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
               className="flex items-center space-x-3 cursor-pointer"
               onClick={() => navigate('/levels')}
             >
-              <FaMusic className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              {/* <FaMusic className="h-8 w-8 text-blue-600 dark:text-blue-400" /> */}
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+                <FaMusic className="text-white text-lg" />
+              </div>
               <div className="text-left">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Flow Mode - Level {levelNumber}</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Sight Reading Training</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Flow Mode - Level {levelNumber}</h1>
               </div>
             </button>
 
