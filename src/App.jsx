@@ -1114,7 +1114,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
                 <FaMusic className="text-white text-lg" />
               </div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
-                Practisia
+                Practice Mode
               </h1>
             </button>
 
