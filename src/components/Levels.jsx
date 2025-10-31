@@ -42,16 +42,6 @@ const Levels = ({ selectedLevel, onLevelChange }) => {
               <span className="hidden sm:inline">Back</span>
             </button>
             
-            {/* Title */}
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl">
-                <FaStar className="text-white text-lg" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                Select Your Level
-              </h1>
-            </div>
-            
             {/* Spacer for centering */}
             <div className="w-20"></div>
           </div>
