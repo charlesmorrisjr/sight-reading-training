@@ -1869,7 +1869,7 @@ const FlowView = ({ pressedMidiNotes = new Set(), midiNoteStates = new Map(), on
 
 
           {/* Music Displays */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
             {/* First Exercise */}
             {abcNotation && (
               <div className="music-display-container" data-display="1">
