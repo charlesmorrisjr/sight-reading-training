@@ -1222,9 +1222,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Music Display Section */}
-        <div className="card-body p-8">
-          <MusicDisplay 
-            abcNotation={abcNotation} 
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
+          <MusicDisplay
+            abcNotation={abcNotation}
             settings={settings}
             onVisualsReady={handleVisualsReady}
             pressedMidiNotes={pressedMidiNotes}
@@ -1235,7 +1235,7 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
         </div>
 
         {/* Generate Button */}
-        <div className="text-center">
+        <div className="text-center mt-6">
           <button 
             className={`btn btn-primary btn-lg ${isGenerating ? 'loading' : ''} ${
               (isGenerating || isPlaying || isPracticing) ? 'opacity-50 cursor-not-allowed' : ''
