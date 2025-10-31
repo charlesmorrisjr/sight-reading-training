@@ -82,6 +82,9 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   // Ref to track metronome state immediately (avoids async state update issues)
   const isMetronomeActiveRef = useRef(false);
 
+  // Track if we've generated the initial exercise (prevents double generation on mount)
+  const hasGeneratedInitialRef = useRef(false);
+
   // Ref to track previously highlighted note elements for cleanup
   const previouslyHighlightedElementsRef = useRef(new Set());
 
@@ -887,8 +890,16 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
   }, [isPracticing, startVisualCursor, isMetronomeActive, onMetronomeToggle, resetAllNoteHighlighting]);
 
   React.useEffect(() => {
-    handleGenerateNew();
-  }, [handleGenerateNew]);
+    // Only generate on initial mount, not on subsequent handleGenerateNew changes
+    if (!hasGeneratedInitialRef.current) {
+      hasGeneratedInitialRef.current = true;
+      handleGenerateNew();
+    } else {
+      // Settings changed after initial mount - regenerate music with new settings
+      handleGenerateNew();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]); // Depend on settings - regenerate when they change
 
   // Update last practiced date when user enters practice route
   React.useEffect(() => {
