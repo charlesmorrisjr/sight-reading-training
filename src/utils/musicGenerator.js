@@ -851,7 +851,7 @@ function generateSimpleMelody(currentChord, totalBeatsPerMeasure, intervals, ava
   const harmonicIndices = currentChord ? getHarmonicNoteIndices(currentChord, key) : null;
 
   // Determine bounds - use rangeIndices if provided, otherwise use default treble range
-  const minBound = rangeIndices ? rangeIndices.minIndex : -3;
+  const minBound = rangeIndices ? rangeIndices.minIndex : 0;
   const maxBound = rangeIndices ? rangeIndices.maxIndex : 10;
 
   // Fill measure with random notes
