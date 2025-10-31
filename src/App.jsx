@@ -1220,19 +1220,17 @@ const PracticeView = ({ settings, onSettingsChange, onTempoClick, pressedMidiNot
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Music Display Section */}
-        <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
-          <MusicDisplay
-            abcNotation={abcNotation}
-            settings={settings}
-            onVisualsReady={handleVisualsReady}
-            pressedMidiNotes={pressedMidiNotes}
-            enableRealtimeHighlighting={false}
-            noteTrackingMap={noteTrackingMap}
-            showPostPracticeResults={showPostPracticeResults}
-          />
-        </div>
+        <MusicDisplay
+          abcNotation={abcNotation}
+          settings={settings}
+          onVisualsReady={handleVisualsReady}
+          pressedMidiNotes={pressedMidiNotes}
+          enableRealtimeHighlighting={false}
+          noteTrackingMap={noteTrackingMap}
+          showPostPracticeResults={showPostPracticeResults}
+        />
 
         {/* Generate Button */}
         <div className="text-center mt-6">
